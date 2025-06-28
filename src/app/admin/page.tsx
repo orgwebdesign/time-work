@@ -30,73 +30,58 @@ export default function AdminDashboard() {
   const [reports, setReports] = useState<Report[]>([]);
   const [isClient, setIsClient] = useState(false);
 
+  // Effect to run on client mount
   useEffect(() => {
     setIsClient(true);
     try {
+      // Load initial data from localStorage
       const storedUsers = localStorage.getItem('taskmaster-users');
       if (storedUsers) {
-        const loadedUsers: User[] = JSON.parse(storedUsers);
-        setUsers(loadedUsers);
-        
-        const clientUsers = loadedUsers.filter(user => user.email !== 'admin@example.com');
-        const sessions = clientUsers.reduce((sum, user) => sum + (user.loginCount || 0), 0);
-        setTotalSessions(sessions);
-
-        // Aggregate tasks from all users
-        let allTasksCount = 0;
-        loadedUsers.forEach(user => {
-          const userTasksKey = `taskmaster-tasks-${user.id}`;
-          const storedTasks = localStorage.getItem(userTasksKey);
-          if (storedTasks) {
-            try {
-              const userTasks: Task[] = JSON.parse(storedTasks);
-              allTasksCount += userTasks.length;
-            } catch (e) {
-              console.error(`Failed to parse tasks for user ${user.id}`, e);
-            }
-          }
-        });
-        setTotalTasks(allTasksCount);
+        setUsers(JSON.parse(storedUsers));
       }
-      
       const storedReports = localStorage.getItem('taskmaster-reports');
       if (storedReports) {
         setReports(JSON.parse(storedReports));
       }
     } catch (error) {
-      console.error('Failed to load data from localStorage', error);
+      console.error('Failed to load initial data from localStorage', error);
     }
   }, []);
   
+  // Effect to recalculate stats when users list changes
+  useEffect(() => {
+    if (!isClient) return;
+
+    const clientUsers = users.filter(user => user.email !== 'admin@example.com');
+    const sessions = clientUsers.reduce((sum, user) => sum + (user.loginCount || 0), 0);
+    setTotalSessions(sessions);
+
+    let allTasksCount = 0;
+    users.forEach(user => {
+      const userTasksKey = `taskmaster-tasks-${user.id}`;
+      const storedTasks = localStorage.getItem(userTasksKey);
+      if (storedTasks) {
+        try {
+          const userTasks: Task[] = JSON.parse(storedTasks);
+          allTasksCount += userTasks.length;
+        } catch (e) {
+          console.error(`Failed to parse tasks for user ${user.id}`, e);
+        }
+      }
+    });
+    setTotalTasks(allTasksCount);
+  }, [users, isClient]);
+
   const handleDeleteUser = (userId: string) => {
     if (window.confirm('Are you sure you want to permanently delete this user and all their data? This action cannot be undone.')) {
       try {
         const updatedUsers = users.filter((u) => u.id !== userId);
-        setUsers(updatedUsers);
+        setUsers(updatedUsers); // This will trigger the useEffect to recalculate stats
+        
         localStorage.setItem('taskmaster-users', JSON.stringify(updatedUsers));
-
         localStorage.removeItem(`taskmaster-lists-${userId}`);
         localStorage.removeItem(`taskmaster-tasks-${userId}`);
         localStorage.removeItem(`taskmaster-selectedListId-${userId}`);
-
-        // Recalculate stats from the updated user list to ensure data integrity
-        const currentClientUsers = updatedUsers.filter(user => user.email !== 'admin@example.com');
-        const newTotalSessions = currentClientUsers.reduce((sum, user) => sum + (user.loginCount || 0), 0);
-        setTotalSessions(newTotalSessions);
-
-        let newTotalTasks = 0;
-        updatedUsers.forEach(user => {
-          const userTasksKey = `taskmaster-tasks-${user.id}`;
-          const storedTasks = localStorage.getItem(userTasksKey);
-          if (storedTasks) {
-            try {
-              newTotalTasks += JSON.parse(storedTasks).length;
-            } catch (e) {
-              console.error(`Failed to parse tasks for user ${user.id}`, e);
-            }
-          }
-        });
-        setTotalTasks(newTotalTasks);
         
       } catch (error) {
         console.error('Failed to delete user:', error);
