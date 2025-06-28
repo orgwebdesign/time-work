@@ -66,7 +66,12 @@ export default function AdminDashboard() {
                   </CardDescription>
                 </div>
               </div>
-              <Users className="h-6 w-6 text-muted-foreground" />
+              <div className="flex items-center gap-4">
+                <Users className="h-6 w-6 text-muted-foreground" />
+                <Button asChild>
+                  <Link href="/app">Go to App</Link>
+                </Button>
+              </div>
             </div>
           </CardHeader>
           <CardContent>
