@@ -7,7 +7,7 @@ import * as z from 'zod';
 import type { Task } from "@/lib/types";
 import { Card, CardContent } from "./ui/card";
 import { Button } from './ui/button';
-import { Calendar, Edit, GripVertical, Trash2, BellOff, BellRing, Undo2 } from 'lucide-react';
+import { Calendar, Edit, GripVertical, Trash2, BellOff, BellRing, Undo2, Circle } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { format, isPast } from 'date-fns';
@@ -216,11 +216,13 @@ export default function TaskItem({ task, onToggleTask, onDeleteTask, onUpdateTas
     )}>
       <CardContent className="p-2 flex items-center gap-3">
         {task.completed ? (
-          <Button variant="ghost" size="icon" className="size-5" onClick={() => onToggleTask(task.id)} aria-label={`Mark task "${task.text}" as incomplete`}>
+          <Button variant="ghost" size="icon" className="size-5 flex-shrink-0" onClick={() => onToggleTask(task.id)} aria-label={`Mark task "${task.text}" as incomplete`}>
             <Undo2 className="size-4" />
           </Button>
         ) : (
-          <div className="size-5" />
+          <Button variant="ghost" size="icon" className="size-5 flex-shrink-0" onClick={() => onToggleTask(task.id)} aria-label={`Mark task "${task.text}" as complete`}>
+            <Circle className="size-4 text-muted-foreground/80" />
+          </Button>
         )}
         <div className="flex-1">
           <span
