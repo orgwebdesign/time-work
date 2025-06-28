@@ -66,41 +66,33 @@ export default function AdminDashboard() {
   const handleDeleteUser = (userId: string) => {
     if (window.confirm('Are you sure you want to permanently delete this user and all their data? This action cannot be undone.')) {
       try {
-        const userToDelete = users.find(u => u.id === userId);
-        if (!userToDelete) {
-          console.error(`User with id ${userId} not found for deletion.`);
-          return;
-        }
-
-        // Find tasks to be deleted to update count
-        const userTasksKey = `taskmaster-tasks-${userId}`;
-        const storedTasks = localStorage.getItem(userTasksKey);
-        let tasksToDeleteCount = 0;
-        if (storedTasks) {
-            try {
-              tasksToDeleteCount = JSON.parse(storedTasks).length;
-            } catch (e) {
-              console.error(`Failed to parse tasks for user ${userId} during deletion`, e);
-            }
-        }
-
-        const updatedUsers = users.filter(u => u.id !== userId);
+        const updatedUsers = users.filter((u) => u.id !== userId);
         setUsers(updatedUsers);
         localStorage.setItem('taskmaster-users', JSON.stringify(updatedUsers));
-        
-        // Delete associated user data
+
         localStorage.removeItem(`taskmaster-lists-${userId}`);
-        localStorage.removeItem(userTasksKey);
+        localStorage.removeItem(`taskmaster-tasks-${userId}`);
         localStorage.removeItem(`taskmaster-selectedListId-${userId}`);
 
-        // Update total tasks count state
-        setTotalTasks(prevTotal => prevTotal - tasksToDeleteCount);
+        // Recalculate stats from the updated user list to ensure data integrity
+        const currentClientUsers = updatedUsers.filter(user => user.email !== 'admin@example.com');
+        const newTotalSessions = currentClientUsers.reduce((sum, user) => sum + (user.loginCount || 0), 0);
+        setTotalSessions(newTotalSessions);
 
-        // Update total sessions count if a client user was deleted
-        if (userToDelete.email !== 'admin@example.com') {
-          setTotalSessions(prevSessions => prevSessions - (userToDelete.loginCount || 0));
-        }
-
+        let newTotalTasks = 0;
+        updatedUsers.forEach(user => {
+          const userTasksKey = `taskmaster-tasks-${user.id}`;
+          const storedTasks = localStorage.getItem(userTasksKey);
+          if (storedTasks) {
+            try {
+              newTotalTasks += JSON.parse(storedTasks).length;
+            } catch (e) {
+              console.error(`Failed to parse tasks for user ${user.id}`, e);
+            }
+          }
+        });
+        setTotalTasks(newTotalTasks);
+        
       } catch (error) {
         console.error('Failed to delete user:', error);
         alert('An error occurred while trying to delete the user.');
