@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { PlusCircle, Trash2, Home, LayoutGrid, Shield, StickyNote } from 'lucide-react';
+import { PlusCircle, Trash2, Home, LayoutGrid, Shield, StickyNote, Star } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import {
   Sidebar,
@@ -110,6 +110,9 @@ export default function AppSidebar({
                 </Button>
                 <Button asChild variant="ghost" size="icon" className={cn("rounded-full", pathname.startsWith('/notes') && "text-primary bg-primary/10")}>
                     <Link href="/notes" aria-label="Go to notes page"><StickyNote className="w-5 h-5"/></Link>
+                </Button>
+                <Button asChild variant="ghost" size="icon" className={cn("rounded-full", pathname.startsWith('/reviews') && "text-primary bg-primary/10")}>
+                    <Link href="/reviews" aria-label="Go to reviews page"><Star className="w-5 h-5"/></Link>
                 </Button>
                 {isAdmin && (
                   <Button asChild variant="ghost" size="icon" className={cn("rounded-full", pathname.startsWith('/admin') && "text-primary bg-primary/10")}>
