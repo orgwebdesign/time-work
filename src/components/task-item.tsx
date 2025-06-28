@@ -8,7 +8,7 @@ import type { Task } from "@/lib/types";
 import { Card, CardContent } from "./ui/card";
 import { Checkbox } from "./ui/checkbox";
 import { Button } from './ui/button';
-import { Calendar, Edit, GripVertical, Trash2, X, Check, Clock, BellOff, BellRing } from 'lucide-react';
+import { Calendar, Edit, GripVertical, Trash2, Clock, BellOff, BellRing } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { format, formatDistanceToNow, isPast } from 'date-fns';
@@ -19,6 +19,7 @@ import { Calendar as CalendarComponent } from './ui/calendar';
 import { getTaskAlarm } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
 import { Switch } from './ui/switch';
+import { QuickTimeSelector } from './quick-time-selector';
 
 const formSchema = z.object({
   text: z.string().min(1, { message: "Task cannot be empty." }),
@@ -137,44 +138,48 @@ export default function TaskItem({ task, onToggleTask, onDeleteTask, onUpdateTas
       <Card className="glass-card">
         <CardContent className="p-3">
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField control={form.control} name="text" render={({ field }) => (
                 <FormItem><FormControl><Input {...field} autoFocus /></FormControl></FormItem>
               )} />
-              <div className="flex flex-wrap items-center gap-3">
-                 <FormField control={form.control} name="dueDate" render={({ field }) => (
-                    <FormItem>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button variant="outline" className='w-[150px] justify-start text-left font-normal'>
-                            <Calendar className="mr-2 size-4" />
-                            {field.value ? format(field.value, 'PPP') : 'No Date'}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0">
-                          <CalendarComponent mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
-                        </PopoverContent>
-                      </Popover>
-                    </FormItem>
-                  )} />
+              <div className="space-y-3">
+                <div className="flex flex-wrap items-center gap-3">
+                   <FormField control={form.control} name="dueDate" render={({ field }) => (
+                      <FormItem>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button variant="outline" className='w-[150px] justify-start text-left font-normal'>
+                              <Calendar className="mr-2 size-4" />
+                              {field.value ? format(field.value, 'PPP') : 'No Date'}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0">
+                            <CalendarComponent mode="single" selected={field.value} onSelect={(date) => {
+                                field.onChange(date);
+                                if (!date) {
+                                    form.setValue("dueTime", "");
+                                }
+                            }} initialFocus />
+                          </PopoverContent>
+                        </Popover>
+                      </FormItem>
+                    )} />
+                   {watchEditDueDate && <FormField control={form.control} name="alarmEnabled" render={({ field }) => (
+                      <FormItem className="flex items-center gap-2 space-y-0">
+                          <FormControl>
+                              <Switch id={`alarm-edit-${task.id}`} checked={field.value} onCheckedChange={field.onChange} />
+                          </FormControl>
+                           <FormLabel htmlFor={`alarm-edit-${task.id}`} className="flex items-center gap-1.5 text-sm font-normal cursor-pointer">
+                              <BellRing className="size-4" /> <span>Alarm</span>
+                          </FormLabel>
+                      </FormItem>
+                   )} />}
+                </div>
                  {watchEditDueDate && <FormField control={form.control} name="dueTime" render={({ field }) => (
                     <FormItem>
                         <FormControl>
-                            <div className="relative">
-                                <Clock className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-                                <Input type="time" className="w-[120px] pl-9" {...field} />
-                            </div>
+                            <QuickTimeSelector value={field.value} onChange={field.onChange} />
                         </FormControl>
-                    </FormItem>
-                 )} />}
-                 {watchEditDueDate && <FormField control={form.control} name="alarmEnabled" render={({ field }) => (
-                    <FormItem className="flex items-center gap-2 space-y-0">
-                        <FormControl>
-                            <Switch id={`alarm-edit-${task.id}`} checked={field.value} onCheckedChange={field.onChange} />
-                        </FormControl>
-                         <FormLabel htmlFor={`alarm-edit-${task.id}`} className="flex items-center gap-1.5 text-sm font-normal cursor-pointer">
-                            <BellRing className="size-4" /> <span>Alarm</span>
-                        </FormLabel>
                     </FormItem>
                  )} />}
               </div>

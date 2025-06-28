@@ -7,11 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, PlusCircle, Clock, BellRing } from 'lucide-react';
+import { CalendarIcon, PlusCircle, BellRing } from 'lucide-react';
 import { Calendar } from './ui/calendar';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { Switch } from './ui/switch';
+import { QuickTimeSelector } from './quick-time-selector';
 
 const formSchema = z.object({
   text: z.string().min(1, { message: "Task cannot be empty." }),
@@ -30,6 +31,7 @@ export default function AddTask({ onAddTask }: AddTaskProps) {
     defaultValues: {
       text: "",
       alarmEnabled: true,
+      dueTime: "",
     },
   });
 
@@ -47,11 +49,12 @@ export default function AddTask({ onAddTask }: AddTaskProps) {
     onAddTask(values.text, finalDueDate, finalDueDate ? values.alarmEnabled : false);
     form.reset();
     form.setValue('alarmEnabled', true);
+    form.setValue('dueTime', '');
   }
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
         <div className="flex items-start gap-2">
             <FormField
               control={form.control}
@@ -69,80 +72,87 @@ export default function AddTask({ onAddTask }: AddTaskProps) {
               <PlusCircle />
             </Button>
         </div>
-        <div className="flex flex-wrap items-center gap-4">
-           <FormField
-              control={form.control}
-              name="dueDate"
-              render={({ field }) => (
-                <FormItem>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant={"outline"}
-                          className={cn(
-                            "w-auto md:w-[150px] justify-start text-left font-normal",
-                            !field.value && "text-muted-foreground"
-                          )}
-                        >
-                          <CalendarIcon className="mr-0 md:mr-2 h-4 w-4" />
-                          <span className="hidden md:inline">
-                          {field.value ? (
-                            format(field.value, "PPP")
-                          ) : (
-                            <span>Pick a date</span>
-                          )}
-                          </span>
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={field.value}
-                        onSelect={field.onChange}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </FormItem>
-              )}
-            />
-            
+        <div className="space-y-3">
+            <div className="flex flex-wrap items-center gap-4">
+               <FormField
+                  control={form.control}
+                  name="dueDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant={"outline"}
+                              className={cn(
+                                "w-auto md:w-[150px] justify-start text-left font-normal",
+                                !field.value && "text-muted-foreground"
+                              )}
+                            >
+                              <CalendarIcon className="mr-0 md:mr-2 h-4 w-4" />
+                              <span className="hidden md:inline">
+                              {field.value ? (
+                                format(field.value, "PPP")
+                              ) : (
+                                <span>Pick a date</span>
+                              )}
+                              </span>
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={field.value}
+                            onSelect={(date) => {
+                                field.onChange(date);
+                                if (!date) {
+                                    form.setValue("dueTime", "");
+                                }
+                            }}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </FormItem>
+                  )}
+                />
+                
+                {watchDueDate && (
+                    <FormField
+                        control={form.control}
+                        name="alarmEnabled"
+                        render={({ field }) => (
+                            <FormItem className="flex items-center gap-2 space-y-0">
+                                <FormControl>
+                                    <Switch
+                                        id="alarm-enabled"
+                                        checked={field.value}
+                                        onCheckedChange={field.onChange}
+                                    />
+                                </FormControl>
+                                <FormLabel htmlFor="alarm-enabled" className="flex items-center gap-1.5 text-sm font-normal cursor-pointer">
+                                    <BellRing className="size-4" />
+                                    <span>Alarm</span>
+                                </FormLabel>
+                            </FormItem>
+                        )}
+                    />
+                )}
+            </div>
+
             {watchDueDate && (
-                <FormField
+                 <FormField
                     control={form.control}
                     name="dueTime"
                     render={({ field }) => (
                         <FormItem>
-                             <FormControl>
-                                <div className="relative">
-                                    <Clock className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-                                    <Input type="time" className="w-[120px] pl-9" {...field} />
-                                </div>
-                            </FormControl>
-                        </FormItem>
-                    )}
-                />
-            )}
-
-            {watchDueDate && (
-                <FormField
-                    control={form.control}
-                    name="alarmEnabled"
-                    render={({ field }) => (
-                        <FormItem className="flex items-center gap-2 space-y-0">
                             <FormControl>
-                                <Switch
-                                    id="alarm-enabled"
-                                    checked={field.value}
-                                    onCheckedChange={field.onChange}
+                                <QuickTimeSelector
+                                    value={field.value}
+                                    onChange={field.onChange}
                                 />
                             </FormControl>
-                            <FormLabel htmlFor="alarm-enabled" className="flex items-center gap-1.5 text-sm font-normal cursor-pointer">
-                                <BellRing className="size-4" />
-                                <span>Alarm</span>
-                            </FormLabel>
                         </FormItem>
                     )}
                 />
