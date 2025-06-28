@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -8,10 +8,10 @@ import type { Task } from "@/lib/types";
 import { Card, CardContent } from "./ui/card";
 import { Checkbox } from "./ui/checkbox";
 import { Button } from './ui/button';
-import { Calendar, Edit, GripVertical, Trash2, X, Check } from 'lucide-react';
+import { Calendar, Edit, GripVertical, Trash2, X, Check, Clock } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './ui/dropdown-menu';
 import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
+import { format, formatDistanceToNow } from 'date-fns';
 import { Input } from './ui/input';
 import { Form, FormControl, FormField, FormItem } from './ui/form';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
@@ -31,6 +31,31 @@ interface TaskItemProps {
 
 export default function TaskItem({ task, onToggleTask, onDeleteTask, onUpdateTask }: TaskItemProps) {
   const [isEditing, setIsEditing] = useState(false);
+  const [timeRemaining, setTimeRemaining] = useState('');
+
+  useEffect(() => {
+    if (task.dueDate) {
+      const calculateTimeRemaining = () => {
+        try {
+          const now = new Date();
+          const due = new Date(task.dueDate!);
+          if (due > now) {
+            setTimeRemaining(formatDistanceToNow(due, { addSuffix: true }));
+          } else {
+            setTimeRemaining("Overdue");
+          }
+        } catch (e) {
+          setTimeRemaining("Invalid date");
+        }
+      };
+
+      calculateTimeRemaining();
+      const intervalId = setInterval(calculateTimeRemaining, 60000); // Update every minute
+
+      return () => clearInterval(intervalId);
+    }
+  }, [task.dueDate]);
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -92,9 +117,15 @@ export default function TaskItem({ task, onToggleTask, onDeleteTask, onUpdateTas
             {task.text}
           </label>
           {task.dueDate && (
-            <div className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
-              <Calendar className="size-3.5" />
-              <span>{format(new Date(task.dueDate), 'PPP')}</span>
+            <div className="text-sm text-muted-foreground flex items-center gap-4 mt-1 flex-wrap">
+                <div className="flex items-center gap-1.5">
+                    <Calendar className="size-3.5" />
+                    <span>{format(new Date(task.dueDate), 'PPP')}</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                    <Clock className="size-3.5" />
+                    <span>{timeRemaining}</span>
+                </div>
             </div>
           )}
         </div>
