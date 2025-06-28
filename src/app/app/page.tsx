@@ -7,9 +7,10 @@ import TaskListView from '@/components/task-list-view';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { cn } from '@/lib/utils';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import WeatherDisplay from '@/components/weather-display';
-import { Sun, Cloud, CloudRain, Moon, CloudSun } from 'lucide-react';
+import { Sun, Cloud, CloudRain, Moon, CloudSun, User } from 'lucide-react';
+import Link from 'next/link';
 
 export default function Home() {
   const [isClient, setIsClient] = useState(false);
@@ -313,10 +314,13 @@ export default function Home() {
             </div>
             <div className="flex items-center gap-4">
                 <ThemeToggle />
-                <Avatar>
-                  <AvatarImage src="https://placehold.co/40x40.png" data-ai-hint="avatar person" />
-                  <AvatarFallback>U</AvatarFallback>
-                </Avatar>
+                <Link href="/app/profile">
+                  <Avatar>
+                    <AvatarFallback>
+                      <User className="h-5 w-5" />
+                    </AvatarFallback>
+                  </Avatar>
+                </Link>
             </div>
           </header>
 
