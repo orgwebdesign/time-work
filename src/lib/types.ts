@@ -27,4 +27,6 @@ export interface User {
   email: string;
   createdAt: string;
   password?: string; // In a real app, this would be a hash.
+  loginCount?: number;
+  lastLogin?: string;
 }

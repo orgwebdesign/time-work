@@ -31,12 +31,15 @@ export default function SignupPage() {
       return;
     }
 
+    const now = new Date().toISOString();
     const newUser: User = {
       id: crypto.randomUUID(),
       fullName,
       email,
       password,
-      createdAt: new Date().toISOString(),
+      createdAt: now,
+      loginCount: 1,
+      lastLogin: now,
     };
 
     try {

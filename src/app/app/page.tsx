@@ -67,7 +67,25 @@ export default function Home() {
     try {
       const storedUser = localStorage.getItem('taskmaster-currentUser');
       if (storedUser) {
-        setCurrentUser(JSON.parse(storedUser));
+        const parsedUser: User = JSON.parse(storedUser);
+        setCurrentUser(parsedUser);
+
+        // Update login stats on each app load
+        const allUsersData = localStorage.getItem('taskmaster-users');
+        if (allUsersData) {
+            let allUsers: User[] = JSON.parse(allUsersData);
+            const userIndex = allUsers.findIndex(u => u.id === parsedUser.id);
+            if (userIndex !== -1) {
+                const now = new Date();
+                const lastLogin = allUsers[userIndex].lastLogin ? new Date(allUsers[userIndex].lastLogin!) : new Date(0);
+                // Only count as new session if it's been more than 10 seconds to avoid dev hot-reloads counting as sessions
+                if (now.getTime() - lastLogin.getTime() > 10000) {
+                    allUsers[userIndex].loginCount = (allUsers[userIndex].loginCount || 0) + 1;
+                    allUsers[userIndex].lastLogin = now.toISOString();
+                    localStorage.setItem('taskmaster-users', JSON.stringify(allUsers));
+                }
+            }
+        }
       } else {
         router.push('/login');
         return;
