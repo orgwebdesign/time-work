@@ -19,9 +19,12 @@ export default function LandingPage() {
         </Link>
         <div className="flex items-center gap-4">
           <ThemeToggle />
-          <Link href="/app">
+          <Link href="/login">
+            <Button variant="outline">Login</Button>
+          </Link>
+          <Link href="/signup">
             <Button>
-              <span>Go to App</span>
+              <span>Sign Up</span>
               <ArrowRight className="ml-2" />
             </Button>
           </Link>
@@ -36,7 +39,7 @@ export default function LandingPage() {
             TaskFlow is your smart to-do list, designed to help you stay organized and focused. With intelligent suggestions and seamless syncing, achieving your goals has never been easier.
           </p>
           <div className="mt-8">
-            <Link href="/app">
+            <Link href="/signup">
               <Button size="lg" className="text-lg px-8 py-6 rounded-full">
                 <span>Start Organizing Now</span>
                 <ArrowRight className="ml-2" />
