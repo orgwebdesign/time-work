@@ -78,8 +78,8 @@ export default function ReviewsPage() {
       localStorage.setItem('taskmaster-reports', JSON.stringify(reports));
 
       toast({
-        title: 'Report Submitted',
-        description: "Thank you for your feedback! We'll look into it.",
+        title: 'Thank you for your report!',
+        description: "We've received your feedback and will look into it shortly.",
       });
 
       setSubject('');
