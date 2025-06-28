@@ -34,14 +34,19 @@ export default function WeatherDisplay({ weather, time }: WeatherDisplayProps) {
   }
 
   const WeatherIcon = weather.icon;
+  const timeString = time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const timeParts = timeString.split(':');
+
 
   return (
     <Card className="glass-card w-full bg-background/30 backdrop-blur-sm border-white/20">
       <CardContent className="p-4">
         <div className="flex justify-between items-center">
           <div>
-            <p className="text-4xl font-bold tracking-tighter">
-              {time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            <p className="text-4xl font-bold tracking-tighter flex items-baseline">
+              <span>{timeParts[0]}</span>
+              <span className="animate-pulse relative -top-px mx-px">:</span>
+              <span>{timeParts[1]}</span>
             </p>
             <p className="text-muted-foreground">{weather.location}</p>
           </div>
