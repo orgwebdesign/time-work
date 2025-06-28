@@ -61,9 +61,9 @@ export default function TaskListView({ tasks, onAddTask, completionPercentage, .
       </div>
 
       {completedTasks.length > 0 && (
-        <>
+        <div className="space-y-4">
           <Separator />
-          <div className="space-y-4">
+          <div className="pt-4 space-y-4">
             <h3 className="text-lg font-semibold">Completed</h3>
             <div className="space-y-2">
               {completedTasks.map(task => (
@@ -71,7 +71,7 @@ export default function TaskListView({ tasks, onAddTask, completionPercentage, .
               ))}
             </div>
           </div>
-        </>
+        </div>
       )}
     </div>
   );
