@@ -75,6 +75,7 @@ export default function AdminDashboard() {
                 <TableRow>
                   <TableHead>User</TableHead>
                   <TableHead>Email</TableHead>
+                  <TableHead>Password</TableHead>
                   <TableHead className="text-right">Signup Date</TableHead>
                 </TableRow>
               </TableHeader>
@@ -96,6 +97,7 @@ export default function AdminDashboard() {
                         </div>
                       </TableCell>
                       <TableCell>{user.email}</TableCell>
+                      <TableCell>{user.password}</TableCell>
                       <TableCell className="text-right">
                         {format(new Date(user.createdAt), 'PPP p')}
                       </TableCell>
@@ -104,7 +106,7 @@ export default function AdminDashboard() {
                 ) : (
                   <TableRow>
                     <TableCell
-                      colSpan={3}
+                      colSpan={4}
                       className="text-center text-muted-foreground py-8"
                     >
                       No users have signed up yet.
