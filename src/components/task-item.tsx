@@ -99,7 +99,7 @@ export default function TaskItem({ task, onToggleTask, onDeleteTask, onUpdateTas
 
             setTimeout(() => {
               onToggleTask(task.id);
-            }, 1500);
+            }, 1000);
           }
         }
       } catch (e) {
