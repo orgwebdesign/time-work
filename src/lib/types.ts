@@ -26,4 +26,5 @@ export interface User {
   fullName: string;
   email: string;
   createdAt: string;
+  password?: string; // In a real app, this would be a hash.
 }

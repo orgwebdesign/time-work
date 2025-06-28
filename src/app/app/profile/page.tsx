@@ -48,8 +48,26 @@ export default function ProfilePage() {
 
   const handleSaveChanges = () => {
     if (user) {
-      const updatedUser = { ...user, fullName: name };
-      
+      const updatedUser: User = { ...user, fullName: name, password: user.password };
+      let passwordUpdated = false;
+
+      if (currentPassword || newPassword || confirmPassword) {
+        if (currentPassword !== user.password) {
+          alert("Incorrect current password.");
+          return;
+        }
+        if (!newPassword || newPassword.length < 1) {
+          alert("Please enter a new password.");
+          return;
+        }
+        if (newPassword !== confirmPassword) {
+          alert("New passwords do not match.");
+          return;
+        }
+        updatedUser.password = newPassword;
+        passwordUpdated = true;
+      }
+
       try {
         localStorage.setItem('taskmaster-currentUser', JSON.stringify(updatedUser));
         
@@ -62,7 +80,14 @@ export default function ProfilePage() {
           localStorage.setItem('taskmaster-users', JSON.stringify(users));
         }
 
+        setUser(updatedUser);
         alert('Changes saved!');
+
+        if (passwordUpdated) {
+          setCurrentPassword('');
+          setNewPassword('');
+          setConfirmPassword('');
+        }
       } catch (error) {
         console.error("Failed to save changes", error);
         alert('An error occurred while saving your changes.');

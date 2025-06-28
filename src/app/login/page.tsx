@@ -36,13 +36,11 @@ export default function LoginPage() {
       
       const user = users.find(u => u.email === email);
 
-      if (user) {
-        // In a real app, you would also verify the password.
-        // For this prototype, we'll assume the password is correct if the user exists.
+      if (user && user.password === password) {
         localStorage.setItem('taskmaster-currentUser', JSON.stringify(user));
         router.push('/app');
       } else {
-        alert('Login failed. No account found with that email.');
+        alert('Login failed. Invalid email or password.');
       }
     } catch (error) {
       console.error('Login failed:', error);

@@ -35,6 +35,7 @@ export default function SignupPage() {
       id: crypto.randomUUID(),
       fullName,
       email,
+      password,
       createdAt: new Date().toISOString(),
     };
 
