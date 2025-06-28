@@ -10,6 +10,7 @@ import {
   SidebarMenuButton,
   SidebarFooter,
   SidebarTrigger,
+  SidebarMenuAction,
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { type List } from '@/lib/types';
@@ -52,28 +53,26 @@ export default function AppSidebar({
       <SidebarContent>
         <SidebarMenu>
           {lists.map(list => (
-            <SidebarMenuItem key={list.id} className="group/item">
+            <SidebarMenuItem key={list.id}>
               <SidebarMenuButton
                 onClick={() => onSelectList(list.id)}
                 isActive={selectedListId === list.id}
-                className="justify-between"
               >
                 <span>{list.name}</span>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="size-6 invisible group-hover/item:visible data-[state=active]:visible"
-                  aria-label={`Delete list ${list.name}`}
-                  onClick={(e) => { 
-                    e.stopPropagation(); 
-                    if (confirm(`Are you sure you want to delete the list "${list.name}"? This will also delete all its tasks.`)) {
-                      onDeleteList(list.id);
-                    }
-                  }}
-                >
-                  <Trash2 className="size-4" />
-                </Button>
               </SidebarMenuButton>
+              <SidebarMenuAction
+                showOnHover
+                className="text-muted-foreground hover:text-destructive peer-data-[active=true]/menu-button:opacity-100"
+                aria-label={`Delete list ${list.name}`}
+                onClick={(e) => { 
+                  e.stopPropagation(); 
+                  if (confirm(`Are you sure you want to delete the list "${list.name}"? This will also delete all its tasks.`)) {
+                    onDeleteList(list.id);
+                  }
+                }}
+              >
+                <Trash2 className="size-4" />
+              </SidebarMenuAction>
             </SidebarMenuItem>
           ))}
         </SidebarMenu>
