@@ -152,12 +152,12 @@ export default function TaskItem({ task, onToggleTask, onDeleteTask, onUpdateTas
       <Card className="glass-card">
         <CardContent className="p-2">
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-2">
               <FormField control={form.control} name="text" render={({ field }) => (
                 <FormItem><FormControl><Input {...field} autoFocus /></FormControl></FormItem>
               )} />
-              <div className="space-y-3">
-                <div className="flex flex-wrap items-center gap-3">
+              <div className="space-y-2">
+                <div className="flex flex-wrap items-center gap-2">
                    <FormField control={form.control} name="dueDate" render={({ field }) => (
                       <FormItem>
                         <Popover>
@@ -239,7 +239,7 @@ export default function TaskItem({ task, onToggleTask, onDeleteTask, onUpdateTas
             {task.text}
           </span>
           {task.dueDate && (
-            <div className="mt-1.5 space-y-2">
+            <div className="mt-1 space-y-1">
                 <div className="text-sm text-muted-foreground flex items-center justify-between gap-x-4 gap-y-1 flex-wrap">
                     <div className="flex items-center gap-1.5">
                         <Calendar className="size-3.5" />
