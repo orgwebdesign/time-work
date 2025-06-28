@@ -8,32 +8,40 @@ import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { LanguageSwitcher } from '@/components/language-switcher';
 import { ThemeToggle } from '@/components/theme-toggle';
 
-const initialLists: List[] = [
-  { id: '1', name: 'My Day' },
-  { id: '2', name: 'Projects' },
-  { id: '3', name: 'Groceries' },
-  { id: '4', name: 'Freelance' },
-];
-
-const initialTasks: Task[] = [
-    { id: '1', listId: '1', text: 'Plan my day', completed: false, dueDate: new Date().toISOString(), alarmEnabled: true },
-    { id: '2', listId: '1', text: 'Check emails and messages', completed: false },
-    { id: '3', listId: '1', text: '30-minute workout', completed: true },
-    { id: '4', listId: '2', text: 'Design new logo for TaskFlow', completed: false, dueDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(), alarmEnabled: true },
-    { id: '5', listId: '2', text: 'Develop the new feature', completed: false },
-    { id: '6', listId: '3', text: 'Milk', completed: false },
-    { id: '7', listId: '3', text: 'Bread', completed: true },
-    { id: '8', listId: '3', text: 'Cheese', completed: false },
-    { id: '9', listId: '4', text: 'Send invoice to client', completed: false },
-    { id: '10', listId: '4', text: 'Follow up with leads', completed: false },
-];
-
 export default function Home() {
   const [isClient, setIsClient] = useState(false);
   const [lists, setLists] = useState<List[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [selectedListId, setSelectedListId] = useState<string | null>(null);
   const [lastAddedTask, setLastAddedTask] = useState<Task | null>(null);
+
+  const initialLists: List[] = useMemo(() => [
+    { id: '1', name: 'My Day' },
+    { id: '2', name: 'Projects' },
+    { id: '3', name: 'Groceries' },
+    { id: '4', name: 'Freelance' },
+  ], []);
+
+  const initialTasks: Task[] = useMemo(() => {
+    const now = new Date();
+    const yesterday = new Date();
+    yesterday.setDate(now.getDate() - 1);
+    const twoDaysFromNow = new Date();
+    twoDaysFromNow.setDate(now.getDate() + 2);
+  
+    return [
+      { id: '1', listId: '1', text: 'Plan my day', completed: false, createdAt: yesterday.toISOString(), dueDate: new Date().toISOString(), alarmEnabled: true },
+      { id: '2', listId: '1', text: 'Check emails and messages', completed: false, createdAt: new Date().toISOString() },
+      { id: '3', listId: '1', text: '30-minute workout', completed: true, createdAt: new Date().toISOString() },
+      { id: '4', listId: '2', text: 'Design new logo for TaskFlow', completed: false, createdAt: new Date().toISOString(), dueDate: twoDaysFromNow.toISOString(), alarmEnabled: true },
+      { id: '5', listId: '2', text: 'Develop the new feature', completed: false, createdAt: new Date().toISOString() },
+      { id: '6', listId: '3', text: 'Milk', completed: false, createdAt: new Date().toISOString() },
+      { id: '7', listId: '3', text: 'Bread', completed: true, createdAt: new Date().toISOString() },
+      { id: '8', listId: '3', text: 'Cheese', completed: false, createdAt: new Date().toISOString() },
+      { id: '9', listId: '4', text: 'Send invoice to client', completed: false, createdAt: new Date().toISOString() },
+      { id: '10', listId: '4', text: 'Follow up with leads', completed: false, createdAt: new Date().toISOString() },
+    ];
+  }, []);
 
   useEffect(() => {
     setIsClient(true);
@@ -45,7 +53,13 @@ export default function Home() {
       const loadedLists = storedLists ? JSON.parse(storedLists) : initialLists;
       setLists(loadedLists);
 
-      setTasks(storedTasks ? JSON.parse(storedTasks) : initialTasks);
+      const nowISO = new Date().toISOString();
+      const loadedTasks: Task[] = storedTasks ? JSON.parse(storedTasks) : initialTasks;
+      const migratedTasks = loadedTasks.map((task: any) => ({
+        ...task,
+        createdAt: task.createdAt || nowISO,
+      }));
+      setTasks(migratedTasks);
       
       const loadedSelectedId = storedSelectedListId ? JSON.parse(storedSelectedListId) : (loadedLists[0]?.id || null);
       setSelectedListId(loadedSelectedId);
@@ -56,7 +70,7 @@ export default function Home() {
       setTasks(initialTasks);
       setSelectedListId(initialLists[0]?.id || null);
     }
-  }, []);
+  }, [initialLists, initialTasks]);
 
   useEffect(() => {
     if (isClient) {
@@ -100,6 +114,7 @@ export default function Home() {
       listId: selectedListId,
       text,
       completed: false,
+      createdAt: new Date().toISOString(),
       dueDate: dueDate?.toISOString(),
       alarmEnabled: dueDate ? alarmEnabled : false,
     };
@@ -119,7 +134,7 @@ export default function Home() {
     setLastAddedTask(null);
   };
   
-  const handleUpdateTask = (id: string, newValues: Partial<Omit<Task, 'id' | 'listId' | 'completed'>>) => {
+  const handleUpdateTask = (id: string, newValues: Partial<Omit<Task, 'id' | 'listId' | 'completed' | 'createdAt'>>) => {
     setTasks(tasks.map(task => {
       if (task.id === id) {
         const updatedTask = { ...task, ...newValues };

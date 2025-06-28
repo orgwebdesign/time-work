@@ -3,6 +3,7 @@ export interface Task {
   listId: string;
   text: string;
   completed: boolean;
+  createdAt: string;
   dueDate?: string; // Storing as ISO string for localStorage compatibility
   alarmEnabled?: boolean;
 }

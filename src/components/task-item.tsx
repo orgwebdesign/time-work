@@ -8,10 +8,10 @@ import type { Task } from "@/lib/types";
 import { Card, CardContent } from "./ui/card";
 import { Checkbox } from "./ui/checkbox";
 import { Button } from './ui/button';
-import { Calendar, Edit, GripVertical, Trash2, Clock, BellOff, BellRing } from 'lucide-react';
+import { Calendar, Edit, GripVertical, Trash2, BellOff, BellRing } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './ui/dropdown-menu';
 import { cn } from '@/lib/utils';
-import { format, formatDistanceToNow, isPast } from 'date-fns';
+import { format, isPast, formatDistanceToNow } from 'date-fns';
 import { Input } from './ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel } from './ui/form';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
@@ -20,6 +20,7 @@ import { getTaskAlarm } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
 import { Switch } from './ui/switch';
 import { QuickTimeSelector } from './quick-time-selector';
+import { Progress } from './ui/progress';
 
 const formSchema = z.object({
   text: z.string().min(1, { message: "Task cannot be empty." }),
@@ -32,35 +33,45 @@ interface TaskItemProps {
   task: Task;
   onToggleTask: (id: string) => void;
   onDeleteTask: (id: string) => void;
-  onUpdateTask: (id: string, newValues: Partial<Omit<Task, 'id' | 'listId' | 'completed'>>) => void;
+  onUpdateTask: (id: string, newValues: Partial<Omit<Task, 'id' | 'listId' | 'completed' | 'createdAt'>>) => void;
 }
 
 export default function TaskItem({ task, onToggleTask, onDeleteTask, onUpdateTask }: TaskItemProps) {
   const [isEditing, setIsEditing] = useState(false);
-  const [timeRemaining, setTimeRemaining] = useState('');
+  const [progress, setProgress] = useState(0);
   const [justAlarmed, setJustAlarmed] = useState(false);
   const { toast } = useToast();
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     if (task.completed || justAlarmed) {
-      setTimeRemaining('');
       return;
     }
 
     let intervalId: NodeJS.Timeout | undefined;
 
     const updateTimer = async () => {
-      if (!task.dueDate) {
-        setTimeRemaining('');
+      if (!task.dueDate || !task.createdAt) {
+        setProgress(0);
         return;
       }
       
       try {
         const dueDate = new Date(task.dueDate);
+        const createdAt = new Date(task.createdAt);
+        const now = new Date();
         const isDueDatePast = isPast(dueDate);
 
-        setTimeRemaining(formatDistanceToNow(dueDate, { addSuffix: true }));
+        const totalDuration = dueDate.getTime() - createdAt.getTime();
+        const elapsedTime = now.getTime() - createdAt.getTime();
+        
+        let currentProgress = 0;
+        if (totalDuration > 0) {
+            currentProgress = Math.min(100, (elapsedTime / totalDuration) * 100);
+        } else if (isDueDatePast) {
+            currentProgress = 100;
+        }
+        setProgress(currentProgress);
         
         if (isDueDatePast && task.alarmEnabled) {
           const alarmKey = `alarm-triggered-${task.id}`;
@@ -94,7 +105,6 @@ export default function TaskItem({ task, onToggleTask, onDeleteTask, onUpdateTas
         }
       } catch (e) {
         console.error("Error processing due date:", e);
-        setTimeRemaining("Invalid date");
       }
     };
 
@@ -106,7 +116,7 @@ export default function TaskItem({ task, onToggleTask, onDeleteTask, onUpdateTas
         clearInterval(intervalId);
       }
     };
-  }, [task.id, task.text, task.dueDate, task.completed, task.alarmEnabled, toast, onToggleTask, justAlarmed]);
+  }, [task.id, task.text, task.dueDate, task.createdAt, task.completed, task.alarmEnabled, toast, onToggleTask, justAlarmed]);
 
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -221,22 +231,19 @@ export default function TaskItem({ task, onToggleTask, onDeleteTask, onUpdateTas
             {task.text}
           </label>
           {task.dueDate && (
-            <div className="text-sm text-muted-foreground flex items-center gap-4 mt-1 flex-wrap">
-                <div className="flex items-center gap-1.5">
-                    <Calendar className="size-3.5" />
-                    <span>{format(new Date(task.dueDate), 'p, PPP')}</span>
-                </div>
-                { !task.completed && timeRemaining && (
-                  <div className="flex items-center gap-1.5">
-                      <Clock className="size-3.5" />
-                      <span>{timeRemaining}</span>
-                  </div>
-                )}
-                { !task.alarmEnabled && (
-                    <div className="flex items-center gap-1.5 text-muted-foreground/80" title="Alarm is off">
-                        <BellOff className="size-3.5" />
+            <div className="mt-1.5 space-y-2">
+                <div className="text-sm text-muted-foreground flex items-center justify-between gap-x-4 gap-y-1 flex-wrap">
+                    <div className="flex items-center gap-1.5">
+                        <Calendar className="size-3.5" />
+                        <span>{format(new Date(task.dueDate), 'p, PPP')}</span>
                     </div>
-                )}
+                    { !task.alarmEnabled && !task.completed && (
+                        <div className="flex items-center gap-1.5 text-muted-foreground/80" title="Alarm is off">
+                            <BellOff className="size-3.5" />
+                        </div>
+                    )}
+                </div>
+                { !task.completed && <Progress value={progress} className="h-1" />}
             </div>
           )}
         </div>
