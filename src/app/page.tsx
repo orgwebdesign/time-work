@@ -24,15 +24,15 @@ export default function LandingPage() {
           </Link>
           <Link href="/signup">
             <Button>
-              <span>Sign Up</span>
-              <ArrowRight className="ml-2" />
+              <span className="hidden sm:inline">Sign Up</span>
+              <ArrowRight className="sm:ml-2" />
             </Button>
           </Link>
         </div>
       </header>
       <main className="flex-1 flex flex-col items-center justify-center text-center p-4">
         <div className="max-w-4xl mx-auto">
-          <h2 className="text-5xl md:text-7xl font-bold font-headline tracking-tight bg-gradient-to-r from-primary via-orange-400 to-primary bg-clip-text text-transparent">
+          <h2 className="text-4xl md:text-6xl lg:text-7xl font-bold font-headline tracking-tight bg-gradient-to-r from-primary via-orange-400 to-primary bg-clip-text text-transparent">
             Master Your Tasks, Effortlessly.
           </h2>
           <p className="mt-6 text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">

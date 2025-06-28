@@ -350,7 +350,7 @@ export default function Home() {
               <SidebarTrigger />
               {activeList ? (
                 <div>
-                  <h2 className="text-4xl font-bold tracking-tight font-headline">{activeList.name}</h2>
+                  <h2 className="text-3xl sm:text-4xl font-bold tracking-tight font-headline">{activeList.name}</h2>
                   <p className="text-muted-foreground">{activeTasksCount} {activeTasksCount === 1 ? 'task' : 'tasks'} remaining</p>
                 </div>
               ) : <div />}

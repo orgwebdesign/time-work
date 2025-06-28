@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Card, CardContent } from '@/components/ui/card';
@@ -43,7 +44,7 @@ export default function WeatherDisplay({ weather, time }: WeatherDisplayProps) {
       <CardContent className="p-4">
         <div className="flex justify-between items-center">
           <div>
-            <p className="text-4xl font-bold tracking-tighter flex items-baseline">
+            <p className="text-3xl sm:text-4xl font-bold tracking-tighter flex items-baseline">
               <span>{timeParts[0]}</span>
               <span className="animate-pulse relative -top-px mx-px">:</span>
               <span>{timeParts[1]}</span>
@@ -51,9 +52,9 @@ export default function WeatherDisplay({ weather, time }: WeatherDisplayProps) {
             <p className="text-muted-foreground">{weather.location}</p>
           </div>
           <div className="flex items-center gap-4">
-            <p className="text-4xl font-bold tracking-tighter">{weather.temperature}°C</p>
+            <p className="text-3xl sm:text-4xl font-bold tracking-tighter">{weather.temperature}°C</p>
             <div className="text-center">
-              <WeatherIcon className="size-10 text-foreground" />
+              <WeatherIcon className="size-8 sm:size-10 text-foreground" />
               <p className="text-xs text-muted-foreground">{weather.condition}</p>
             </div>
           </div>

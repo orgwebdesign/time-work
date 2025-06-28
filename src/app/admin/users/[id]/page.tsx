@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -89,7 +90,7 @@ export default function UserReviewPage() {
                 </Link>
               </Button>
               <div>
-                <CardTitle>User Review</CardTitle>
+                <CardTitle className="text-xl sm:text-2xl">User Review</CardTitle>
                 <CardDescription>
                   Review user details and add private notes.
                 </CardDescription>
@@ -98,13 +99,13 @@ export default function UserReviewPage() {
           </CardHeader>
           <CardContent className="p-6 space-y-6">
             <div className="flex items-center gap-4">
-              <Avatar className="h-16 w-16">
+              <Avatar className="h-14 w-14 sm:h-16 sm:w-16">
                   <AvatarFallback>
                       {user.fullName.split(' ').map(n => n[0]).join('')}
                   </AvatarFallback>
               </Avatar>
               <div>
-                  <h3 className="text-xl font-semibold">{user.fullName}</h3>
+                  <h3 className="text-lg sm:text-xl font-semibold">{user.fullName}</h3>
                   <p className="text-sm text-muted-foreground">{user.email}</p>
                   <p className="text-xs text-muted-foreground mt-1">Joined on {format(new Date(user.createdAt), 'PPP')}</p>
               </div>

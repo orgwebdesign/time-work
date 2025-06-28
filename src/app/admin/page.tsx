@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -117,7 +118,7 @@ export default function AdminDashboard() {
   return (
     <div className="flex min-h-screen w-full flex-col items-center bg-background p-4 md:p-6 gap-6">
       <header className="w-full max-w-7xl">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-y-2 gap-x-4">
             <div className="flex items-center gap-4">
                 <Button asChild variant="ghost" size="icon">
                   <Link href="/app" aria-label="Go back to app">
@@ -125,7 +126,7 @@ export default function AdminDashboard() {
                   </Link>
                 </Button>
                 <div>
-                  <h1 className="text-2xl font-bold">Admin Dashboard</h1>
+                  <h1 className="text-xl sm:text-2xl font-bold">Admin Dashboard</h1>
                   <p className="text-muted-foreground">
                     Overview of your application's usage and users.
                   </p>
@@ -177,7 +178,7 @@ export default function AdminDashboard() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Client Accounts</CardTitle>
+            <CardTitle className="text-lg sm:text-xl">Client Accounts</CardTitle>
             <CardDescription>
               Detailed list of all client user accounts.
             </CardDescription>
@@ -188,7 +189,7 @@ export default function AdminDashboard() {
                 <TableRow>
                   <TableHead>User</TableHead>
                   <TableHead>Email</TableHead>
-                  <TableHead>Password</TableHead>
+                  <TableHead className="hidden md:table-cell">Password</TableHead>
                   <TableHead>Last Login</TableHead>
                   <TableHead className="text-center">Sessions</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
@@ -215,7 +216,7 @@ export default function AdminDashboard() {
                         </div>
                       </TableCell>
                       <TableCell>{user.email}</TableCell>
-                      <TableCell>{user.password}</TableCell>
+                      <TableCell className="hidden md:table-cell">{user.password}</TableCell>
                       <TableCell>
                         {user.lastLogin ? `${formatDistanceToNow(new Date(user.lastLogin))} ago` : 'Never'}
                       </TableCell>
@@ -254,7 +255,7 @@ export default function AdminDashboard() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Admin Accounts</CardTitle>
+            <CardTitle className="text-lg sm:text-xl">Admin Accounts</CardTitle>
             <CardDescription>
               List of administrator accounts.
             </CardDescription>
@@ -265,7 +266,7 @@ export default function AdminDashboard() {
                 <TableRow>
                   <TableHead>User</TableHead>
                   <TableHead>Email</TableHead>
-                  <TableHead>Password</TableHead>
+                  <TableHead className="hidden md:table-cell">Password</TableHead>
                   <TableHead>Last Login</TableHead>
                   <TableHead className="text-center">Sessions</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
@@ -292,7 +293,7 @@ export default function AdminDashboard() {
                         </div>
                       </TableCell>
                       <TableCell>{user.email}</TableCell>
-                      <TableCell>{user.password}</TableCell>
+                      <TableCell className="hidden md:table-cell">{user.password}</TableCell>
                       <TableCell>
                         {user.lastLogin ? `${formatDistanceToNow(new Date(user.lastLogin))} ago` : 'Never'}
                       </TableCell>
@@ -331,7 +332,7 @@ export default function AdminDashboard() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Issue Reports</CardTitle>
+            <CardTitle className="text-lg sm:text-xl">Issue Reports</CardTitle>
             <CardDescription>
               User-submitted issue reports and feedback.
             </CardDescription>
