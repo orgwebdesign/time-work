@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -20,7 +19,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import type { User, Task } from '@/lib/types';
+import type { User, Task, Report } from '@/lib/types';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { format, formatDistanceToNow } from 'date-fns';
 
@@ -28,6 +27,7 @@ export default function AdminDashboard() {
   const [users, setUsers] = useState<User[]>([]);
   const [totalTasks, setTotalTasks] = useState(0);
   const [totalSessions, setTotalSessions] = useState(0);
+  const [reports, setReports] = useState<Report[]>([]);
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
@@ -57,6 +57,11 @@ export default function AdminDashboard() {
           }
         });
         setTotalTasks(allTasksCount);
+      }
+      
+      const storedReports = localStorage.getItem('taskmaster-reports');
+      if (storedReports) {
+        setReports(JSON.parse(storedReports));
       }
     } catch (error) {
       console.error('Failed to load data from localStorage', error);
@@ -96,6 +101,19 @@ export default function AdminDashboard() {
       } catch (error) {
         console.error('Failed to delete user:', error);
         alert('An error occurred while trying to delete the user.');
+      }
+    }
+  };
+
+  const handleDeleteReport = (reportId: string) => {
+    if (window.confirm('Are you sure you want to delete this issue report?')) {
+      try {
+        const updatedReports = reports.filter(r => r.id !== reportId);
+        setReports(updatedReports);
+        localStorage.setItem('taskmaster-reports', JSON.stringify(updatedReports));
+      } catch (error) {
+        console.error('Failed to delete report:', error);
+        alert('An error occurred while deleting the report.');
       }
     }
   };
@@ -325,6 +343,59 @@ export default function AdminDashboard() {
             </Table>
           </CardContent>
         </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Issue Reports</CardTitle>
+            <CardDescription>
+              User-submitted issue reports and feedback.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>User</TableHead>
+                  <TableHead>Subject & Description</TableHead>
+                  <TableHead>Submitted</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {reports.length > 0 ? (
+                  reports.map((report) => (
+                    <TableRow key={report.id}>
+                      <TableCell>
+                        <div className="font-medium">{report.userFullName}</div>
+                        <div className="text-xs text-muted-foreground">{report.userEmail}</div>
+                      </TableCell>
+                      <TableCell>
+                         <p className="font-medium">{report.subject}</p>
+                         <p className="text-muted-foreground text-xs max-w-sm truncate" title={report.description}>{report.description}</p>
+                      </TableCell>
+                      <TableCell>
+                        {formatDistanceToNow(new Date(report.createdAt), { addSuffix: true })}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button variant="destructive" size="icon" onClick={() => handleDeleteReport(report.id)} aria-label={`Delete report from ${report.userFullName}`}>
+                          <Trash2 className="h-4 w-4"/>
+                          <span className="sr-only">Delete Report</span>
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                      No issue reports have been submitted.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+
       </main>
     </div>
   );

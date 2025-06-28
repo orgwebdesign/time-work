@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { ArrowLeft, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -16,11 +17,28 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
+import type { User, Report } from '@/lib/types';
 
 export default function ReviewsPage() {
   const [subject, setSubject] = useState('');
   const [description, setDescription] = useState('');
   const { toast } = useToast();
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const router = useRouter();
+
+  useEffect(() => {
+    try {
+      const storedUser = localStorage.getItem('taskmaster-currentUser');
+      if (storedUser) {
+        setCurrentUser(JSON.parse(storedUser));
+      } else {
+        router.push('/login');
+      }
+    } catch (error) {
+      console.error("Failed to load current user", error);
+      router.push('/login');
+    }
+  }, [router]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,17 +50,48 @@ export default function ReviewsPage() {
       });
       return;
     }
-    
-    // In a real app, you would send this data to a server
-    console.log({ subject, description });
 
-    toast({
-      title: 'Report Submitted',
-      description: "Thank you for your feedback! We'll look into it.",
-    });
+    if (!currentUser) {
+      toast({
+        title: 'Authentication Error',
+        description: 'You must be logged in to submit a report.',
+        variant: 'destructive',
+      });
+      return;
+    }
 
-    setSubject('');
-    setDescription('');
+    try {
+      const storedReports = localStorage.getItem('taskmaster-reports');
+      const reports: Report[] = storedReports ? JSON.parse(storedReports) : [];
+      
+      const newReport: Report = {
+        id: crypto.randomUUID(),
+        userId: currentUser.id,
+        userFullName: currentUser.fullName,
+        userEmail: currentUser.email,
+        subject,
+        description,
+        createdAt: new Date().toISOString(),
+      };
+
+      reports.unshift(newReport);
+      localStorage.setItem('taskmaster-reports', JSON.stringify(reports));
+
+      toast({
+        title: 'Report Submitted',
+        description: "Thank you for your feedback! We'll look into it.",
+      });
+
+      setSubject('');
+      setDescription('');
+    } catch (error) {
+      console.error("Failed to save report:", error);
+      toast({
+        title: 'Submission Failed',
+        description: 'An error occurred while submitting your report.',
+        variant: 'destructive',
+      });
+    }
   };
 
   return (

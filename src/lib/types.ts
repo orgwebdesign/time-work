@@ -31,3 +31,13 @@ export interface User {
   lastLogin?: string;
   adminNotes?: string;
 }
+
+export interface Report {
+  id: string;
+  userId: string;
+  userFullName: string;
+  userEmail: string;
+  subject: string;
+  description: string;
+  createdAt: string;
+}
