@@ -220,7 +220,15 @@ export default function TaskItem({ task, onToggleTask, onDeleteTask, onUpdateTas
             <Undo2 className="size-4" />
           </Button>
         ) : (
-          <Button variant="ghost" size="icon" className="size-5 flex-shrink-0" onClick={() => onToggleTask(task.id)} aria-label={`Mark task "${task.text}" as complete`}>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-5 flex-shrink-0"
+            onClick={() => onToggleTask(task.id)}
+            aria-label={`Mark task "${task.text}" as complete`}
+            disabled={!!task.dueDate && task.alarmEnabled}
+            title={task.dueDate && task.alarmEnabled ? "This task will complete automatically when due" : "Mark as complete"}
+          >
             <Circle className="size-4 text-muted-foreground/80" />
           </Button>
         )}
