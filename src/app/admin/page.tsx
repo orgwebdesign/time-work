@@ -226,11 +226,6 @@ export default function AdminDashboard() {
                                     Review
                                 </Link>
                             </Button>
-                             <Button asChild variant="outline" size="sm">
-                                <Link href={`/admin/users/${user.id}`}>
-                                    Notes
-                                </Link>
-                            </Button>
                             <Button variant="destructive" size="icon" onClick={() => handleDeleteUser(user.id)} aria-label={`Delete user ${user.fullName}`}>
                               <Trash2 className="h-4 w-4"/>
                               <span className="sr-only">Delete User</span>
@@ -306,11 +301,6 @@ export default function AdminDashboard() {
                             <Button asChild variant="outline" size="sm">
                                 <Link href={`/admin/users/${user.id}`}>
                                     Review
-                                </Link>
-                            </Button>
-                             <Button asChild variant="outline" size="sm">
-                                <Link href={`/admin/users/${user.id}`}>
-                                    Notes
                                 </Link>
                             </Button>
                             <Button variant="destructive" size="icon" onClick={() => handleDeleteUser(user.id)} aria-label={`Delete user ${user.fullName}`}>
