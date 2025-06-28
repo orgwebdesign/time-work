@@ -7,16 +7,20 @@ import TaskListView from '@/components/task-list-view';
 import { SidebarProvider } from '@/components/ui/sidebar';
 
 const initialLists: List[] = [
-  { id: '1', name: 'Personal' },
-  { id: '2', name: 'Work' },
-  { id: '3', name: 'Family' },
+  { id: '1', name: 'My Day' },
+  { id: '2', name: 'Projects' },
+  { id: '3', name: 'Groceries' },
 ];
 
 const initialTasks: Task[] = [
-    { id: '1', listId: '1', text: 'Buy groceries', completed: false, dueDate: new Date().toISOString() },
-    { id: '2', listId: '1', text: 'Go to the gym', completed: true },
-    { id: '3', listId: '2', text: 'Finish project report', completed: false, dueDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString() },
-    { id: '4', listId: '3', text: 'Call mom', completed: false },
+    { id: '1', listId: '1', text: 'Plan my day', completed: false, dueDate: new Date().toISOString() },
+    { id: '2', listId: '1', text: 'Check emails and messages', completed: false },
+    { id: '3', listId: '1', text: '30-minute workout', completed: true },
+    { id: '4', listId: '2', text: 'Design new logo for TaskFlow', completed: false, dueDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString() },
+    { id: '5', listId: '2', text: 'Develop the new feature', completed: false },
+    { id: '6', listId: '3', text: 'Milk', completed: false },
+    { id: '7', listId: '3', text: 'Bread', completed: true },
+    { id: '8', listId: '3', text: 'Cheese', completed: false },
 ];
 
 export default function Home() {
@@ -121,7 +125,7 @@ export default function Home() {
   const filteredTasks = useMemo(() => tasks.filter(t => t.listId === selectedListId), [tasks, selectedListId]);
 
   if (!isClient) {
-    return <div className="flex h-screen w-full items-center justify-center"><p>Loading TaskMaster...</p></div>;
+    return <div className="flex h-screen w-full items-center justify-center bg-background"><p>Loading TaskFlow...</p></div>;
   }
 
   return (
@@ -149,7 +153,7 @@ export default function Home() {
             />
           ) : (
              <div className="flex-1 flex items-center justify-center">
-                <p>Select a list or create a new one to get started.</p>
+                <p className="text-muted-foreground">Select a list or create a new one to get started.</p>
              </div>
           )}
         </main>

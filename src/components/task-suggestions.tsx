@@ -4,7 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 import { getSuggestions } from "@/lib/actions";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
-import { Plus, Sparkles, X } from "lucide-react";
+import { Lightbulb, Plus, X } from "lucide-react";
 import { Skeleton } from "./ui/skeleton";
 
 interface TaskSuggestionsProps {
@@ -28,12 +28,12 @@ export default function TaskSuggestions({ taskDescription, onAddSuggestedTask, o
   }, [taskDescription]);
 
   return (
-    <Card className="bg-primary/10 border-primary/20 animate-in fade-in-50">
+    <Card className="glass-card animate-in fade-in-50">
       <CardHeader>
         <div className="flex justify-between items-start">
             <div className="flex items-center gap-3">
                 <div className="p-2 bg-primary/20 rounded-full">
-                    <Sparkles className="text-primary size-5" />
+                    <Lightbulb className="text-primary size-5" />
                 </div>
                 <div>
                     <CardTitle className="text-base">Smart Suggestions</CardTitle>

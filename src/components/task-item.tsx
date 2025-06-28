@@ -8,7 +8,7 @@ import type { Task } from "@/lib/types";
 import { Card, CardContent } from "./ui/card";
 import { Checkbox } from "./ui/checkbox";
 import { Button } from './ui/button';
-import { Calendar, Edit, MoreVertical, Trash2, X, Check } from 'lucide-react';
+import { Calendar, Edit, GripVertical, Trash2, X, Check } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -46,7 +46,7 @@ export default function TaskItem({ task, onToggleTask, onDeleteTask, onUpdateTas
 
   if (isEditing) {
     return (
-      <Card>
+      <Card className="glass-card">
         <CardContent className="p-2">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="flex items-center gap-2">
@@ -75,7 +75,7 @@ export default function TaskItem({ task, onToggleTask, onDeleteTask, onUpdateTas
   }
 
   return (
-    <Card className={cn("transition-colors", task.completed && "bg-accent/50")}>
+    <Card className={cn("transition-colors glass-card", task.completed && "bg-muted/50")}>
       <CardContent className="p-3 flex items-center gap-4">
         <Checkbox
           id={`task-${task.id}`}
@@ -101,7 +101,7 @@ export default function TaskItem({ task, onToggleTask, onDeleteTask, onUpdateTas
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="size-8 flex-shrink-0">
-              <MoreVertical className="size-4" />
+              <GripVertical className="size-4" />
               <span className="sr-only">More options for task {task.text}</span>
             </Button>
           </DropdownMenuTrigger>

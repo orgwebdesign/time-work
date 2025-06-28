@@ -1,6 +1,6 @@
 "use client";
 
-import { List as ListIcon, Plus, Trash2 } from 'lucide-react';
+import { PlusCircle, Trash2 } from 'lucide-react';
 import {
   Sidebar,
   SidebarHeader,
@@ -14,6 +14,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { type List } from '@/lib/types';
 import { Separator } from './ui/separator';
+import { Logo } from './logo';
 
 interface AppSidebarProps {
   lists: List[];
@@ -40,11 +41,9 @@ export default function AppSidebar({
   return (
     <Sidebar>
       <SidebarHeader>
-        <div className="flex items-center gap-2">
-            <div className="p-2 bg-primary rounded-lg">
-              <ListIcon className="text-primary-foreground" />
-            </div>
-          <h1 className="text-xl font-semibold font-headline">TaskMaster</h1>
+        <div className="flex items-center gap-3">
+            <Logo />
+          <h1 className="text-xl font-semibold font-headline">TaskFlow</h1>
           <div className="flex-1" />
           <SidebarTrigger />
         </div>
@@ -81,7 +80,7 @@ export default function AppSidebar({
       </SidebarContent>
       <SidebarFooter>
         <Button onClick={handleAddList} variant="ghost" className="w-full justify-start">
-          <Plus className="mr-2 size-4" />
+          <PlusCircle className="mr-2 size-4" />
           Add New List
         </Button>
       </SidebarFooter>

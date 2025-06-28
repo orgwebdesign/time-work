@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Plus } from 'lucide-react';
+import { CalendarIcon, PlusCircle } from 'lucide-react';
 import { Calendar } from './ui/calendar';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -43,7 +43,7 @@ export default function AddTask({ onAddTask }: AddTaskProps) {
           render={({ field }) => (
             <FormItem className="flex-1">
               <FormControl>
-                <Input placeholder="Add a new task..." {...field} />
+                <Input placeholder="e.g. Renew gym membership" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -88,7 +88,7 @@ export default function AddTask({ onAddTask }: AddTaskProps) {
           )}
         />
         <Button type="submit" size="icon" aria-label="Add Task">
-          <Plus />
+          <PlusCircle />
         </Button>
       </form>
     </Form>

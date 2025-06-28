@@ -30,11 +30,11 @@ export default function TaskListView({ list, tasks, onAddTask, ...props }: TaskL
   return (
     <div className="p-4 md:p-6 lg:p-8 space-y-6">
       <header>
-        <h2 className="text-3xl font-bold tracking-tight font-headline">{list.name}</h2>
+        <h2 className="text-4xl font-bold tracking-tight font-headline">{list.name}</h2>
         <p className="text-muted-foreground">{activeTasks.length} {activeTasks.length === 1 ? 'task' : 'tasks'} remaining</p>
       </header>
 
-      <Card>
+      <Card className="glass-card">
         <CardContent className="p-4">
           <AddTask onAddTask={onAddTask} />
         </CardContent>
