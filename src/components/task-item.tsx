@@ -75,7 +75,7 @@ export default function TaskItem({ task, onToggleTask, onDeleteTask, onUpdateTas
   }
 
   return (
-    <Card className={cn("transition-colors glass-card", task.completed && "bg-muted/50")}>
+    <Card className={cn("transition-colors glass-card", task.completed && "bg-accent/20 border-accent/50")}>
       <CardContent className="p-3 flex items-center gap-4">
         <Checkbox
           id={`task-${task.id}`}

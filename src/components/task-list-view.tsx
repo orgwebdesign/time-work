@@ -6,6 +6,8 @@ import TaskItem from './task-item';
 import TaskSuggestions from './task-suggestions';
 import { Separator } from './ui/separator';
 import { Card, CardContent } from './ui/card';
+import { LanguageSwitcher } from './language-switcher';
+import { ThemeToggle } from './theme-toggle';
 
 interface TaskListViewProps {
   list: List;
@@ -29,9 +31,15 @@ export default function TaskListView({ list, tasks, onAddTask, ...props }: TaskL
 
   return (
     <div className="p-4 md:p-6 lg:p-8 space-y-6">
-      <header>
-        <h2 className="text-4xl font-bold tracking-tight font-headline">{list.name}</h2>
-        <p className="text-muted-foreground">{activeTasks.length} {activeTasks.length === 1 ? 'task' : 'tasks'} remaining</p>
+      <header className="flex items-center justify-between">
+        <div>
+            <h2 className="text-4xl font-bold tracking-tight font-headline">{list.name}</h2>
+            <p className="text-muted-foreground">{activeTasks.length} {activeTasks.length === 1 ? 'task' : 'tasks'} remaining</p>
+        </div>
+        <div className="flex items-center gap-2">
+            <LanguageSwitcher />
+            <ThemeToggle />
+        </div>
       </header>
 
       <Card className="glass-card">
