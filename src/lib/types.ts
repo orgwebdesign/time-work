@@ -29,4 +29,5 @@ export interface User {
   password?: string; // In a real app, this would be a hash.
   loginCount?: number;
   lastLogin?: string;
+  adminNotes?: string;
 }

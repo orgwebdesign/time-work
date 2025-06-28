@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Users, Activity, ListChecks, Trash2 } from 'lucide-react';
+import { ArrowLeft, Users, Activity, ListChecks, Trash2, FilePenLine } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -220,10 +220,17 @@ export default function AdminDashboard() {
                         {user.loginCount || 0}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button variant="destructive" size="icon" onClick={() => handleDeleteUser(user.id)} aria-label={`Delete user ${user.fullName}`}>
-                          <Trash2 className="h-4 w-4"/>
-                          <span className="sr-only">Delete User</span>
-                        </Button>
+                        <div className="flex items-center justify-end gap-2">
+                           <Button asChild variant="outline" size="icon" aria-label={`Review user ${user.fullName}`}>
+                                <Link href={`/admin/users/${user.id}`}>
+                                    <FilePenLine className="h-4 w-4" />
+                                </Link>
+                            </Button>
+                            <Button variant="destructive" size="icon" onClick={() => handleDeleteUser(user.id)} aria-label={`Delete user ${user.fullName}`}>
+                              <Trash2 className="h-4 w-4"/>
+                              <span className="sr-only">Delete User</span>
+                            </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))
@@ -290,10 +297,17 @@ export default function AdminDashboard() {
                         {user.loginCount || 0}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button variant="destructive" size="icon" onClick={() => handleDeleteUser(user.id)} aria-label={`Delete user ${user.fullName}`}>
-                          <Trash2 className="h-4 w-4"/>
-                          <span className="sr-only">Delete User</span>
-                        </Button>
+                         <div className="flex items-center justify-end gap-2">
+                            <Button asChild variant="outline" size="icon" aria-label={`Review user ${user.fullName}`}>
+                                <Link href={`/admin/users/${user.id}`}>
+                                    <FilePenLine className="h-4 w-4" />
+                                </Link>
+                            </Button>
+                            <Button variant="destructive" size="icon" onClick={() => handleDeleteUser(user.id)} aria-label={`Delete user ${user.fullName}`}>
+                              <Trash2 className="h-4 w-4"/>
+                              <span className="sr-only">Delete User</span>
+                            </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))
