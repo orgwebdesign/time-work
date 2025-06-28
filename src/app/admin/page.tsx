@@ -75,6 +75,7 @@ export default function AdminDashboard() {
   }
   
   const clientUsers = users.filter(user => user.email !== 'admin@example.com');
+  const adminUsers = users.filter(user => user.email === 'admin@example.com');
 
   return (
     <div className="flex min-h-screen w-full flex-col items-center bg-background p-4 md:p-6 gap-6">
@@ -206,8 +207,77 @@ export default function AdminDashboard() {
             </Table>
           </CardContent>
         </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Admin Accounts</CardTitle>
+            <CardDescription>
+              List of administrator accounts.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>User</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Password</TableHead>
+                  <TableHead>Last Login</TableHead>
+                  <TableHead className="text-center">Sessions</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {adminUsers.length > 0 ? (
+                  adminUsers.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).map((user) => (
+                    <TableRow key={user.id}>
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <Avatar>
+                            <AvatarFallback>
+                              {user.fullName
+                                .split(' ')
+                                .map((n) => n[0])
+                                .join('')}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <span className="font-medium">{user.fullName}</span>
+                            <p className="text-xs text-muted-foreground">Joined {format(new Date(user.createdAt), 'PPP')}</p>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>{user.email}</TableCell>
+                      <TableCell>{user.password}</TableCell>
+                      <TableCell>
+                        {user.lastLogin ? `${formatDistanceToNow(new Date(user.lastLogin))} ago` : 'Never'}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {user.loginCount || 0}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button variant="destructive" size="icon" onClick={() => handleDeleteUser(user.id)} aria-label={`Delete user ${user.fullName}`}>
+                          <Trash2 className="h-4 w-4"/>
+                          <span className="sr-only">Delete User</span>
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell
+                      colSpan={6}
+                      className="text-center text-muted-foreground py-8"
+                    >
+                      No admin users found. This is unexpected.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
       </main>
     </div>
   );
 }
-
