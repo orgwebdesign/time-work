@@ -7,6 +7,7 @@ import TaskListView from '@/components/task-list-view';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { LanguageSwitcher } from '@/components/language-switcher';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { cn } from '@/lib/utils';
 
 export default function Home() {
   const [isClient, setIsClient] = useState(false);
@@ -14,6 +15,7 @@ export default function Home() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [selectedListId, setSelectedListId] = useState<string | null>(null);
   const [lastAddedTask, setLastAddedTask] = useState<Task | null>(null);
+  const [isCelebrating, setIsCelebrating] = useState(false);
 
   const initialLists: List[] = useMemo(() => [
     { id: '1', name: 'My Day' },
@@ -123,6 +125,11 @@ export default function Home() {
   };
   
   const handleToggleTask = (id: string) => {
+    const task = tasks.find(t => t.id === id);
+    if (task && !task.completed) {
+      setIsCelebrating(true);
+      setTimeout(() => setIsCelebrating(false), 2000);
+    }
     setTasks(tasks.map(task => 
       task.id === id ? { ...task, completed: !task.completed } : task
     ));
@@ -167,7 +174,10 @@ export default function Home() {
 
   return (
     <SidebarProvider>
-      <div className="flex h-screen w-full bg-background">
+      <div className={cn(
+        "flex h-screen w-full bg-background transition-colors duration-500",
+        isCelebrating && "animate-celebrate-bg"
+      )}>
         <AppSidebar
           lists={lists}
           selectedListId={selectedListId}
