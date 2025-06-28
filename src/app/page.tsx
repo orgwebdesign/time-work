@@ -7,6 +7,7 @@ import TaskListView from '@/components/task-list-view';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { LanguageSwitcher } from '@/components/language-switcher';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { CompletionCircle } from '@/components/completion-circle';
 
 export default function Home() {
   const [isClient, setIsClient] = useState(false);
@@ -154,6 +155,13 @@ export default function Home() {
 
   const activeTasksCount = useMemo(() => filteredTasks.filter(task => !task.completed).length, [filteredTasks]);
 
+  const completionPercentage = useMemo(() => {
+    const totalTasks = filteredTasks.length;
+    if (totalTasks === 0) return 0;
+    const completedTasks = totalTasks - activeTasksCount;
+    return Math.round((completedTasks / totalTasks) * 100);
+  }, [filteredTasks, activeTasksCount]);
+
   if (!isClient) {
     return <div className="flex h-screen w-full items-center justify-center bg-background"><p>Loading TaskFlow...</p></div>;
   }
@@ -173,9 +181,12 @@ export default function Home() {
             <div className="flex items-center gap-4">
               <SidebarTrigger />
               {activeList ? (
-                <div>
-                  <h2 className="text-4xl font-bold tracking-tight font-headline">{activeList.name}</h2>
-                  <p className="text-muted-foreground">{activeTasksCount} {activeTasksCount === 1 ? 'task' : 'tasks'} remaining</p>
+                <div className="flex items-center gap-4">
+                  <CompletionCircle percentage={completionPercentage} />
+                  <div>
+                    <h2 className="text-4xl font-bold tracking-tight font-headline">{activeList.name}</h2>
+                    <p className="text-muted-foreground">{activeTasksCount} {activeTasksCount === 1 ? 'task' : 'tasks'} remaining</p>
+                  </div>
                 </div>
               ) : <div />}
             </div>
