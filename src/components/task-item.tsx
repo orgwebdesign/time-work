@@ -38,14 +38,20 @@ interface TaskItemProps {
 export default function TaskItem({ task, onToggleTask, onDeleteTask, onUpdateTask }: TaskItemProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState('');
+  const [justAlarmed, setJustAlarmed] = useState(false);
   const { toast } = useToast();
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
+    if (task.completed || justAlarmed) {
+      setTimeRemaining('');
+      return;
+    }
+
     let intervalId: NodeJS.Timeout | undefined;
 
     const updateTimer = async () => {
-      if (!task.dueDate || task.completed) {
+      if (!task.dueDate) {
         setTimeRemaining('');
         return;
       }
@@ -61,7 +67,10 @@ export default function TaskItem({ task, onToggleTask, onDeleteTask, onUpdateTas
           const hasBeenTriggered = localStorage.getItem(alarmKey) === 'true';
 
           if (!hasBeenTriggered) {
+            if (intervalId) clearInterval(intervalId);
             localStorage.setItem(alarmKey, 'true');
+            setJustAlarmed(true);
+
             const alarmData = await getTaskAlarm(task.text);
             if (alarmData) {
               if (audioRef.current) {
@@ -77,6 +86,10 @@ export default function TaskItem({ task, onToggleTask, onDeleteTask, onUpdateTas
                   duration: 10000,
               });
             }
+
+            setTimeout(() => {
+              onToggleTask(task.id);
+            }, 1500);
           }
         }
       } catch (e) {
@@ -93,7 +106,7 @@ export default function TaskItem({ task, onToggleTask, onDeleteTask, onUpdateTas
         clearInterval(intervalId);
       }
     };
-  }, [task.id, task.text, task.dueDate, task.completed, task.alarmEnabled, toast]);
+  }, [task.id, task.text, task.dueDate, task.completed, task.alarmEnabled, toast, onToggleTask, justAlarmed]);
 
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -187,7 +200,11 @@ export default function TaskItem({ task, onToggleTask, onDeleteTask, onUpdateTas
   }
 
   return (
-    <Card className={cn("transition-colors glass-card", task.completed && "bg-accent/20 border-accent/50")}>
+    <Card className={cn(
+      "transition-colors glass-card",
+      task.completed && "bg-accent/20 border-accent/50",
+      justAlarmed && "animate-alarm-flash"
+    )}>
       <CardContent className="p-3 flex items-center gap-4">
         <Checkbox
           id={`task-${task.id}`}
