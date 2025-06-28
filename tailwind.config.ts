@@ -72,11 +72,11 @@ export default {
         sm: 'calc(var(--radius) - 8px)',
       },
       backgroundImage: {
-        'sunny-day': 'linear-gradient(to right, #f2994a, #f2c94c)',
-        'cloudy-day': 'linear-gradient(to right, #bdc3c7, #2c3e50)',
-        'rainy-day': 'linear-gradient(to right, #373b44, #4286f4)',
+        'sunny-day': 'linear-gradient(to top, #a1c4fd, #c2e9fb)',
+        'cloudy-day': 'linear-gradient(to right, #d2d2d2, #cfd9df)',
+        'rainy-day': 'linear-gradient(to top, #6a85b6, #bac8e0)',
         'clear-night': 'linear-gradient(to right, #232526, #414345)',
-        'partly-cloudy-day': 'linear-gradient(to right, #00c6ff, #0072ff)',
+        'partly-cloudy-day': 'linear-gradient(to right, #e0eafc, #cfdef3)',
         'partly-cloudy-night': 'linear-gradient(to right, #0f2027, #203a43, #2c5364)',
       },
       keyframes: {
