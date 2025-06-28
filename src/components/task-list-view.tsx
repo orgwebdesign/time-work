@@ -6,6 +6,7 @@ import TaskItem from './task-item';
 import TaskSuggestions from './task-suggestions';
 import { Separator } from './ui/separator';
 import { Card, CardContent } from './ui/card';
+import { CompletionCircle } from './completion-circle';
 
 interface TaskListViewProps {
   tasks: Task[];
@@ -15,9 +16,10 @@ interface TaskListViewProps {
   onUpdateTask: (id: string, newValues: Partial<Omit<Task, 'id' | 'listId' | 'completed'>>) => void;
   lastAddedTask: Task | null;
   onClearLastAddedTask: () => void;
+  completionPercentage: number;
 }
 
-export default function TaskListView({ tasks, onAddTask, ...props }: TaskListViewProps) {
+export default function TaskListView({ tasks, onAddTask, completionPercentage, ...props }: TaskListViewProps) {
   const activeTasks = tasks.filter(task => !task.completed);
   const completedTasks = tasks.filter(task => task.completed);
 
@@ -43,7 +45,10 @@ export default function TaskListView({ tasks, onAddTask, ...props }: TaskListVie
       )}
 
       <div className="space-y-4">
-        <h3 className="text-lg font-semibold">To-Do</h3>
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold">To-Do</h3>
+          <CompletionCircle percentage={completionPercentage} />
+        </div>
         <div className="space-y-2">
           {activeTasks.length > 0 ? (
             activeTasks.map(task => (

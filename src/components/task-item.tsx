@@ -151,7 +151,7 @@ export default function TaskItem({ task, onToggleTask, onDeleteTask, onUpdateTas
   if (isEditing) {
     return (
       <Card className="glass-card">
-        <CardContent className="p-3">
+        <CardContent className="p-2">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField control={form.control} name="text" render={({ field }) => (
@@ -215,7 +215,7 @@ export default function TaskItem({ task, onToggleTask, onDeleteTask, onUpdateTas
       task.completed && "bg-accent/20 border-accent/50",
       justAlarmed && "animate-alarm-flash"
     )}>
-      <CardContent className="p-3 flex items-center gap-4">
+      <CardContent className="p-2 flex items-center gap-3">
         <Checkbox
           id={`task-${task.id}`}
           checked={task.completed}
