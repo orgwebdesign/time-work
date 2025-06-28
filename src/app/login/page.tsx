@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -22,6 +22,30 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+
+  useEffect(() => {
+    try {
+      const storedUsers = localStorage.getItem('taskmaster-users');
+      const users: User[] = storedUsers ? JSON.parse(storedUsers) : [];
+      const adminExists = users.some(u => u.email === 'admin@example.com');
+
+      if (!adminExists) {
+        const now = new Date().toISOString();
+        const adminUser: User = {
+          id: 'admin-user-01',
+          fullName: 'Admin User',
+          email: 'admin@example.com',
+          password: 'admin',
+          createdAt: now,
+          loginCount: 0,
+        };
+        users.unshift(adminUser); // Add admin as the first user
+        localStorage.setItem('taskmaster-users', JSON.stringify(users));
+      }
+    } catch (error) {
+      console.error('Failed to create admin user:', error);
+    }
+  }, []);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,7 +81,9 @@ export default function LoginPage() {
           </div>
           <CardTitle className="text-2xl text-center">Login</CardTitle>
           <CardDescription className="text-center">
-            Enter your email below to login to your account
+            Enter your email below to login to your account.
+            <br />
+            <span className="text-xs text-muted-foreground">(Admin: admin@example.com / admin)</span>
           </CardDescription>
         </CardHeader>
         <CardContent>

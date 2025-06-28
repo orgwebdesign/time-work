@@ -42,12 +42,9 @@ export default function AppSidebar({
   useEffect(() => {
     try {
       const storedUser = localStorage.getItem('taskmaster-currentUser');
-      const storedUsers = localStorage.getItem('taskmaster-users');
-      if (storedUser && storedUsers) {
+      if (storedUser) {
         const currentUser: User = JSON.parse(storedUser);
-        const allUsers: User[] = JSON.parse(storedUsers);
-        // The first user created is considered the admin
-        if (allUsers.length > 0 && currentUser.id === allUsers[0].id) {
+        if (currentUser.email === 'admin@example.com') {
           setIsAdmin(true);
         }
       }
