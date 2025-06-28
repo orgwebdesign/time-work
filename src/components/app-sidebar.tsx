@@ -2,8 +2,8 @@
 "use client";
 
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
-import { PlusCircle, Trash2, Home, LayoutGrid, LogOut, ShieldCheck } from 'lucide-react';
+import { usePathname } from 'next/navigation';
+import { PlusCircle, Trash2, Home, LayoutGrid } from 'lucide-react';
 import {
   Sidebar,
   SidebarHeader,
@@ -12,14 +12,13 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarMenuAction,
+  SidebarFooter,
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { type List } from '@/lib/types';
 import { Separator } from './ui/separator';
 import { Logo } from './logo';
 import { cn } from '@/lib/utils';
-import { useAuth } from '@/context/auth-context';
-import { auth } from '@/lib/firebase';
 
 interface AppSidebarProps {
   lists: List[];
@@ -37,19 +36,12 @@ export default function AppSidebar({
   onDeleteList,
 }: AppSidebarProps) {
   const pathname = usePathname();
-  const { isAdmin } = useAuth();
-  const router = useRouter();
   
   const handleAddList = () => {
     const name = prompt('Enter new list name:');
     if (name && name.trim()) {
       onAddList(name.trim());
     }
-  };
-
-  const handleLogout = () => {
-    auth.signOut();
-    router.push('/');
   };
 
   return (
@@ -99,14 +91,6 @@ export default function AppSidebar({
                 </Button>
                 <Button asChild variant="ghost" size="icon" className={cn("rounded-full", pathname.startsWith('/app') && "text-primary bg-primary/10")}>
                     <Link href="/app"><LayoutGrid className="w-5 h-5"/></Link>
-                </Button>
-                {isAdmin && (
-                  <Button asChild variant="ghost" size="icon" className={cn("rounded-full", pathname === '/admin' && "text-primary bg-primary/10")}>
-                    <Link href="/admin"><ShieldCheck className="w-5 h-5"/></Link>
-                  </Button>
-                )}
-                <Button variant="ghost" size="icon" className="rounded-full" onClick={handleLogout}>
-                  <LogOut className="w-5 h-5"/>
                 </Button>
             </div>
         </div>
