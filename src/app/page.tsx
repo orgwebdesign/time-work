@@ -4,7 +4,9 @@ import { useState, useEffect, useMemo } from 'react';
 import type { List, Task } from '@/lib/types';
 import AppSidebar from '@/components/app-sidebar';
 import TaskListView from '@/components/task-list-view';
-import { SidebarProvider } from '@/components/ui/sidebar';
+import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
+import { LanguageSwitcher } from '@/components/language-switcher';
+import { ThemeToggle } from '@/components/theme-toggle';
 
 const initialLists: List[] = [
   { id: '1', name: 'My Day' },
@@ -127,6 +129,8 @@ export default function Home() {
   
   const filteredTasks = useMemo(() => tasks.filter(t => t.listId === selectedListId), [tasks, selectedListId]);
 
+  const activeTasksCount = useMemo(() => filteredTasks.filter(task => !task.completed).length, [filteredTasks]);
+
   if (!isClient) {
     return <div className="flex h-screen w-full items-center justify-center bg-background"><p>Loading TaskFlow...</p></div>;
   }
@@ -141,11 +145,26 @@ export default function Home() {
           onAddList={handleAddList}
           onDeleteList={handleDeleteList}
         />
-        <main className="flex-1 flex flex-col h-screen overflow-y-auto">
+        <main className="flex-1 flex flex-col h-screen overflow-y-auto p-4 md:p-6 lg:p-8">
+          <header className="flex items-center justify-between pb-6">
+            <div className="flex items-center gap-4">
+              <SidebarTrigger />
+              {activeList ? (
+                <div>
+                  <h2 className="text-4xl font-bold tracking-tight font-headline">{activeList.name}</h2>
+                  <p className="text-muted-foreground">{activeTasksCount} {activeTasksCount === 1 ? 'task' : 'tasks'} remaining</p>
+                </div>
+              ) : <div />}
+            </div>
+            <div className="flex items-center gap-2">
+                <LanguageSwitcher />
+                <ThemeToggle />
+            </div>
+          </header>
+
           {activeList ? (
             <TaskListView
               key={activeList.id}
-              list={activeList}
               tasks={filteredTasks}
               onAddTask={handleAddTask}
               onToggleTask={handleToggleTask}

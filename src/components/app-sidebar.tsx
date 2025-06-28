@@ -9,7 +9,6 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarFooter,
-  SidebarTrigger,
   SidebarMenuAction,
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
@@ -45,8 +44,6 @@ export default function AppSidebar({
         <div className="flex items-center gap-3">
             <Logo />
           <h1 className="text-xl font-semibold font-headline">TaskFlow</h1>
-          <div className="flex-1" />
-          <SidebarTrigger />
         </div>
       </SidebarHeader>
       <Separator />
