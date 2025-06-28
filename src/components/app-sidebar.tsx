@@ -1,5 +1,7 @@
 "use client";
 
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { PlusCircle, Trash2, Home, LayoutGrid, BarChart3, Settings } from 'lucide-react';
 import {
   Sidebar,
@@ -15,6 +17,7 @@ import { Button } from '@/components/ui/button';
 import { type List } from '@/lib/types';
 import { Separator } from './ui/separator';
 import { Logo } from './logo';
+import { cn } from '@/lib/utils';
 
 interface AppSidebarProps {
   lists: List[];
@@ -31,6 +34,8 @@ export default function AppSidebar({
   onAddList,
   onDeleteList,
 }: AppSidebarProps) {
+  const pathname = usePathname();
+  
   const handleAddList = () => {
     const name = prompt('Enter new list name:');
     if (name && name.trim()) {
@@ -80,8 +85,12 @@ export default function AppSidebar({
                 <PlusCircle className="w-7 h-7" />
             </Button>
             <div className="w-full p-2 mt-2 bg-card rounded-full flex justify-around items-center">
-                <Button variant="ghost" size="icon" className="rounded-full"><Home className="w-5 h-5"/></Button>
-                <Button variant="ghost" size="icon" className="rounded-full text-primary bg-primary/10"><LayoutGrid className="w-5 h-5"/></Button>
+                <Button asChild variant="ghost" size="icon" className="rounded-full">
+                    <Link href="/"><Home className="w-5 h-5"/></Link>
+                </Button>
+                <Button asChild variant="ghost" size="icon" className={cn("rounded-full", pathname.startsWith('/app') && "text-primary bg-primary/10")}>
+                    <Link href="/app"><LayoutGrid className="w-5 h-5"/></Link>
+                </Button>
                 <Button variant="ghost" size="icon" className="rounded-full"><BarChart3 className="w-5 h-5"/></Button>
                 <Button variant="ghost" size="icon" className="rounded-full"><Settings className="w-5 h-5"/></Button>
             </div>
