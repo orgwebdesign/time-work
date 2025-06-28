@@ -1,6 +1,6 @@
 "use client";
 
-import type { List, Task } from '@/lib/types';
+import type { Task } from '@/lib/types';
 import AddTask from './add-task';
 import TaskItem from './task-item';
 import TaskSuggestions from './task-suggestions';
@@ -9,10 +9,10 @@ import { Card, CardContent } from './ui/card';
 
 interface TaskListViewProps {
   tasks: Task[];
-  onAddTask: (text: string, dueDate?: Date) => void;
+  onAddTask: (text: string, dueDate?: Date, alarmEnabled?: boolean) => void;
   onToggleTask: (id: string) => void;
   onDeleteTask: (id: string) => void;
-  onUpdateTask: (id: string, newText: string, newDueDate?: Date | string) => void;
+  onUpdateTask: (id: string, newValues: Partial<Omit<Task, 'id' | 'listId' | 'completed'>>) => void;
   lastAddedTask: Task | null;
   onClearLastAddedTask: () => void;
 }

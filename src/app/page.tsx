@@ -16,10 +16,10 @@ const initialLists: List[] = [
 ];
 
 const initialTasks: Task[] = [
-    { id: '1', listId: '1', text: 'Plan my day', completed: false, dueDate: new Date().toISOString() },
+    { id: '1', listId: '1', text: 'Plan my day', completed: false, dueDate: new Date().toISOString(), alarmEnabled: true },
     { id: '2', listId: '1', text: 'Check emails and messages', completed: false },
     { id: '3', listId: '1', text: '30-minute workout', completed: true },
-    { id: '4', listId: '2', text: 'Design new logo for TaskFlow', completed: false, dueDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString() },
+    { id: '4', listId: '2', text: 'Design new logo for TaskFlow', completed: false, dueDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(), alarmEnabled: true },
     { id: '5', listId: '2', text: 'Develop the new feature', completed: false },
     { id: '6', listId: '3', text: 'Milk', completed: false },
     { id: '7', listId: '3', text: 'Bread', completed: true },
@@ -93,7 +93,7 @@ export default function Home() {
     }
   };
 
-  const handleAddTask = (text: string, dueDate?: Date) => {
+  const handleAddTask = (text: string, dueDate?: Date, alarmEnabled?: boolean) => {
     if (!selectedListId) return;
     const newTask: Task = {
       id: crypto.randomUUID(),
@@ -101,6 +101,7 @@ export default function Home() {
       text,
       completed: false,
       dueDate: dueDate?.toISOString(),
+      alarmEnabled: dueDate ? alarmEnabled : false,
     };
     setTasks([...tasks, newTask]);
     setLastAddedTask(newTask);
@@ -118,10 +119,17 @@ export default function Home() {
     setLastAddedTask(null);
   };
   
-  const handleUpdateTask = (id: string, newText: string, newDueDate?: Date | string) => {
-    setTasks(tasks.map(task =>
-      task.id === id ? { ...task, text: newText, dueDate: newDueDate ? new Date(newDueDate).toISOString() : undefined } : task
-    ));
+  const handleUpdateTask = (id: string, newValues: Partial<Omit<Task, 'id' | 'listId' | 'completed'>>) => {
+    setTasks(tasks.map(task => {
+      if (task.id === id) {
+        const updatedTask = { ...task, ...newValues };
+        if (!updatedTask.dueDate) {
+          updatedTask.alarmEnabled = false;
+        }
+        return updatedTask;
+      }
+      return task;
+    }));
     setLastAddedTask(null);
   };
 

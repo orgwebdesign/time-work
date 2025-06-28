@@ -4,6 +4,7 @@ export interface Task {
   text: string;
   completed: boolean;
   dueDate?: string; // Storing as ISO string for localStorage compatibility
+  alarmEnabled?: boolean;
 }
 
 export interface List {
