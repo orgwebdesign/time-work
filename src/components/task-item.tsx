@@ -6,12 +6,11 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import type { Task } from "@/lib/types";
 import { Card, CardContent } from "./ui/card";
-import { Checkbox } from "./ui/checkbox";
 import { Button } from './ui/button';
-import { Calendar, Edit, GripVertical, Trash2, BellOff, BellRing } from 'lucide-react';
+import { Calendar, Edit, GripVertical, Trash2, BellOff, BellRing, Undo2 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './ui/dropdown-menu';
 import { cn } from '@/lib/utils';
-import { format, isPast, formatDistanceToNow } from 'date-fns';
+import { format, isPast } from 'date-fns';
 import { Input } from './ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel } from './ui/form';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
@@ -216,20 +215,19 @@ export default function TaskItem({ task, onToggleTask, onDeleteTask, onUpdateTas
       justAlarmed && "animate-alarm-flash"
     )}>
       <CardContent className="p-2 flex items-center gap-3">
-        <Checkbox
-          id={`task-${task.id}`}
-          checked={task.completed}
-          onCheckedChange={() => onToggleTask(task.id)}
-          className="size-5"
-          aria-label={`Mark task "${task.text}" as ${task.completed ? 'incomplete' : 'complete'}`}
-        />
-        <div className="flex-1 cursor-pointer" onClick={() => onToggleTask(task.id)}>
-          <label
-            htmlFor={`task-${task.id}`}
-            className={cn("font-medium cursor-pointer", task.completed && "line-through text-muted-foreground")}
+        {task.completed ? (
+          <Button variant="ghost" size="icon" className="size-5" onClick={() => onToggleTask(task.id)} aria-label={`Mark task "${task.text}" as incomplete`}>
+            <Undo2 className="size-4" />
+          </Button>
+        ) : (
+          <div className="size-5" />
+        )}
+        <div className="flex-1">
+          <span
+            className={cn("font-medium", task.completed && "line-through text-muted-foreground")}
           >
             {task.text}
-          </label>
+          </span>
           {task.dueDate && (
             <div className="mt-1.5 space-y-2">
                 <div className="text-sm text-muted-foreground flex items-center justify-between gap-x-4 gap-y-1 flex-wrap">
