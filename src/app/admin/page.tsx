@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Users, Activity, ListChecks, Trash2, FilePenLine } from 'lucide-react';
+import { ArrowLeft, Users, Activity, ListChecks, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -221,9 +221,14 @@ export default function AdminDashboard() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-2">
-                           <Button asChild variant="outline" size="icon" aria-label={`Review user ${user.fullName}`}>
+                           <Button asChild variant="outline" size="sm">
                                 <Link href={`/admin/users/${user.id}`}>
-                                    <FilePenLine className="h-4 w-4" />
+                                    Review
+                                </Link>
+                            </Button>
+                             <Button asChild variant="outline" size="sm">
+                                <Link href={`/admin/users/${user.id}`}>
+                                    Notes
                                 </Link>
                             </Button>
                             <Button variant="destructive" size="icon" onClick={() => handleDeleteUser(user.id)} aria-label={`Delete user ${user.fullName}`}>
@@ -298,9 +303,14 @@ export default function AdminDashboard() {
                       </TableCell>
                       <TableCell className="text-right">
                          <div className="flex items-center justify-end gap-2">
-                            <Button asChild variant="outline" size="icon" aria-label={`Review user ${user.fullName}`}>
+                            <Button asChild variant="outline" size="sm">
                                 <Link href={`/admin/users/${user.id}`}>
-                                    <FilePenLine className="h-4 w-4" />
+                                    Review
+                                </Link>
+                            </Button>
+                             <Button asChild variant="outline" size="sm">
+                                <Link href={`/admin/users/${user.id}`}>
+                                    Notes
                                 </Link>
                             </Button>
                             <Button variant="destructive" size="icon" onClick={() => handleDeleteUser(user.id)} aria-label={`Delete user ${user.fullName}`}>
