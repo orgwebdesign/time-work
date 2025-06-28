@@ -162,8 +162,8 @@ export default function TaskItem({ task, onToggleTask, onDeleteTask, onUpdateTas
                       <FormItem>
                         <Popover>
                           <PopoverTrigger asChild>
-                            <Button variant="outline" className='w-[150px] justify-start text-left font-normal'>
-                              <Calendar className="mr-2 size-4" />
+                            <Button variant="outline" className='w-auto justify-start text-left font-normal h-8 text-xs'>
+                              <Calendar className="mr-2 size-3.5" />
                               {field.value ? format(field.value, 'PPP') : 'No Date'}
                             </Button>
                           </PopoverTrigger>
@@ -183,8 +183,8 @@ export default function TaskItem({ task, onToggleTask, onDeleteTask, onUpdateTas
                           <FormControl>
                               <Switch id={`alarm-edit-${task.id}`} checked={field.value} onCheckedChange={field.onChange} />
                           </FormControl>
-                           <FormLabel htmlFor={`alarm-edit-${task.id}`} className="flex items-center gap-1.5 text-sm font-normal cursor-pointer">
-                              <BellRing className="size-4" /> <span>Alarm</span>
+                           <FormLabel htmlFor={`alarm-edit-${task.id}`} className="flex items-center gap-1.5 text-xs font-normal cursor-pointer">
+                              <BellRing className="size-3.5" /> <span>Alarm</span>
                           </FormLabel>
                       </FormItem>
                    )} />}
@@ -199,7 +199,7 @@ export default function TaskItem({ task, onToggleTask, onDeleteTask, onUpdateTas
               </div>
               <div className="flex justify-end gap-2">
                 <Button type="button" variant="ghost" size="sm" onClick={() => setIsEditing(false)}>Cancel</Button>
-                <Button type="submit" size="sm">Save Task</Button>
+                <Button type="submit" size="sm">Save</Button>
               </div>
             </form>
           </Form>
@@ -240,18 +240,18 @@ export default function TaskItem({ task, onToggleTask, onDeleteTask, onUpdateTas
           </span>
           {task.dueDate && (
             <div className="mt-1 space-y-1">
-                <div className="text-sm text-muted-foreground flex items-center justify-between gap-x-4 gap-y-1 flex-wrap">
+                <div className="text-xs text-muted-foreground flex items-center justify-between gap-x-4 gap-y-1 flex-wrap">
                     <div className="flex items-center gap-1.5">
-                        <Calendar className="size-3.5" />
+                        <Calendar className="size-3" />
                         <span>{format(new Date(task.dueDate), 'p, PPP')}</span>
                     </div>
                     { !task.alarmEnabled && !task.completed && (
                         <div className="flex items-center gap-1.5 text-muted-foreground/80" title="Alarm is off">
-                            <BellOff className="size-3.5" />
+                            <BellOff className="size-3" />
                         </div>
                     )}
                 </div>
-                { !task.completed && <Progress value={progress} className="h-1" />}
+                { !task.completed && <Progress value={progress} className="h-0.5" />}
             </div>
           )}
         </div>
