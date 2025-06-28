@@ -92,11 +92,16 @@ export default {
           '0%, 100%': { backgroundColor: 'hsl(var(--card))' },
           '50%': { backgroundColor: 'hsl(var(--destructive) / 0.4)' },
         },
+        'spin-slow': {
+          'from': { transform: 'rotate(0deg)' },
+          'to': { transform: 'rotate(360deg)' },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
         'alarm-flash': 'alarm-flash 1.5s ease-in-out',
+        'spin-slow': 'spin-slow 20s linear infinite',
       },
     },
   },

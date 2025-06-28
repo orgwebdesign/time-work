@@ -8,6 +8,7 @@ import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import WeatherDisplay from '@/components/weather-display';
 
 export default function Home() {
   const [isClient, setIsClient] = useState(false);
@@ -234,6 +235,11 @@ export default function Home() {
                 </Avatar>
             </div>
           </header>
+
+          <section className="mb-6">
+            <h3 className="text-xl font-semibold mb-2 text-foreground/90">Personal</h3>
+            <WeatherDisplay />
+          </section>
 
           {activeList ? (
             <TaskListView
