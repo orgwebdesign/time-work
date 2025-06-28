@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Button } from '@/components/ui/button';
@@ -6,8 +7,11 @@ import Image from 'next/image';
 import { Logo } from '@/components/logo';
 import { ArrowRight } from 'lucide-react';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { useAuth } from '@/context/auth-context';
 
 export default function LandingPage() {
+  const { user, loading } = useAuth();
+  
   return (
     <div className="h-screen overflow-hidden bg-background text-foreground flex flex-col">
       <header className="p-4 flex justify-between items-center">
@@ -17,7 +21,7 @@ export default function LandingPage() {
         </Link>
         <div className="flex items-center gap-4">
           <ThemeToggle />
-          <Link href="/app">
+          <Link href={loading ? "#" : user ? "/app" : "/login"}>
             <Button>
               <span>Go to App</span>
               <ArrowRight className="ml-2" />
@@ -34,7 +38,7 @@ export default function LandingPage() {
             TaskFlow is your smart to-do list, designed to help you stay organized and focused. With intelligent suggestions and seamless syncing, achieving your goals has never been easier.
           </p>
           <div className="mt-8">
-            <Link href="/app">
+            <Link href={loading ? "#" : user ? "/app" : "/signup"}>
               <Button size="lg" className="text-lg px-8 py-6 rounded-full">
                 <span>Start Organizing Now</span>
                 <ArrowRight className="ml-2" />
