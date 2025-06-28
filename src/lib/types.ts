@@ -20,3 +20,10 @@ export interface Weather {
   icon: React.ElementType;
   isDay: boolean;
 }
+
+export interface User {
+  id: string;
+  fullName: string;
+  email: string;
+  createdAt: string;
+}
