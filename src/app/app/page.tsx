@@ -15,7 +15,10 @@ export default function Home() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [selectedListId, setSelectedListId] = useState<string | null>(null);
   const [lastAddedTask, setLastAddedTask] = useState<Task | null>(null);
+  
   const [isCelebrating, setIsCelebrating] = useState(false);
+  const [celebrationStyle, setCelebrationStyle] = useState<React.CSSProperties>({});
+
 
   const initialLists: List[] = useMemo(() => [
     { id: '1', name: 'My Day' },
@@ -90,6 +93,26 @@ export default function Home() {
     }
   }, [lists, selectedListId, isClient]);
 
+  useEffect(() => {
+    let intervalId: NodeJS.Timeout | undefined;
+
+    if (isCelebrating) {
+      intervalId = setInterval(() => {
+        const hue = Math.floor(Math.random() * 360);
+        setCelebrationStyle({
+          backgroundColor: `hsl(${hue}, 80%, 60%)`,
+          transition: 'background-color 1s ease-in-out',
+        });
+      }, 1000);
+    } else {
+      setCelebrationStyle({});
+    }
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [isCelebrating]);
+
   const handleAddList = (name: string) => {
     const newList: List = { id: crypto.randomUUID(), name };
     setLists([...lists, newList]);
@@ -125,14 +148,16 @@ export default function Home() {
   };
   
   const handleToggleTask = (id: string) => {
-    const task = tasks.find(t => t.id === id);
+    const task = tasks.find((t) => t.id === id);
     if (task && !task.completed) {
-      setIsCelebrating(true);
-      setTimeout(() => setIsCelebrating(false), 2000);
+      // Defer celebration start to avoid the same click stopping it
+      setTimeout(() => setIsCelebrating(true), 0);
     }
-    setTasks(tasks.map(task => 
-      task.id === id ? { ...task, completed: !task.completed } : task
-    ));
+    setTasks(
+      tasks.map((task) =>
+        task.id === id ? { ...task, completed: !task.completed } : task
+      )
+    );
     setLastAddedTask(null);
   };
   
@@ -174,10 +199,15 @@ export default function Home() {
 
   return (
     <SidebarProvider>
-      <div className={cn(
-        "flex h-screen w-full bg-background transition-colors duration-500",
-        isCelebrating && "animate-celebrate-bg"
-      )}>
+      <div
+        className={cn(
+          "flex h-screen w-full bg-background transition-colors duration-1000"
+        )}
+        style={celebrationStyle}
+        onClick={() => {
+          if (isCelebrating) setIsCelebrating(false);
+        }}
+      >
         <AppSidebar
           lists={lists}
           selectedListId={selectedListId}
