@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
-import type { List, Task, Weather } from '@/lib/types';
+import type { List, Task, Weather, User } from '@/lib/types';
 import AppSidebar from '@/components/app-sidebar';
 import TaskListView from '@/components/task-list-view';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
@@ -9,12 +9,14 @@ import { ThemeToggle } from '@/components/theme-toggle';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import WeatherDisplay from '@/components/weather-display';
-import { Sun, Cloud, CloudRain, Moon, CloudSun, User, LogOut } from 'lucide-react';
+import { Sun, Cloud, CloudRain, Moon, CloudSun, User as UserIcon, LogOut } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { useRouter } from 'next/navigation';
 
 export default function Home() {
   const [isClient, setIsClient] = useState(false);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [lists, setLists] = useState<List[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [selectedListId, setSelectedListId] = useState<string | null>(null);
@@ -26,6 +28,7 @@ export default function Home() {
   const [weather, setWeather] = useState<Weather | null>(null);
   const [currentTime, setCurrentTime] = useState<Date | null>(null);
 
+  const router = useRouter();
 
   const initialLists: List[] = useMemo(() => [
     { id: '1', name: 'My Day' },
@@ -62,6 +65,14 @@ export default function Home() {
     const timerId = setInterval(() => setCurrentTime(new Date()), 1000);
 
     try {
+      const storedUser = localStorage.getItem('taskmaster-currentUser');
+      if (storedUser) {
+        setCurrentUser(JSON.parse(storedUser));
+      } else {
+        router.push('/login');
+        return;
+      }
+
       const storedLists = localStorage.getItem('taskmaster-lists');
       const storedTasks = localStorage.getItem('taskmaster-tasks');
       const storedSelectedListId = localStorage.getItem('taskmaster-selectedListId');
@@ -87,7 +98,7 @@ export default function Home() {
       setSelectedListId(initialLists[0]?.id || null);
     }
     return () => clearInterval(timerId);
-  }, [initialLists, initialTasks]);
+  }, [initialLists, initialTasks, router]);
 
   useEffect(() => {
     if (isClient) {
@@ -241,6 +252,11 @@ export default function Home() {
     }));
     setLastAddedTask(null);
   };
+  
+  const handleLogout = () => {
+    localStorage.removeItem('taskmaster-currentUser');
+    router.push('/');
+  };
 
   const activeList = useMemo(() => lists.find(l => l.id === selectedListId), [lists, selectedListId]);
   
@@ -279,7 +295,7 @@ export default function Home() {
     return `${bgClass} bg-cover bg-[50%] animate-gradient-pan`;
   };
 
-  if (!isClient) {
+  if (!isClient || !currentUser) {
     return <div className="flex h-screen w-full items-center justify-center bg-background"><p>Loading TaskFlow...</p></div>;
   }
 
@@ -318,14 +334,12 @@ export default function Home() {
                 <Link href="/app/profile" aria-label="Go to profile page">
                   <Avatar>
                     <AvatarFallback>
-                      <User className="h-5 w-5" />
+                      {currentUser.fullName.split(' ').map((n) => n[0]).join('')}
                     </AvatarFallback>
                   </Avatar>
                 </Link>
-                <Button asChild variant="ghost" size="icon">
-                  <Link href="/" aria-label="Go to home page">
-                    <LogOut className="h-5 w-5" />
-                  </Link>
+                <Button variant="ghost" size="icon" onClick={handleLogout} aria-label="Log out">
+                  <LogOut className="h-5 w-5" />
                 </Button>
             </div>
           </header>

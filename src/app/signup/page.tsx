@@ -39,11 +39,17 @@ export default function SignupPage() {
     try {
       const storedUsers = localStorage.getItem('taskmaster-users');
       const users: User[] = storedUsers ? JSON.parse(storedUsers) : [];
+      
+      if (users.find(u => u.email === email)) {
+        alert('An account with this email already exists.');
+        return;
+      }
+
       users.push(newUser);
       localStorage.setItem('taskmaster-users', JSON.stringify(users));
+      localStorage.setItem('taskmaster-currentUser', JSON.stringify(newUser));
 
-      alert('Account created successfully! You will be redirected to the login page.');
-      router.push('/login');
+      router.push('/app');
     } catch (error) {
       console.error('Failed to create account:', error);
       alert('An error occurred while creating your account. Please try again.');

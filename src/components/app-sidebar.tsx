@@ -3,7 +3,8 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { PlusCircle, Trash2, Home, LayoutGrid } from 'lucide-react';
+import { PlusCircle, Trash2, Home, LayoutGrid, Shield } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
 import {
   Sidebar,
   SidebarHeader,
@@ -15,7 +16,7 @@ import {
   SidebarFooter,
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
-import { type List } from '@/lib/types';
+import { type List, type User } from '@/lib/types';
 import { Separator } from './ui/separator';
 import { Logo } from './logo';
 import { cn } from '@/lib/utils';
@@ -36,7 +37,25 @@ export default function AppSidebar({
   onDeleteList,
 }: AppSidebarProps) {
   const pathname = usePathname();
+  const [isAdmin, setIsAdmin] = useState(false);
   
+  useEffect(() => {
+    try {
+      const storedUser = localStorage.getItem('taskmaster-currentUser');
+      const storedUsers = localStorage.getItem('taskmaster-users');
+      if (storedUser && storedUsers) {
+        const currentUser: User = JSON.parse(storedUser);
+        const allUsers: User[] = JSON.parse(storedUsers);
+        // The first user created is considered the admin
+        if (allUsers.length > 0 && currentUser.id === allUsers[0].id) {
+          setIsAdmin(true);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to check admin status", error);
+    }
+  }, []);
+
   const handleAddList = () => {
     const name = prompt('Enter new list name:');
     if (name && name.trim()) {
@@ -92,6 +111,11 @@ export default function AppSidebar({
                 <Button asChild variant="ghost" size="icon" className={cn("rounded-full", pathname.startsWith('/app') && "text-primary bg-primary/10")}>
                     <Link href="/app"><LayoutGrid className="w-5 h-5"/></Link>
                 </Button>
+                {isAdmin && (
+                  <Button asChild variant="ghost" size="icon" className={cn("rounded-full", pathname.startsWith('/admin') && "text-primary bg-primary/10")}>
+                      <Link href="/admin" aria-label="Go to admin dashboard"><Shield className="w-5 h-5"/></Link>
+                  </Button>
+                )}
             </div>
         </div>
       </SidebarFooter>

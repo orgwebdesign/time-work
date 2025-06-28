@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, User } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { ArrowLeft, User as UserIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -15,24 +16,63 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
+import type { User } from '@/lib/types';
 
 export default function ProfilePage() {
-  const [name, setName] = useState('Current User');
+  const [user, setUser] = useState<User | null>(null);
+  const [name, setName] = useState('');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const router = useRouter();
+
+  useEffect(() => {
+    try {
+      const storedUser = localStorage.getItem('taskmaster-currentUser');
+      if (storedUser) {
+        const parsedUser: User = JSON.parse(storedUser);
+        setUser(parsedUser);
+        setName(parsedUser.fullName);
+      } else {
+        router.push('/login');
+      }
+    } catch (error) {
+      console.error("Failed to load user from localStorage", error);
+      router.push('/login');
+    }
+  }, [router]);
 
   const handleSaveChanges = () => {
-    // In a real app, you'd handle form submission here.
-    // For this prototype, we'll just log the data.
-    console.log({
-      name,
-      currentPassword,
-      newPassword,
-      confirmPassword,
-    });
-    alert('Changes saved (check console)!');
+    if (user) {
+      const updatedUser = { ...user, fullName: name };
+      
+      try {
+        localStorage.setItem('taskmaster-currentUser', JSON.stringify(updatedUser));
+        
+        const storedUsers = localStorage.getItem('taskmaster-users');
+        const users: User[] = storedUsers ? JSON.parse(storedUsers) : [];
+        const userIndex = users.findIndex(u => u.id === user.id);
+        
+        if (userIndex !== -1) {
+          users[userIndex] = updatedUser;
+          localStorage.setItem('taskmaster-users', JSON.stringify(users));
+        }
+
+        alert('Changes saved!');
+      } catch (error) {
+        console.error("Failed to save changes", error);
+        alert('An error occurred while saving your changes.');
+      }
+    }
   };
+  
+  if (!user) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-background">
+        <p>Loading Profile...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen w-full items-center justify-center bg-background p-4 md:p-6">
@@ -59,7 +99,7 @@ export default function ProfilePage() {
                 <div className="flex items-center gap-6">
                     <Avatar className="h-24 w-24">
                         <AvatarFallback>
-                            <User className="h-12 w-12" />
+                            {name ? name.split(' ').map(n => n[0]).join('') : <UserIcon className="h-12 w-12" />}
                         </AvatarFallback>
                     </Avatar>
                     <Button variant="outline">Change Picture</Button>
@@ -71,12 +111,12 @@ export default function ProfilePage() {
             <div className="space-y-4">
               <h4 className="text-lg font-medium">Personal Information</h4>
               <div className="grid gap-2">
-                <Label htmlFor="name">Name</Label>
+                <Label htmlFor="name">Full Name</Label>
                 <Input
                   id="name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="Your name"
+                  placeholder="Your full name"
                 />
               </div>
             </div>
