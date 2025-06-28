@@ -1,19 +1,13 @@
+import { Sparkle } from 'lucide-react';
+
 export function Logo() {
   return (
     <div className="flex items-center justify-center size-8 bg-primary rounded-lg shadow-md">
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
+      <Sparkle
+        className="text-primary-foreground"
         width="20"
         height="20"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="hsl(var(--primary-foreground))"
-        strokeWidth="2.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <polyline points="20 6 9 17 4 12"></polyline>
-      </svg>
+      />
     </div>
   );
 }

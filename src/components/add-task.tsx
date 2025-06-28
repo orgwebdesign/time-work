@@ -68,7 +68,7 @@ export default function AddTask({ onAddTask }: AddTaskProps) {
                 </FormItem>
               )}
             />
-            <Button type="submit" size="icon" aria-label="Add Task">
+            <Button type="submit" size="icon" aria-label="Add Task" className="rounded-full">
               <PlusCircle />
             </Button>
         </div>

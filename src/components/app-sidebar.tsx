@@ -1,6 +1,6 @@
 "use client";
 
-import { PlusCircle, Trash2 } from 'lucide-react';
+import { PlusCircle, Trash2, Home, LayoutGrid, BarChart3, Settings } from 'lucide-react';
 import {
   Sidebar,
   SidebarHeader,
@@ -75,10 +75,17 @@ export default function AppSidebar({
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter>
-        <Button onClick={handleAddList} variant="ghost" className="w-full justify-start">
-          <PlusCircle className="mr-2 size-4" />
-          Add New List
-        </Button>
+        <div className="p-4 flex flex-col gap-4 items-center">
+            <Button onClick={handleAddList} variant="default" size="icon" className="w-14 h-14 rounded-full shadow-lg">
+                <PlusCircle className="w-7 h-7" />
+            </Button>
+            <div className="w-full p-2 mt-2 bg-card rounded-full flex justify-around items-center">
+                <Button variant="ghost" size="icon" className="rounded-full"><Home className="w-5 h-5"/></Button>
+                <Button variant="ghost" size="icon" className="rounded-full text-primary bg-primary/10"><LayoutGrid className="w-5 h-5"/></Button>
+                <Button variant="ghost" size="icon" className="rounded-full"><BarChart3 className="w-5 h-5"/></Button>
+                <Button variant="ghost" size="icon" className="rounded-full"><Settings className="w-5 h-5"/></Button>
+            </div>
+        </div>
       </SidebarFooter>
     </Sidebar>
   );

@@ -5,9 +5,9 @@ import type { List, Task } from '@/lib/types';
 import AppSidebar from '@/components/app-sidebar';
 import TaskListView from '@/components/task-list-view';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
-import { LanguageSwitcher } from '@/components/language-switcher';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { cn } from '@/lib/utils';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 export default function Home() {
   const [isClient, setIsClient] = useState(false);
@@ -196,9 +196,12 @@ export default function Home() {
                 </div>
               ) : <div />}
             </div>
-            <div className="flex items-center gap-2">
-                <LanguageSwitcher />
+            <div className="flex items-center gap-4">
                 <ThemeToggle />
+                <Avatar>
+                  <AvatarImage src="https://placehold.co/40x40.png" data-ai-hint="avatar person" />
+                  <AvatarFallback>U</AvatarFallback>
+                </Avatar>
             </div>
           </header>
 
