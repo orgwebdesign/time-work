@@ -44,57 +44,49 @@ export default function TaskItem({ task, onToggleTask, onDeleteTask, onUpdateTas
   useEffect(() => {
     let intervalId: NodeJS.Timeout | undefined;
 
-    const checkDueDate = async () => {
-      if (task.dueDate && !task.completed && task.alarmEnabled) {
-        try {
-          const dueDate = new Date(task.dueDate);
-          
-          if (isPast(dueDate)) {
-            setTimeRemaining("Overdue");
+    const updateTimer = async () => {
+      if (!task.dueDate || task.completed) {
+        setTimeRemaining('');
+        return;
+      }
+      
+      try {
+        const dueDate = new Date(task.dueDate);
+        const isDueDatePast = isPast(dueDate);
 
-            const alarmKey = `alarm-triggered-${task.id}`;
-            const hasBeenTriggered = localStorage.getItem(alarmKey) === 'true';
+        setTimeRemaining(formatDistanceToNow(dueDate, { addSuffix: true }));
+        
+        if (isDueDatePast && task.alarmEnabled) {
+          const alarmKey = `alarm-triggered-${task.id}`;
+          const hasBeenTriggered = localStorage.getItem(alarmKey) === 'true';
 
-            if (!hasBeenTriggered) {
-              localStorage.setItem(alarmKey, 'true');
-              const alarmData = await getTaskAlarm(task.text);
-              if (alarmData) {
-                if (audioRef.current) {
-                    audioRef.current.src = alarmData.audioDataUri;
-                } else {
-                    audioRef.current = new Audio(alarmData.audioDataUri);
-                }
-                audioRef.current.play().catch(e => console.error("Audio playback failed:", e));
-
-                toast({
-                    title: `"${task.text}" is due!`,
-                    description: alarmData.message,
-                    duration: 10000, 
-                });
+          if (!hasBeenTriggered) {
+            localStorage.setItem(alarmKey, 'true');
+            const alarmData = await getTaskAlarm(task.text);
+            if (alarmData) {
+              if (audioRef.current) {
+                  audioRef.current.src = alarmData.audioDataUri;
+              } else {
+                  audioRef.current = new Audio(alarmData.audioDataUri);
               }
+              audioRef.current.play().catch(e => console.error("Audio playback failed:", e));
+
+              toast({
+                  title: `"${task.text}" is due!`,
+                  description: alarmData.message,
+                  duration: 10000,
+              });
             }
-          } else {
-            setTimeRemaining(formatDistanceToNow(dueDate, { addSuffix: true }));
           }
-        } catch (e) {
-          setTimeRemaining("Invalid date");
         }
-      } else if (task.dueDate && !task.completed) {
-        try {
-            const dueDate = new Date(task.dueDate);
-            if(isPast(dueDate)) {
-                setTimeRemaining("Overdue");
-            } else {
-                setTimeRemaining(formatDistanceToNow(dueDate, { addSuffix: true }));
-            }
-        } catch (e) {
-            setTimeRemaining("Invalid date");
-        }
+      } catch (e) {
+        console.error("Error processing due date:", e);
+        setTimeRemaining("Invalid date");
       }
     };
 
-    checkDueDate();
-    intervalId = setInterval(checkDueDate, 60000); // Re-check every minute
+    updateTimer();
+    intervalId = setInterval(updateTimer, 1000); 
 
     return () => {
       if (intervalId) {
