@@ -9,8 +9,9 @@ import { ThemeToggle } from '@/components/theme-toggle';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import WeatherDisplay from '@/components/weather-display';
-import { Sun, Cloud, CloudRain, Moon, CloudSun, User } from 'lucide-react';
+import { Sun, Cloud, CloudRain, Moon, CloudSun, User, LogOut } from 'lucide-react';
 import Link from 'next/link';
+import { Button } from '@/components/ui/button';
 
 export default function Home() {
   const [isClient, setIsClient] = useState(false);
@@ -314,13 +315,18 @@ export default function Home() {
             </div>
             <div className="flex items-center gap-4">
                 <ThemeToggle />
-                <Link href="/app/profile">
+                <Link href="/app/profile" aria-label="Go to profile page">
                   <Avatar>
                     <AvatarFallback>
                       <User className="h-5 w-5" />
                     </AvatarFallback>
                   </Avatar>
                 </Link>
+                <Button asChild variant="ghost" size="icon">
+                  <Link href="/" aria-label="Go to home page">
+                    <LogOut className="h-5 w-5" />
+                  </Link>
+                </Button>
             </div>
           </header>
 
