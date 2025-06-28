@@ -1,3 +1,159 @@
+"use client";
+
+import { useState, useEffect, useMemo } from 'react';
+import type { List, Task } from '@/lib/types';
+import AppSidebar from '@/components/app-sidebar';
+import TaskListView from '@/components/task-list-view';
+import { SidebarProvider } from '@/components/ui/sidebar';
+
+const initialLists: List[] = [
+  { id: '1', name: 'Personal' },
+  { id: '2', name: 'Work' },
+  { id: '3', name: 'Family' },
+];
+
+const initialTasks: Task[] = [
+    { id: '1', listId: '1', text: 'Buy groceries', completed: false, dueDate: new Date().toISOString() },
+    { id: '2', listId: '1', text: 'Go to the gym', completed: true },
+    { id: '3', listId: '2', text: 'Finish project report', completed: false, dueDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString() },
+    { id: '4', listId: '3', text: 'Call mom', completed: false },
+];
+
 export default function Home() {
-  return <></>;
+  const [isClient, setIsClient] = useState(false);
+  const [lists, setLists] = useState<List[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [selectedListId, setSelectedListId] = useState<string | null>(null);
+  const [lastAddedTask, setLastAddedTask] = useState<Task | null>(null);
+
+  useEffect(() => {
+    setIsClient(true);
+    try {
+      const storedLists = localStorage.getItem('taskmaster-lists');
+      const storedTasks = localStorage.getItem('taskmaster-tasks');
+      const storedSelectedListId = localStorage.getItem('taskmaster-selectedListId');
+
+      const loadedLists = storedLists ? JSON.parse(storedLists) : initialLists;
+      setLists(loadedLists);
+
+      setTasks(storedTasks ? JSON.parse(storedTasks) : initialTasks);
+      
+      const loadedSelectedId = storedSelectedListId ? JSON.parse(storedSelectedListId) : (loadedLists[0]?.id || null);
+      setSelectedListId(loadedSelectedId);
+
+    } catch (error) {
+      console.error("Failed to parse from localStorage", error);
+      setLists(initialLists);
+      setTasks(initialTasks);
+      setSelectedListId(initialLists[0]?.id || null);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isClient) {
+      localStorage.setItem('taskmaster-lists', JSON.stringify(lists));
+      localStorage.setItem('taskmaster-tasks', JSON.stringify(tasks));
+      if(selectedListId) {
+        localStorage.setItem('taskmaster-selectedListId', JSON.stringify(selectedListId));
+      }
+    }
+  }, [lists, tasks, selectedListId, isClient]);
+  
+  useEffect(() => {
+    if (isClient && !selectedListId && lists.length > 0) {
+        setSelectedListId(lists[0].id);
+    }
+  }, [lists, selectedListId, isClient]);
+
+  const handleAddList = (name: string) => {
+    const newList: List = { id: crypto.randomUUID(), name };
+    setLists([...lists, newList]);
+    setSelectedListId(newList.id);
+  };
+  
+  const handleDeleteList = (id: string) => {
+    if (lists.length <= 1) {
+      alert("You must have at least one list.");
+      return;
+    }
+    setLists(lists.filter(list => list.id !== id));
+    setTasks(tasks.filter(task => task.listId !== id));
+    if (selectedListId === id) {
+      const newSelectedList = lists.find(l => l.id !== id);
+      setSelectedListId(newSelectedList?.id || null);
+    }
+  };
+
+  const handleAddTask = (text: string, dueDate?: Date) => {
+    if (!selectedListId) return;
+    const newTask: Task = {
+      id: crypto.randomUUID(),
+      listId: selectedListId,
+      text,
+      completed: false,
+      dueDate: dueDate?.toISOString(),
+    };
+    setTasks([...tasks, newTask]);
+    setLastAddedTask(newTask);
+  };
+  
+  const handleToggleTask = (id: string) => {
+    setTasks(tasks.map(task => 
+      task.id === id ? { ...task, completed: !task.completed } : task
+    ));
+    setLastAddedTask(null);
+  };
+  
+  const handleDeleteTask = (id: string) => {
+    setTasks(tasks.filter(task => task.id !== id));
+    setLastAddedTask(null);
+  };
+  
+  const handleUpdateTask = (id: string, newText: string, newDueDate?: Date | string) => {
+    setTasks(tasks.map(task =>
+      task.id === id ? { ...task, text: newText, dueDate: newDueDate ? new Date(newDueDate).toISOString() : undefined } : task
+    ));
+    setLastAddedTask(null);
+  };
+
+  const activeList = useMemo(() => lists.find(l => l.id === selectedListId), [lists, selectedListId]);
+  
+  const filteredTasks = useMemo(() => tasks.filter(t => t.listId === selectedListId), [tasks, selectedListId]);
+
+  if (!isClient) {
+    return <div className="flex h-screen w-full items-center justify-center"><p>Loading TaskMaster...</p></div>;
+  }
+
+  return (
+    <SidebarProvider>
+      <div className="flex h-screen w-full bg-background">
+        <AppSidebar
+          lists={lists}
+          selectedListId={selectedListId}
+          onSelectList={setSelectedListId}
+          onAddList={handleAddList}
+          onDeleteList={handleDeleteList}
+        />
+        <main className="flex-1 flex flex-col h-screen overflow-y-auto">
+          {activeList ? (
+            <TaskListView
+              key={activeList.id}
+              list={activeList}
+              tasks={filteredTasks}
+              onAddTask={handleAddTask}
+              onToggleTask={handleToggleTask}
+              onDeleteTask={handleDeleteTask}
+              onUpdateTask={handleUpdateTask}
+              lastAddedTask={lastAddedTask}
+              onClearLastAddedTask={() => setLastAddedTask(null)}
+            />
+          ) : (
+             <div className="flex-1 flex items-center justify-center">
+                <p>Select a list or create a new one to get started.</p>
+             </div>
+          )}
+        </main>
+      </div>
+    </SidebarProvider>
+  );
 }
