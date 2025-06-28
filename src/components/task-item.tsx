@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -11,11 +11,13 @@ import { Button } from './ui/button';
 import { Calendar, Edit, GripVertical, Trash2, X, Check, Clock } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './ui/dropdown-menu';
 import { cn } from '@/lib/utils';
-import { format, formatDistanceToNow } from 'date-fns';
+import { format, formatDistanceToNow, isPast } from 'date-fns';
 import { Input } from './ui/input';
 import { Form, FormControl, FormField, FormItem } from './ui/form';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Calendar as CalendarComponent } from './ui/calendar';
+import { getTaskAlarm } from '@/lib/actions';
+import { useToast } from '@/hooks/use-toast';
 
 const formSchema = z.object({
   text: z.string().min(1, { message: "Task cannot be empty." }),
@@ -32,29 +34,60 @@ interface TaskItemProps {
 export default function TaskItem({ task, onToggleTask, onDeleteTask, onUpdateTask }: TaskItemProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState('');
+  const { toast } = useToast();
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
-    if (task.dueDate) {
-      const calculateTimeRemaining = () => {
+    let intervalId: NodeJS.Timeout | undefined;
+
+    const checkDueDate = async () => {
+      if (task.dueDate && !task.completed) {
         try {
-          const now = new Date();
-          const due = new Date(task.dueDate!);
-          if (due > now) {
-            setTimeRemaining(formatDistanceToNow(due, { addSuffix: true }));
-          } else {
+          const dueDate = new Date(task.dueDate);
+          
+          if (isPast(dueDate)) {
             setTimeRemaining("Overdue");
+
+            const alarmKey = `alarm-triggered-${task.id}`;
+            const hasBeenTriggered = localStorage.getItem(alarmKey) === 'true';
+
+            if (!hasBeenTriggered) {
+              localStorage.setItem(alarmKey, 'true');
+              const alarmData = await getTaskAlarm(task.text);
+              if (alarmData) {
+                if (audioRef.current) {
+                    audioRef.current.src = alarmData.audioDataUri;
+                } else {
+                    audioRef.current = new Audio(alarmData.audioDataUri);
+                }
+                audioRef.current.play().catch(e => console.error("Audio playback failed:", e));
+
+                toast({
+                    title: `"${task.text}" is due!`,
+                    description: alarmData.message,
+                    duration: 10000, 
+                });
+              }
+            }
+          } else {
+            setTimeRemaining(formatDistanceToNow(dueDate, { addSuffix: true }));
           }
         } catch (e) {
           setTimeRemaining("Invalid date");
         }
-      };
+      }
+    };
 
-      calculateTimeRemaining();
-      const intervalId = setInterval(calculateTimeRemaining, 60000); // Update every minute
+    checkDueDate();
+    intervalId = setInterval(checkDueDate, 60000); // Re-check every minute
 
-      return () => clearInterval(intervalId);
-    }
-  }, [task.dueDate]);
+    return () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+    };
+  }, [task.id, task.text, task.dueDate, task.completed, toast]);
+
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -122,10 +155,12 @@ export default function TaskItem({ task, onToggleTask, onDeleteTask, onUpdateTas
                     <Calendar className="size-3.5" />
                     <span>{format(new Date(task.dueDate), 'PPP')}</span>
                 </div>
-                <div className="flex items-center gap-1.5">
-                    <Clock className="size-3.5" />
-                    <span>{timeRemaining}</span>
-                </div>
+                { !task.completed && timeRemaining && (
+                  <div className="flex items-center gap-1.5">
+                      <Clock className="size-3.5" />
+                      <span>{timeRemaining}</span>
+                  </div>
+                )}
             </div>
           )}
         </div>
