@@ -66,6 +66,12 @@ export default function AdminDashboard() {
   const handleDeleteUser = (userId: string) => {
     if (window.confirm('Are you sure you want to permanently delete this user and all their data? This action cannot be undone.')) {
       try {
+        const userToDelete = users.find(u => u.id === userId);
+        if (!userToDelete) {
+          console.error(`User with id ${userId} not found for deletion.`);
+          return;
+        }
+
         // Find tasks to be deleted to update count
         const userTasksKey = `taskmaster-tasks-${userId}`;
         const storedTasks = localStorage.getItem(userTasksKey);
@@ -89,6 +95,11 @@ export default function AdminDashboard() {
 
         // Update total tasks count state
         setTotalTasks(prevTotal => prevTotal - tasksToDeleteCount);
+
+        // Update total sessions count if a client user was deleted
+        if (userToDelete.email !== 'admin@example.com') {
+          setTotalSessions(prevSessions => prevSessions - (userToDelete.loginCount || 0));
+        }
 
       } catch (error) {
         console.error('Failed to delete user:', error);
