@@ -10,6 +10,7 @@ const initialLists: List[] = [
   { id: '1', name: 'My Day' },
   { id: '2', name: 'Projects' },
   { id: '3', name: 'Groceries' },
+  { id: '4', name: 'Freelance' },
 ];
 
 const initialTasks: Task[] = [
@@ -21,6 +22,8 @@ const initialTasks: Task[] = [
     { id: '6', listId: '3', text: 'Milk', completed: false },
     { id: '7', listId: '3', text: 'Bread', completed: true },
     { id: '8', listId: '3', text: 'Cheese', completed: false },
+    { id: '9', listId: '4', text: 'Send invoice to client', completed: false },
+    { id: '10', listId: '4', text: 'Follow up with leads', completed: false },
 ];
 
 export default function Home() {
