@@ -1,8 +1,13 @@
 "use client";
 
-import { Clock } from "lucide-react";
 import { Button } from "./ui/button";
-import { Input } from "./ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const timeOptions = [
   { label: "Morning", value: "09:00" },
@@ -10,12 +15,28 @@ const timeOptions = [
   { label: "Evening", value: "18:00" },
 ];
 
+const hours = Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, '0'));
+const minutes = ['00', '15', '30', '45'];
+
 interface QuickTimeSelectorProps {
   value?: string;
   onChange: (value: string) => void;
 }
 
 export function QuickTimeSelector({ value, onChange }: QuickTimeSelectorProps) {
+  const [selectedHour, selectedMinute] = value ? value.split(':') : [undefined, undefined];
+
+  const handleHourChange = (newHour: string) => {
+    const minute = selectedMinute || '00';
+    onChange(`${newHour}:${minute}`);
+  };
+
+  const handleMinuteChange = (newMinute: string) => {
+    if (selectedHour) {
+      onChange(`${selectedHour}:${newMinute}`);
+    }
+  };
+
   return (
     <div className="flex flex-wrap items-center gap-2">
       {timeOptions.map((option) => (
@@ -30,14 +51,24 @@ export function QuickTimeSelector({ value, onChange }: QuickTimeSelectorProps) {
           {option.label}
         </Button>
       ))}
-      <div className="relative">
-        <Clock className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
-        <Input
-            type="time"
-            className="w-[120px] h-8 pl-9"
-            value={value || ''}
-            onChange={(e) => onChange(e.target.value)}
-        />
+      <div className="flex items-center gap-1.5">
+        <Select value={selectedHour} onValueChange={handleHourChange}>
+          <SelectTrigger className="w-[75px] h-8 text-xs">
+            <SelectValue placeholder="Hour" />
+          </SelectTrigger>
+          <SelectContent>
+            {hours.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <span className="font-semibold text-muted-foreground">:</span>
+        <Select value={selectedMinute} onValueChange={handleMinuteChange} disabled={!selectedHour}>
+          <SelectTrigger className="w-[75px] h-8 text-xs">
+            <SelectValue placeholder="Minute" />
+          </SelectTrigger>
+          <SelectContent>
+            {minutes.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+          </SelectContent>
+        </Select>
       </div>
     </div>
   );
