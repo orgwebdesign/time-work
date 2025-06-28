@@ -82,8 +82,6 @@ export default function LoginPage() {
           <CardTitle className="text-2xl text-center">Login</CardTitle>
           <CardDescription className="text-center">
             Enter your email below to login to your account.
-            <br />
-            <span className="text-xs text-muted-foreground">(Admin: admin@example.com / admin)</span>
           </CardDescription>
         </CardHeader>
         <CardContent>
