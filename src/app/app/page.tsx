@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
@@ -86,28 +87,34 @@ export default function Home() {
                 }
             }
         }
+
+        // Load user-specific data
+        const userListsKey = `taskmaster-lists-${parsedUser.id}`;
+        const userTasksKey = `taskmaster-tasks-${parsedUser.id}`;
+        const userSelectedListIdKey = `taskmaster-selectedListId-${parsedUser.id}`;
+
+        const storedLists = localStorage.getItem(userListsKey);
+        const storedTasks = localStorage.getItem(userTasksKey);
+        const storedSelectedListId = localStorage.getItem(userSelectedListIdKey);
+
+        const loadedLists = storedLists ? JSON.parse(storedLists) : initialLists;
+        setLists(loadedLists);
+
+        const nowISO = new Date().toISOString();
+        const loadedTasks: Task[] = storedTasks ? JSON.parse(storedTasks) : initialTasks;
+        const migratedTasks = loadedTasks.map((task: any) => ({
+          ...task,
+          createdAt: task.createdAt || nowISO,
+        }));
+        setTasks(migratedTasks);
+        
+        const loadedSelectedId = storedSelectedListId ? JSON.parse(storedSelectedListId) : (loadedLists[0]?.id || null);
+        setSelectedListId(loadedSelectedId);
+
       } else {
         router.push('/login');
         return;
       }
-
-      const storedLists = localStorage.getItem('taskmaster-lists');
-      const storedTasks = localStorage.getItem('taskmaster-tasks');
-      const storedSelectedListId = localStorage.getItem('taskmaster-selectedListId');
-
-      const loadedLists = storedLists ? JSON.parse(storedLists) : initialLists;
-      setLists(loadedLists);
-
-      const nowISO = new Date().toISOString();
-      const loadedTasks: Task[] = storedTasks ? JSON.parse(storedTasks) : initialTasks;
-      const migratedTasks = loadedTasks.map((task: any) => ({
-        ...task,
-        createdAt: task.createdAt || nowISO,
-      }));
-      setTasks(migratedTasks);
-      
-      const loadedSelectedId = storedSelectedListId ? JSON.parse(storedSelectedListId) : (loadedLists[0]?.id || null);
-      setSelectedListId(loadedSelectedId);
 
     } catch (error) {
       console.error("Failed to parse from localStorage", error);
@@ -119,14 +126,18 @@ export default function Home() {
   }, [initialLists, initialTasks, router]);
 
   useEffect(() => {
-    if (isClient) {
-      localStorage.setItem('taskmaster-lists', JSON.stringify(lists));
-      localStorage.setItem('taskmaster-tasks', JSON.stringify(tasks));
+    if (isClient && currentUser) {
+      const userListsKey = `taskmaster-lists-${currentUser.id}`;
+      const userTasksKey = `taskmaster-tasks-${currentUser.id}`;
+      const userSelectedListIdKey = `taskmaster-selectedListId-${currentUser.id}`;
+
+      localStorage.setItem(userListsKey, JSON.stringify(lists));
+      localStorage.setItem(userTasksKey, JSON.stringify(tasks));
       if(selectedListId) {
-        localStorage.setItem('taskmaster-selectedListId', JSON.stringify(selectedListId));
+        localStorage.setItem(userSelectedListIdKey, JSON.stringify(selectedListId));
       }
     }
-  }, [lists, tasks, selectedListId, isClient]);
+  }, [lists, tasks, selectedListId, isClient, currentUser]);
   
   useEffect(() => {
     if (isClient && !selectedListId && lists.length > 0) {
