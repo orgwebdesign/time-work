@@ -25,16 +25,16 @@ interface AppSidebarProps {
   lists: List[];
   selectedListId: string | null;
   onSelectList: (id: string) => void;
-  onAddList: (name: string) => void;
   onDeleteList: (id: string) => void;
+  onAddTask: (name: string) => void;
 }
 
 export default function AppSidebar({
   lists,
   selectedListId,
   onSelectList,
-  onAddList,
   onDeleteList,
+  onAddTask,
 }: AppSidebarProps) {
   const pathname = usePathname();
   const [isAdmin, setIsAdmin] = useState(false);
@@ -53,10 +53,10 @@ export default function AppSidebar({
     }
   }, []);
 
-  const handleAddList = () => {
-    const name = prompt('Enter new list name:');
+  const handleAddTask = () => {
+    const name = prompt('Enter new task name:');
     if (name && name.trim()) {
-      onAddList(name.trim());
+      onAddTask(name.trim());
     }
   };
 
@@ -98,7 +98,7 @@ export default function AppSidebar({
       </SidebarContent>
       <SidebarFooter>
         <div className="p-4 flex flex-col gap-4 items-center">
-            <Button onClick={handleAddList} variant="default" size="icon" className="w-14 h-14 rounded-full shadow-lg">
+            <Button onClick={handleAddTask} variant="default" size="icon" className="w-14 h-14 rounded-full shadow-lg">
                 <PlusCircle className="w-7 h-7" />
             </Button>
             <div className="w-full p-2 mt-2 bg-card rounded-full flex justify-around items-center">

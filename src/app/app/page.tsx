@@ -215,12 +215,6 @@ export default function Home() {
     };
   }, [isCelebrating]);
 
-  const handleAddList = (name: string) => {
-    const newList: List = { id: crypto.randomUUID(), name };
-    setLists([...lists, newList]);
-    setSelectedListId(newList.id);
-  };
-  
   const handleDeleteList = (id: string) => {
     if (lists.length <= 1) {
       alert("You must have at least one list.");
@@ -235,7 +229,10 @@ export default function Home() {
   };
 
   const handleAddTask = (text: string, dueDate?: Date, alarmEnabled?: boolean) => {
-    if (!selectedListId) return;
+    if (!selectedListId) {
+        alert("Please select a list first to add a task.");
+        return;
+    };
     const newTask: Task = {
       id: crypto.randomUUID(),
       listId: selectedListId,
@@ -344,8 +341,8 @@ export default function Home() {
           lists={lists}
           selectedListId={selectedListId}
           onSelectList={setSelectedListId}
-          onAddList={handleAddList}
           onDeleteList={handleDeleteList}
+          onAddTask={handleAddTask}
         />
         <main className="flex-1 flex flex-col h-screen overflow-y-auto p-4 md:p-6 lg:p-8">
           <header className="flex items-center justify-between pb-6">
