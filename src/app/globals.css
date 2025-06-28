@@ -25,14 +25,14 @@
     --ring: 222.2 84% 4.9%;
     --radius: 0.8rem;
 
-    --sidebar-background: 222.2 84% 4.9%;
-    --sidebar-foreground: 210 40% 98%;
+    --sidebar-background: 210 40% 98%;
+    --sidebar-foreground: 222.2 84% 4.9%;
     --sidebar-primary: 263.4 95.2% 66.3%;
     --sidebar-primary-foreground: 210 40% 98%;
-    --sidebar-accent: 217.2 32.6% 17.5%;
-    --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 217.2 32.6% 17.5%;
-    --sidebar-ring: 263.4 95.2% 66.3%;
+    --sidebar-accent: 210 40% 94%;
+    --sidebar-accent-foreground: 222.2 84% 4.9%;
+    --sidebar-border: 214.3 31.8% 91.4%;
+    --sidebar-ring: 222.2 84% 4.9%;
   }
 
   .dark {
@@ -76,6 +76,6 @@
     @apply bg-background text-foreground;
   }
   .glass-card {
-    @apply bg-card/60 backdrop-blur-sm border border-white/5;
+    @apply bg-card/60 backdrop-blur-sm border;
   }
 }
