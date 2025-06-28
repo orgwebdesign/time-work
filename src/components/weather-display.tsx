@@ -1,30 +1,19 @@
 "use client";
 
-import { useState, useEffect } from 'react';
-import { Sun } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from './ui/skeleton';
+import type { Weather } from '@/lib/types';
 
-export default function WeatherDisplay() {
-  const [time, setTime] = useState<Date | null>(null);
+interface WeatherDisplayProps {
+  weather: Weather | null;
+  time: Date | null;
+}
 
-  useEffect(() => {
-    setTime(new Date());
-    const timerId = setInterval(() => {
-      setTime(new Date());
-    }, 1000);
-    return () => clearInterval(timerId);
-  }, []);
-
-  const weather = {
-    location: "Marrakech, Morocco",
-    temperature: "28",
-    condition: "Sunny",
-  };
+export default function WeatherDisplay({ weather, time }: WeatherDisplayProps) {
   
-  if (!time) {
+  if (!time || !weather) {
       return (
-          <Card className="glass-card w-full">
+          <Card className="glass-card w-full bg-background/30 backdrop-blur-sm">
             <CardContent className="p-4">
                 <div className="flex justify-between items-center">
                     <div>
@@ -44,8 +33,10 @@ export default function WeatherDisplay() {
       )
   }
 
+  const WeatherIcon = weather.icon;
+
   return (
-    <Card className="glass-card w-full">
+    <Card className="glass-card w-full bg-background/30 backdrop-blur-sm border-white/20">
       <CardContent className="p-4">
         <div className="flex justify-between items-center">
           <div>
@@ -57,7 +48,7 @@ export default function WeatherDisplay() {
           <div className="flex items-center gap-4">
             <p className="text-4xl font-bold tracking-tighter">{weather.temperature}°C</p>
             <div className="text-center">
-              <Sun className="size-10 text-yellow-400 animate-spin-slow" />
+              <WeatherIcon className="size-10 text-foreground" />
               <p className="text-xs text-muted-foreground">{weather.condition}</p>
             </div>
           </div>

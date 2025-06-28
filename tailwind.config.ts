@@ -71,6 +71,14 @@ export default {
         md: 'calc(var(--radius) - 4px)',
         sm: 'calc(var(--radius) - 8px)',
       },
+      backgroundImage: {
+        'sunny-day': 'linear-gradient(to right, #f2994a, #f2c94c)',
+        'cloudy-day': 'linear-gradient(to right, #bdc3c7, #2c3e50)',
+        'rainy-day': 'linear-gradient(to right, #373b44, #4286f4)',
+        'clear-night': 'linear-gradient(to right, #232526, #414345)',
+        'partly-cloudy-day': 'linear-gradient(to right, #00c6ff, #0072ff)',
+        'partly-cloudy-night': 'linear-gradient(to right, #0f2027, #203a43, #2c5364)',
+      },
       keyframes: {
         'accordion-down': {
           from: {
@@ -96,12 +104,18 @@ export default {
           'from': { transform: 'rotate(0deg)' },
           'to': { transform: 'rotate(360deg)' },
         },
+        'gradient-pan': {
+          '0%': { backgroundPosition: '0% 50%' },
+          '50%': { backgroundPosition: '100% 50%' },
+          '100%': { backgroundPosition: '0% 50%' },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
         'alarm-flash': 'alarm-flash 1.5s ease-in-out',
         'spin-slow': 'spin-slow 20s linear infinite',
+        'gradient-pan': 'gradient-pan 20s ease infinite',
       },
     },
   },

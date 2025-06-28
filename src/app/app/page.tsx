@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
-import type { List, Task } from '@/lib/types';
+import type { List, Task, Weather } from '@/lib/types';
 import AppSidebar from '@/components/app-sidebar';
 import TaskListView from '@/components/task-list-view';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
@@ -9,6 +9,7 @@ import { ThemeToggle } from '@/components/theme-toggle';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import WeatherDisplay from '@/components/weather-display';
+import { Sun, Cloud, CloudRain, Moon, CloudSun } from 'lucide-react';
 
 export default function Home() {
   const [isClient, setIsClient] = useState(false);
@@ -19,6 +20,9 @@ export default function Home() {
   
   const [isCelebrating, setIsCelebrating] = useState(false);
   const [celebrationStyle, setCelebrationStyle] = useState<React.CSSProperties>({});
+  
+  const [weather, setWeather] = useState<Weather | null>(null);
+  const [currentTime, setCurrentTime] = useState<Date | null>(null);
 
 
   const initialLists: List[] = useMemo(() => [
@@ -51,6 +55,10 @@ export default function Home() {
 
   useEffect(() => {
     setIsClient(true);
+    setCurrentTime(new Date());
+
+    const timerId = setInterval(() => setCurrentTime(new Date()), 1000);
+
     try {
       const storedLists = localStorage.getItem('taskmaster-lists');
       const storedTasks = localStorage.getItem('taskmaster-tasks');
@@ -76,6 +84,7 @@ export default function Home() {
       setTasks(initialTasks);
       setSelectedListId(initialLists[0]?.id || null);
     }
+    return () => clearInterval(timerId);
   }, [initialLists, initialTasks]);
 
   useEffect(() => {
@@ -93,6 +102,56 @@ export default function Home() {
         setSelectedListId(lists[0].id);
     }
   }, [lists, selectedListId, isClient]);
+  
+  useEffect(() => {
+    const fetchWeather = () => {
+      const now = new Date();
+      const hour = now.getHours();
+      const minute = now.getMinutes();
+
+      const isDay = hour >= 6 && hour < 19;
+      
+      let condition: Weather['condition'];
+      let icon: React.ElementType;
+      let temperature: number;
+
+      // Simulate changing weather conditions
+      const conditionSeed = minute % 4;
+
+      if (isDay) {
+          if (conditionSeed === 0) {
+              condition = 'Sunny'; icon = Sun; temperature = 28;
+          } else if (conditionSeed === 1) {
+              condition = 'Partly Cloudy'; icon = CloudSun; temperature = 24;
+          } else if (conditionSeed === 2) {
+              condition = 'Cloudy'; icon = Cloud; temperature = 22;
+          } else {
+              condition = 'Rainy'; icon = CloudRain; temperature = 19;
+          }
+      } else { // Night
+           if (conditionSeed === 0) {
+              condition = 'Clear'; icon = Moon; temperature = 18;
+          } else if (conditionSeed === 1 || conditionSeed === 2) {
+              condition = 'Partly Cloudy'; icon = Cloud; temperature = 16;
+          } else {
+              condition = 'Rainy'; icon = CloudRain; temperature = 14;
+          }
+      }
+
+      setWeather({
+          location: "Marrakech, Morocco",
+          temperature,
+          condition,
+          icon,
+          isDay,
+      });
+    };
+
+    fetchWeather();
+    const intervalId = setInterval(fetchWeather, 60000); // Update weather every minute
+
+    return () => clearInterval(intervalId);
+  }, []);
 
   useEffect(() => {
     let intervalId: NodeJS.Timeout | undefined;
@@ -194,6 +253,30 @@ export default function Home() {
     return Math.round((completedTasks / totalTasks) * 100);
   }, [filteredTasks, activeTasksCount]);
 
+  const getBackgroundClass = (weather: Weather | null): string => {
+    if (!weather) return "bg-background";
+    
+    const { condition, isDay } = weather;
+    let bgClass = '';
+
+    if (isDay) {
+        if (condition === 'Sunny') bgClass = 'bg-sunny-day';
+        else if (condition === 'Partly Cloudy') bgClass = 'bg-partly-cloudy-day';
+        else if (condition === 'Cloudy') bgClass = 'bg-cloudy-day';
+        else if (condition === 'Rainy') bgClass = 'bg-rainy-day';
+    } else {
+        if (condition === 'Clear') bgClass = 'bg-clear-night';
+        else if (condition === 'Partly Cloudy' || condition === 'Cloudy') bgClass = 'bg-partly-cloudy-night';
+        else if (condition === 'Rainy') bgClass = 'bg-rainy-day';
+    }
+    
+    if (!bgClass) {
+        bgClass = isDay ? 'bg-sunny-day' : 'bg-clear-night';
+    }
+
+    return `${bgClass} bg-cover bg-[50%] animate-gradient-pan`;
+  };
+
   if (!isClient) {
     return <div className="flex h-screen w-full items-center justify-center bg-background"><p>Loading TaskFlow...</p></div>;
   }
@@ -202,9 +285,10 @@ export default function Home() {
     <SidebarProvider>
       <div
         className={cn(
-          "flex h-screen w-full bg-background transition-colors duration-1000"
+          "flex h-screen w-full transition-all duration-1000",
+          getBackgroundClass(weather)
         )}
-        style={celebrationStyle}
+        style={isCelebrating ? celebrationStyle : {}}
         onClick={() => {
           if (isCelebrating) setIsCelebrating(false);
         }}
@@ -238,7 +322,7 @@ export default function Home() {
 
           <section className="mb-6">
             <h3 className="text-xl font-semibold mb-2 text-foreground/90">Personal</h3>
-            <WeatherDisplay />
+            <WeatherDisplay weather={weather} time={currentTime} />
           </section>
 
           {activeList ? (

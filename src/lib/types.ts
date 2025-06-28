@@ -12,3 +12,11 @@ export interface List {
   id: string;
   name: string;
 }
+
+export interface Weather {
+  location: string;
+  temperature: number;
+  condition: 'Sunny' | 'Cloudy' | 'Rainy' | 'Clear' | 'Partly Cloudy';
+  icon: React.ElementType;
+  isDay: boolean;
+}
