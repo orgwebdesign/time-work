@@ -32,7 +32,7 @@ export function CompletionCircle({ percentage }: CompletionCircleProps) {
         </RadialBarChart>
       </ResponsiveContainer>
       <div className="absolute inset-0 flex items-center justify-center">
-        <span className="text-base font-bold text-primary">{`${percentage}%`}</span>
+        <span className="text-sm font-bold text-primary">{`${percentage}%`}</span>
       </div>
     </div>
   );
