@@ -34,6 +34,7 @@ import {
 import { ProgressRing } from '@/components/progress-ring';
 import Link from 'next/link';
 import { DailyDua } from '@/components/daily-dua';
+import { ThemeToggle } from '@/components/theme-toggle';
 
 type TimerStatus = 'stopped' | 'running' | 'on_break';
 
@@ -534,13 +535,16 @@ export default function WorkHoursTracker() {
           {/* Header */}
           <Card className="glass-card">
               <CardContent className="p-6 flex flex-wrap items-center justify-between gap-4">
-                  <div className='flex items-baseline gap-4'>
-                    <p className="text-xl sm:text-2xl font-semibold">
-                      TIME NOW:
-                    </p>
-                    <p className="text-2xl sm:text-3xl font-bold tracking-tighter">
-                      {currentTime ? format(currentTime, 'p') : '--:--'}
-                    </p>
+                  <div className='flex items-center gap-4'>
+                    <div className='flex items-baseline gap-2'>
+                        <p className="text-xl sm:text-2xl font-semibold">
+                        TIME NOW:
+                        </p>
+                        <p className="text-2xl sm:text-3xl font-bold tracking-tighter">
+                        {currentTime ? format(currentTime, 'p') : '--:--'}
+                        </p>
+                    </div>
+                    <ThemeToggle />
                   </div>
                   <div className="flex items-center gap-2">
                      {status === 'stopped' && (
