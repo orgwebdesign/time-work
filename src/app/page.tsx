@@ -434,8 +434,10 @@ const handleDeleteLog = (logDate: string) => {
     const formattedDate = format(parse(logDate, 'yyyy-MM-dd', new Date()), 'MMM d, yyyy');
     if (window.confirm(`Are you sure you want to delete the log for ${formattedDate}? This action cannot be undone.`)) {
         try {
+            // 1. Remove from localStorage
             localStorage.removeItem(`worklog-${logDate}`);
             
+            // 2. If it's today's log, reset all of today's state
             if (logDate === getTodayKey()) {
                 setWorkedSeconds(0);
                 setPauseSeconds(0);
@@ -443,9 +445,13 @@ const handleDeleteLog = (logDate: string) => {
                 setRequiredHours(getDefaultRequiredHours(new Date()));
                 setGoalMetToday(false);
                 localStorage.removeItem(`goalMet-${getTodayKey()}`);
+                 // Reset timer status if it's running
+                setStatus('stopped');
+                setSessionStartTime(null);
+                setBreakStartTime(null);
             }
             
-            // Correctly update the history state to trigger a re-render
+            // 3. Directly update the history state to trigger a re-render
             setHistory(prevHistory => prevHistory.filter(h => h.date !== logDate));
 
         } catch(e) {
@@ -889,7 +895,7 @@ const handleDeleteLog = (logDate: string) => {
                         <Input
                             id="edit-history-pause"
                             value={editHistoryPause}
-                            onChange={(e) => setEditHistoryPause(e.g.target.value)}
+                            onChange={(e) => setEditHistoryPause(e.target.value)}
                             className="col-span-3"
                             placeholder="HH:MM"
                         />
@@ -932,4 +938,3 @@ const handleDeleteLog = (logDate: string) => {
     </div>
   );
 }
-
