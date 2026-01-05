@@ -207,23 +207,32 @@ export default function WorkHoursTracker() {
     }
   }, [holidays, isClient]);
 
-
-  // Save data to localStorage whenever it changes while stopped
-  useEffect(() => {
-    if (!isClient || status !== 'stopped') return;
-
+  const saveData = useCallback(() => {
+    if (!isClient) return;
     const todayKey = getTodayKey();
+    
+    let currentWorked = workedSeconds;
+    if (status === 'running' && sessionStartTime) {
+      currentWorked = workedSeconds + differenceInSeconds(new Date(), sessionStartTime);
+    }
+
+    let currentPause = pauseSeconds;
+    if (status === 'on_break' && breakStartTime) {
+      currentPause = pauseSeconds + differenceInSeconds(new Date(), breakStartTime);
+    }
+
     const log: DailyLog = { 
         date: todayKey, 
-        workedSeconds, 
-        pauseSeconds,
+        workedSeconds: currentWorked, 
+        pauseSeconds: currentPause,
         startTime: dayStartTime?.toISOString(),
         requiredHours,
     };
     
     try {
         localStorage.setItem(`worklog-${todayKey}`, JSON.stringify(log));
-
+        
+        // Update history in state as well for reactivity
         setHistory(prevHistory => {
             const otherDays = prevHistory.filter(h => h.date !== todayKey);
             return [log, ...otherDays].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -231,8 +240,30 @@ export default function WorkHoursTracker() {
     } catch(e) {
         console.error("Failed to save log to localStorage", e);
     }
+  }, [isClient, workedSeconds, pauseSeconds, dayStartTime, requiredHours, status, sessionStartTime, breakStartTime]);
+
+
+  // Autosave every 10 seconds while timer is active
+  useEffect(() => {
+    if (status === 'stopped') return;
+
+    const intervalId = setInterval(() => {
+      saveData();
+    }, 10000); // 10 seconds
+
+    return () => clearInterval(intervalId);
+  }, [status, saveData]);
+
+  // Final save when stopping the timer or when critical states change while stopped
+  useEffect(() => {
+    if (!isClient) return;
     
-  }, [workedSeconds, pauseSeconds, dayStartTime, requiredHours, isClient, status]);
+    // Save only when the timer is stopped. Autosave handles active states.
+    if (status === 'stopped') {
+      saveData();
+    }
+    
+  }, [workedSeconds, pauseSeconds, dayStartTime, requiredHours, isClient, status, saveData]);
 
   
   // The main timer loop
@@ -306,7 +337,13 @@ export default function WorkHoursTracker() {
     if (status === 'running' && sessionStartTime) {
       finalWorkedSeconds += differenceInSeconds(new Date(), sessionStartTime);
     }
+    let finalPauseSeconds = pauseSeconds;
+    if (status === 'on_break' && breakStartTime) {
+        finalPauseSeconds += differenceInSeconds(new Date(), breakStartTime);
+    }
+
     setWorkedSeconds(finalWorkedSeconds);
+    setPauseSeconds(finalPauseSeconds);
     
     setStatus('stopped');
     setSessionStartTime(null);
@@ -434,10 +471,7 @@ const handleDeleteLog = (logDate: string) => {
     const formattedDate = format(parse(logDate, 'yyyy-MM-dd', new Date()), 'MMM d, yyyy');
     if (window.confirm(`Are you sure you want to delete the log for ${formattedDate}? This action cannot be undone.`)) {
         try {
-            // 1. Remove from localStorage
             localStorage.removeItem(`worklog-${logDate}`);
-            
-            // 2. If it's today's log, reset all of today's state
             if (logDate === getTodayKey()) {
                 setWorkedSeconds(0);
                 setPauseSeconds(0);
@@ -445,15 +479,11 @@ const handleDeleteLog = (logDate: string) => {
                 setRequiredHours(getDefaultRequiredHours(new Date()));
                 setGoalMetToday(false);
                 localStorage.removeItem(`goalMet-${getTodayKey()}`);
-                 // Reset timer status if it's running
                 setStatus('stopped');
                 setSessionStartTime(null);
                 setBreakStartTime(null);
             }
-            
-            // 3. Directly update the history state to trigger a re-render
             setHistory(prevHistory => prevHistory.filter(h => h.date !== logDate));
-
         } catch(e) {
             console.error("Failed to delete log", e);
             alert("An error occurred while deleting the log.");
@@ -938,3 +968,5 @@ const handleDeleteLog = (logDate: string) => {
     </div>
   );
 }
+
+    
