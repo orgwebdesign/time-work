@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -519,12 +520,32 @@ export default function WorkHoursTracker() {
               </CardContent>
           </Card>
           
+           <Card className="glass-card">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="text-sm font-medium uppercase text-muted-foreground">Monthly Overview</CardTitle>
+                <MoreHorizontal className="w-5 h-5 text-muted-foreground" />
+              </CardHeader>
+              <CardContent className="space-y-4">
+                  <div className="space-y-1">
+                      <p className="text-sm text-muted-foreground">Est. Leave Time</p>
+                      <p className="text-3xl font-bold text-primary">{estimatedLeaveTime ? format(estimatedLeaveTime, 'p') : '--:--'}</p>
+                  </div>
+                   <div className="space-y-1">
+                      <p className="text-sm text-muted-foreground">Reset In:</p>
+                      <p className="text-lg font-semibold">{Math.ceil(daysRemainingInMonth)} days</p>
+                  </div>
+              </CardContent>
+            </Card>
+
           <Card className="glass-card">
               <CardContent className="p-6 flex flex-col md:flex-row items-center justify-between gap-8">
                   <div className="relative">
                       <ProgressRing value={dailyProgress} />
-                      <div className="absolute inset-0 flex flex-col items-center justify-center">
-                          <span className="text-3xl font-bold">{formatSeconds(currentWorkedSeconds)}</span>
+                      <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+                          <div className="flex items-center justify-center gap-1">
+                            <span className="text-3xl font-bold">{formatSeconds(currentWorkedSeconds)}</span>
+                             <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground/70 hover:text-foreground disabled:text-muted-foreground/40" onClick={() => handleOpenEditModal('worked')} disabled={status !== 'stopped'}><Pencil className="h-3 w-3" /></Button>
+                          </div>
                           <span className="text-sm text-muted-foreground">/ {formatSeconds(requiredSecondsToday)}</span>
                       </div>
                   </div>
@@ -532,7 +553,7 @@ export default function WorkHoursTracker() {
                       <p className="text-lg text-muted-foreground">Good Job, Anna! 🔥</p>
                       {holidays.some(h => isSameDay(h, new Date())) && <p className="text-primary font-semibold mt-2">🇫🇷 JOUR FÉRIÉ</p>}
                   </div>
-                  <div className="w-full md:w-auto grid grid-cols-2 gap-4 text-center">
+                  <div className="w-full md:w-auto grid grid-cols-2 gap-x-4 gap-y-2 text-center">
                     <div className="space-y-1">
                       <p className="text-sm text-muted-foreground">Start Time</p>
                       <div className="flex items-center justify-center gap-1">
@@ -645,23 +666,6 @@ export default function WorkHoursTracker() {
                         }}
                     />
                 </CardContent>
-            </Card>
-
-             <Card className="glass-card">
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="text-sm font-medium uppercase text-muted-foreground">Monthly Overview</CardTitle>
-                <MoreHorizontal className="w-5 h-5 text-muted-foreground" />
-              </CardHeader>
-              <CardContent className="space-y-4">
-                  <div className="space-y-1">
-                      <p className="text-sm text-muted-foreground">Est. Leave Time</p>
-                      <p className="text-3xl font-bold text-primary">{estimatedLeaveTime ? format(estimatedLeaveTime, 'p') : '--:--'}</p>
-                  </div>
-                   <div className="space-y-1">
-                      <p className="text-sm text-muted-foreground">Reset In:</p>
-                      <p className="text-lg font-semibold">{Math.ceil(daysRemainingInMonth)} days</p>
-                  </div>
-              </CardContent>
             </Card>
 
             <Card className="glass-card">
@@ -815,3 +819,4 @@ export default function WorkHoursTracker() {
     </div>
   );
 }
+
