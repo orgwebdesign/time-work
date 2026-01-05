@@ -407,12 +407,13 @@ export default function WorkHoursTracker() {
   const estimatedLeaveTime = useMemo(() => {
     if (!dayStartTime) return null;
     let currentTotalPause = pauseSeconds;
-    if(status === 'paused' && pauseTime) {
+    // When paused, the pause duration is actively increasing.
+    if (status === 'paused' && pauseTime) {
       currentTotalPause += differenceInSeconds(new Date(), pauseTime);
     }
     const totalSecondsNeeded = requiredSecondsToday + currentTotalPause;
     return add(dayStartTime, { seconds: totalSecondsNeeded });
-  }, [dayStartTime, pauseSeconds, requiredSecondsToday, status, pauseTime]);
+  }, [dayStartTime, pauseSeconds, requiredSecondsToday, status, pauseTime, currentTime]);
 
   const { monthBalance, weekBalance, thisMonthTotal } = useMemo(() => {
     const now = new Date();
@@ -853,5 +854,6 @@ export default function WorkHoursTracker() {
     
 
     
+
 
 
