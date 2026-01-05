@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
-import { User, BarChart, Calendar as CalendarIconLucid, CheckCircle, Clock, Coffee, Hourglass, Pause, Play, Square, Target, History, Pencil, PlayCircle, AlarmClock, Award, MoreHorizontal, History as HistoryIcon, Star, CalendarCheck, Utensils } from 'lucide-react';
+import { User, BarChart, Calendar as CalendarIconLucid, CheckCircle, Clock, Coffee, Hourglass, Pause, Play, Square, Target, History, Pencil, PlayCircle, AlarmClock, Award, MoreHorizontal, History as HistoryIcon, Star, CalendarCheck, Utensils, Trash2 } from 'lucide-react';
 import { add, format, differenceInSeconds, startOfMonth, eachDayOfInterval, formatISO, parse, getDay, startOfWeek, endOfWeek, startOfDay, endOfDay, isSameDay, isSameMonth, lastDayOfMonth } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Calendar } from '@/components/ui/calendar';
@@ -411,7 +411,29 @@ export default function WorkHoursTracker() {
     
     loadAllLogs(); // Reload history to reflect change
   };
+  
+    const handleDeleteLog = (logDate: string) => {
+        if (window.confirm(`Are you sure you want to delete the log for ${format(new Date(logDate), 'MMM d, yyyy')}? This action cannot be undone.`)) {
+            try {
+                localStorage.removeItem(`worklog-${logDate}`);
+                
+                // If deleting today's log, reset the current state
+                if (logDate === getTodayKey()) {
+                    setWorkedSeconds(0);
+                    setPauseSeconds(0);
+                    setDayStartTime(null);
+                    setRequiredHours(getDefaultRequiredHours(new Date()));
+                    setGoalMetToday(false);
+                    localStorage.removeItem(`goalMet-${getTodayKey()}`);
+                }
 
+                loadAllLogs();
+            } catch(e) {
+                console.error("Failed to delete log", e);
+                alert("An error occurred while deleting the log.");
+            }
+        }
+    };
 
   
   const balanceSecondsToday = useMemo(() => currentWorkedSeconds - requiredSecondsToday, [currentWorkedSeconds, requiredSecondsToday]);
@@ -637,6 +659,9 @@ export default function WorkHoursTracker() {
                                   <TableCell className="text-right">
                                       <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground" onClick={() => handleOpenHistoryEditModal(log)}>
                                           <Pencil className="h-4 w-4" />
+                                      </Button>
+                                      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive/70 hover:text-destructive" onClick={() => handleDeleteLog(log.date)}>
+                                          <Trash2 className="h-4 w-4" />
                                       </Button>
                                   </TableCell>
                               </TableRow>
