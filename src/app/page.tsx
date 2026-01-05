@@ -467,29 +467,29 @@ export default function WorkHoursTracker() {
     loadAllLogs(); // Reload history to reflect change
   };
   
-const handleDeleteLog = (logDate: string) => {
-    const formattedDate = format(parse(logDate, 'yyyy-MM-dd', new Date()), 'MMM d, yyyy');
-    if (window.confirm(`Are you sure you want to delete the log for ${formattedDate}? This action cannot be undone.`)) {
-        try {
-            localStorage.removeItem(`worklog-${logDate}`);
-            if (logDate === getTodayKey()) {
-                setWorkedSeconds(0);
-                setPauseSeconds(0);
-                setDayStartTime(null);
-                setRequiredHours(getDefaultRequiredHours(new Date()));
-                setGoalMetToday(false);
-                localStorage.removeItem(`goalMet-${getTodayKey()}`);
-                setStatus('stopped');
-                setSessionStartTime(null);
-                setBreakStartTime(null);
-            }
-            setHistory(prevHistory => prevHistory.filter(h => h.date !== logDate));
-        } catch(e) {
-            console.error("Failed to delete log", e);
-            alert("An error occurred while deleting the log.");
-        }
-    }
-};
+  const handleDeleteLog = (logDate: string) => {
+      const formattedDate = format(parse(logDate, 'yyyy-MM-dd', new Date()), 'MMM d, yyyy');
+      if (window.confirm(`Are you sure you want to delete the log for ${formattedDate}? This action cannot be undone.`)) {
+          try {
+              localStorage.removeItem(`worklog-${logDate}`);
+              setHistory(prevHistory => prevHistory.filter(h => h.date !== logDate));
+              if (logDate === getTodayKey()) {
+                  setWorkedSeconds(0);
+                  setPauseSeconds(0);
+                  setDayStartTime(null);
+                  setRequiredHours(getDefaultRequiredHours(new Date()));
+                  setGoalMetToday(false);
+                  localStorage.removeItem(`goalMet-${getTodayKey()}`);
+                  setStatus('stopped');
+                  setSessionStartTime(null);
+                  setBreakStartTime(null);
+              }
+          } catch(e) {
+              console.error("Failed to delete log", e);
+              alert("An error occurred while deleting the log.");
+          }
+      }
+  };
 
   
   const balanceSecondsToday = useMemo(() => currentWorkedSeconds - requiredSecondsToday, [currentWorkedSeconds, requiredSecondsToday]);
@@ -621,7 +621,7 @@ const handleDeleteLog = (logDate: string) => {
                  <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground disabled:text-muted-foreground/40 disabled:hover:text-muted-foreground/40" onClick={() => handleOpenEditModal('start')} disabled={status !== 'stopped'}><Pencil className="h-4 w-4" /></Button>
               </CardHeader>
               <CardContent>
-                <p className="text-3xl font-bold">{dayStartTime ? format(dayStartTime, 'p') : '--:--'}</p>
+                <p className="text-2xl sm:text-3xl font-bold">{dayStartTime ? format(dayStartTime, 'p') : '--:--'}</p>
               </CardContent>
             </Card>
 
@@ -630,7 +630,7 @@ const handleDeleteLog = (logDate: string) => {
                 <ProgressRing value={dailyProgress} strokeWidth={6} />
                 <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
                     <div className="flex items-center justify-center gap-1">
-                      <span className="text-4xl font-bold tracking-tighter">{formatSeconds(currentWorkedSeconds)}</span>
+                      <span className="text-3xl sm:text-4xl font-bold tracking-tighter">{formatSeconds(currentWorkedSeconds)}</span>
                     </div>
                 </div>
               </div>
@@ -646,7 +646,7 @@ const handleDeleteLog = (logDate: string) => {
                     <CardTitle className="text-sm font-medium uppercase text-muted-foreground">Est. Leave Time</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <p className="text-3xl font-bold text-primary">{estimatedLeaveTime ? format(estimatedLeaveTime, 'p') : '--:--'}</p>
+                    <p className="text-2xl sm:text-3xl font-bold text-primary">{estimatedLeaveTime ? format(estimatedLeaveTime, 'p') : '--:--'}</p>
                 </CardContent>
             </Card>
 
@@ -656,7 +656,7 @@ const handleDeleteLog = (logDate: string) => {
                 <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground disabled:text-muted-foreground/40 disabled:hover:text-muted-foreground/40" onClick={() => handleOpenEditModal('pause')} disabled={status !== 'stopped'}><Pencil className="h-4 w-4" /></Button>
               </CardHeader>
               <CardContent>
-                <p className="text-3xl font-bold">{formatSeconds(pauseSeconds)}</p>
+                <p className="text-2xl sm:text-3xl font-bold">{formatSeconds(pauseSeconds)}</p>
               </CardContent>
             </Card>
             
@@ -666,7 +666,7 @@ const handleDeleteLog = (logDate: string) => {
                     <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground disabled:text-muted-foreground/40 disabled:hover:text-muted-foreground/40" onClick={() => handleOpenEditModal('required')} disabled={status !== 'stopped'}><Pencil className="h-4 w-4" /></Button>
                 </CardHeader>
                 <CardContent>
-                    <p className="text-3xl font-bold">{formatSeconds(requiredSecondsToday)}</p>
+                    <p className="text-2xl sm:text-3xl font-bold">{formatSeconds(requiredSecondsToday)}</p>
                 </CardContent>
             </Card>
           </div>
@@ -968,5 +968,3 @@ const handleDeleteLog = (logDate: string) => {
     </div>
   );
 }
-
-    
