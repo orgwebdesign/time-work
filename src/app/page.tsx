@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
-import { User, BarChart, Calendar as CalendarIconLucid, CheckCircle, Clock, Coffee, Hourglass, Pause, Play, Square, Target, History, Pencil, PlayCircle, AlarmClock, Award, MoreHorizontal, History as HistoryIcon, Star, CalendarCheck } from 'lucide-react';
+import { User, BarChart, Calendar as CalendarIconLucid, CheckCircle, Clock, Coffee, Hourglass, Pause, Play, Square, Target, History, Pencil, PlayCircle, AlarmClock, Award, MoreHorizontal, History as HistoryIcon, Star, CalendarCheck, Utensils } from 'lucide-react';
 import { add, format, differenceInSeconds, startOfMonth, eachDayOfInterval, formatISO, parse, getDay, startOfWeek, endOfWeek, startOfDay, endOfDay, isSameDay, isSameMonth, lastDayOfMonth } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Calendar } from '@/components/ui/calendar';
@@ -33,12 +33,13 @@ import {
 import { ProgressRing } from '@/components/progress-ring';
 import Link from 'next/link';
 
-type TimerStatus = 'stopped' | 'running' | 'paused';
+type TimerStatus = 'stopped' | 'running' | 'on_break' | 'on_lunch';
 
 interface DailyLog {
   date: string; // "yyyy-MM-dd" format
   workedSeconds: number;
   pauseSeconds: number;
+  lunchSeconds: number;
   startTime?: string; // ISO string
   requiredHours?: number; // Store the required hours for this specific day
 }
@@ -96,9 +97,10 @@ export default function WorkHoursTracker() {
   const [status, setStatus] = useState<TimerStatus>('stopped');
   const [workedSeconds, setWorkedSeconds] = useState(0);
   const [pauseSeconds, setPauseSeconds] = useState(0);
+  const [lunchSeconds, setLunchSeconds] = useState(0);
   const [sessionStartTime, setSessionStartTime] = useState<Date | null>(null);
   const [dayStartTime, setDayStartTime] = useState<Date | null>(null);
-  const [pauseTime, setPauseTime] = useState<Date | null>(null);
+  const [breakStartTime, setBreakStartTime] = useState<Date | null>(null);
   const [requiredHours, setRequiredHours] = useState(getDefaultRequiredHours(new Date()));
   const [currentTime, setCurrentTime] = useState<Date | null>(null);
 
@@ -111,7 +113,7 @@ export default function WorkHoursTracker() {
 
   // Manual edit state
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [editingField, setEditingField] = useState<'worked' | 'pause' | 'required' | 'start' | null>(null);
+  const [editingField, setEditingField] = useState<'worked' | 'pause' | 'lunch' | 'required' | 'start' | null>(null);
   const [editTimeValue, setEditTimeValue] = useState('');
 
   // History edit state
@@ -119,6 +121,7 @@ export default function WorkHoursTracker() {
   const [editingLog, setEditingLog] = useState<DailyLog | null>(null);
   const [editHistoryWorked, setEditHistoryWorked] = useState('');
   const [editHistoryPause, setEditHistoryPause] = useState('');
+  const [editHistoryLunch, setEditHistoryLunch] = useState('');
   const [editHistoryStart, setEditHistoryStart] = useState('');
   
   // Holiday state
@@ -131,7 +134,12 @@ export default function WorkHoursTracker() {
         const allKeys = Object.keys(localStorage).filter(key => key.startsWith('worklog-'));
         const allLogs: DailyLog[] = allKeys.map(key => {
             const logData = localStorage.getItem(key);
-            return logData ? JSON.parse(logData) : null;
+            const parsedData = logData ? JSON.parse(logData) : null;
+            if (parsedData) {
+                // Ensure lunchSeconds exists
+                parsedData.lunchSeconds = parsedData.lunchSeconds || 0;
+            }
+            return parsedData;
         }).filter(Boolean);
         setHistory(allLogs.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
     } catch (e) {
@@ -157,6 +165,7 @@ export default function WorkHoursTracker() {
           const data: DailyLog = JSON.parse(storedLog);
           setWorkedSeconds(data.workedSeconds || 0);
           setPauseSeconds(data.pauseSeconds || 0);
+          setLunchSeconds(data.lunchSeconds || 0);
           if (data.startTime) {
             setDayStartTime(new Date(data.startTime));
           }
@@ -200,6 +209,7 @@ export default function WorkHoursTracker() {
         date: todayKey, 
         workedSeconds, 
         pauseSeconds,
+        lunchSeconds,
         startTime: dayStartTime?.toISOString(),
         requiredHours,
     };
@@ -215,7 +225,7 @@ export default function WorkHoursTracker() {
         console.error("Failed to save log to localStorage", e);
     }
     
-  }, [workedSeconds, pauseSeconds, dayStartTime, requiredHours, isClient, status]);
+  }, [workedSeconds, pauseSeconds, lunchSeconds, dayStartTime, requiredHours, isClient, status]);
 
   
   // The main timer loop
@@ -262,23 +272,27 @@ export default function WorkHoursTracker() {
     setStatus('running');
   };
   
-  const handlePause = () => {
+  const handlePause = (type: 'break' | 'lunch') => {
     if (status !== 'running' || !sessionStartTime) return;
     const now = new Date();
     const elapsed = differenceInSeconds(now, sessionStartTime);
     setWorkedSeconds(prev => prev + elapsed);
-    setPauseTime(now);
+    setBreakStartTime(now);
     setSessionStartTime(null);
-    setStatus('paused');
+    setStatus(type === 'break' ? 'on_break' : 'on_lunch');
   };
 
   const handleResume = () => {
-    if (status !== 'paused' || !pauseTime) return;
+    if ((status !== 'on_break' && status !== 'on_lunch') || !breakStartTime) return;
     const now = new Date();
-    const pauseDuration = differenceInSeconds(now, pauseTime);
-    setPauseSeconds(prev => prev + pauseDuration);
+    const breakDuration = differenceInSeconds(now, breakStartTime);
+    if (status === 'on_break') {
+      setPauseSeconds(prev => prev + breakDuration);
+    } else {
+      setLunchSeconds(prev => prev + breakDuration);
+    }
     setSessionStartTime(now);
-    setPauseTime(null);
+    setBreakStartTime(null);
     setStatus('running');
   };
 
@@ -293,10 +307,10 @@ export default function WorkHoursTracker() {
     
     setStatus('stopped');
     setSessionStartTime(null);
-    setPauseTime(null);
+    setBreakStartTime(null);
   };
 
-  const handleOpenEditModal = (field: 'worked' | 'pause' | 'required' | 'start') => {
+  const handleOpenEditModal = (field: 'worked' | 'pause' | 'lunch' | 'required' | 'start') => {
     if (status !== 'stopped') return;
     setEditingField(field);
     if (field === 'required') {
@@ -306,7 +320,7 @@ export default function WorkHoursTracker() {
     } else if (field === 'start') {
         setEditTimeValue(dayStartTime ? format(dayStartTime, 'HH:mm') : '');
     } else {
-        const timeToEdit = field === 'worked' ? workedSeconds : pauseSeconds;
+        const timeToEdit = field === 'worked' ? workedSeconds : (field === 'pause' ? pauseSeconds : lunchSeconds);
         setEditTimeValue(secondsToTime(timeToEdit));
     }
     setIsEditModalOpen(true);
@@ -318,6 +332,8 @@ export default function WorkHoursTracker() {
         setWorkedSeconds(newSeconds);
     } else if (editingField === 'pause') {
         setPauseSeconds(newSeconds);
+    } else if (editingField === 'lunch') {
+        setLunchSeconds(newSeconds);
     } else if (editingField === 'required') {
         const hours = newSeconds / 3600;
         setRequiredHours(hours);
@@ -332,6 +348,7 @@ export default function WorkHoursTracker() {
     setEditingLog(log);
     setEditHistoryWorked(secondsToTime(log.workedSeconds));
     setEditHistoryPause(secondsToTime(log.pauseSeconds));
+    setEditHistoryLunch(secondsToTime(log.lunchSeconds));
     setEditHistoryStart(log.startTime ? format(new Date(log.startTime), 'HH:mm') : '');
     setIsHistoryEditModalOpen(true);
   };
@@ -343,6 +360,7 @@ export default function WorkHoursTracker() {
       ...editingLog,
       workedSeconds: parseTimeToSeconds(editHistoryWorked),
       pauseSeconds: parseTimeToSeconds(editHistoryPause),
+      lunchSeconds: parseTimeToSeconds(editHistoryLunch),
       startTime: editHistoryStart ? parseTimeStringToDate(editHistoryStart, new Date(editingLog.date)).toISOString() : undefined,
     };
 
@@ -352,6 +370,7 @@ export default function WorkHoursTracker() {
     if (editingLog.date === todayKey) {
         setWorkedSeconds(updatedLog.workedSeconds);
         setPauseSeconds(updatedLog.pauseSeconds);
+        setLunchSeconds(updatedLog.lunchSeconds);
         setDayStartTime(updatedLog.startTime ? new Date(updatedLog.startTime) : null);
     }
 
@@ -382,6 +401,7 @@ export default function WorkHoursTracker() {
       date: dayKey,
       workedSeconds: 0,
       pauseSeconds: 0,
+      lunchSeconds: 0,
     };
 
     const updatedLog = {
@@ -405,13 +425,15 @@ export default function WorkHoursTracker() {
   
   const estimatedLeaveTime = useMemo(() => {
     if (!dayStartTime) return null;
-    let currentTotalPause = pauseSeconds;
-    if (status === 'paused' && pauseTime) {
-        currentTotalPause += differenceInSeconds(new Date(), pauseTime);
+    let currentTotalBreak = pauseSeconds + lunchSeconds;
+    if (status === 'on_break' && breakStartTime) {
+        currentTotalBreak += differenceInSeconds(new Date(), breakStartTime);
+    } else if (status === 'on_lunch' && breakStartTime) {
+        currentTotalBreak += differenceInSeconds(new Date(), breakStartTime);
     }
-    const totalSecondsNeeded = requiredSecondsToday + currentTotalPause;
+    const totalSecondsNeeded = requiredSecondsToday + currentTotalBreak;
     return add(dayStartTime, { seconds: totalSecondsNeeded });
-  }, [dayStartTime, pauseSeconds, requiredSecondsToday, status, pauseTime, currentTime]);
+  }, [dayStartTime, pauseSeconds, lunchSeconds, requiredSecondsToday, status, breakStartTime, currentTime]);
 
 
   const { monthBalance, weekBalance, thisMonthTotal } = useMemo(() => {
@@ -498,12 +520,18 @@ export default function WorkHoursTracker() {
                         </Button>
                       )}
                       {status === 'running' && (
-                          <Button size="lg" variant="outline" className="w-full sm:w-auto" onClick={handlePause}>
-                              <Pause className="mr-2"/>
-                              Pause
-                          </Button>
+                          <>
+                            <Button size="lg" variant="outline" className="w-full sm:w-auto" onClick={() => handlePause('break')}>
+                                <Pause className="mr-2"/>
+                                Take a Break
+                            </Button>
+                             <Button size="lg" variant="outline" className="w-full sm:w-auto" onClick={() => handlePause('lunch')}>
+                                <Utensils className="mr-2"/>
+                                Start Lunch
+                            </Button>
+                          </>
                       )}
-                      {status === 'paused' && (
+                      {(status === 'on_break' || status === 'on_lunch') && (
                           <Button size="lg" variant="outline" className="w-full sm:w-auto" onClick={handleResume}>
                               <Play className="mr-2"/>
                               Resume
@@ -520,8 +548,8 @@ export default function WorkHoursTracker() {
           </Card>
           
           {/* Main Dashboard Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <Card className="glass-card md:col-span-2 lg:col-span-1">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <Card className="glass-card">
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="text-sm font-medium uppercase text-muted-foreground">Start Time</CardTitle>
                  <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground/70 hover:text-foreground disabled:text-muted-foreground/40" onClick={() => handleOpenEditModal('start')} disabled={status !== 'stopped'}><Pencil className="h-4 w-4" /></Button>
@@ -531,7 +559,7 @@ export default function WorkHoursTracker() {
               </CardContent>
             </Card>
 
-            <Card className="glass-card row-span-2 flex flex-col items-center justify-center p-6">
+            <Card className="glass-card lg:col-span-2 row-span-2 flex flex-col items-center justify-center p-6">
               <div className="relative">
                 <ProgressRing value={dailyProgress} />
                 <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
@@ -547,6 +575,15 @@ export default function WorkHoursTracker() {
               {holidays.some(h => isSameDay(h, new Date())) && <p className="text-primary font-semibold mt-2 text-sm">🇫🇷 JOUR FÉRIÉ</p>}
             </Card>
 
+             <Card className="glass-card">
+                <CardHeader>
+                    <CardTitle className="text-sm font-medium uppercase text-muted-foreground">Est. Leave Time</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <p className="text-3xl font-bold text-primary">{estimatedLeaveTime ? format(estimatedLeaveTime, 'p') : '--:--'}</p>
+                </CardContent>
+            </Card>
+
             <Card className="glass-card">
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="text-sm font-medium uppercase text-muted-foreground">Pause</CardTitle>
@@ -556,7 +593,8 @@ export default function WorkHoursTracker() {
                 <p className="text-3xl font-bold">{formatSeconds(pauseSeconds)}</p>
               </CardContent>
             </Card>
-            <Card className="glass-card md:col-span-2 lg:col-span-1">
+
+            <Card className="glass-card">
                 <CardHeader className="flex flex-row items-center justify-between">
                     <CardTitle className="text-sm font-medium uppercase text-muted-foreground">Daily Goal</CardTitle>
                     <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground/70 hover:text-foreground disabled:text-muted-foreground/40" onClick={() => handleOpenEditModal('required')} disabled={status !== 'stopped'}><Pencil className="h-4 w-4" /></Button>
@@ -565,13 +603,15 @@ export default function WorkHoursTracker() {
                     <p className="text-3xl font-bold">{formatSeconds(requiredSecondsToday)}</p>
                 </CardContent>
             </Card>
-             <Card className="glass-card">
-                <CardHeader>
-                    <CardTitle className="text-sm font-medium uppercase text-muted-foreground">Est. Leave Time</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <p className="text-3xl font-bold text-primary">{estimatedLeaveTime ? format(estimatedLeaveTime, 'p') : '--:--'}</p>
-                </CardContent>
+            
+            <Card className="glass-card">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="text-sm font-medium uppercase text-muted-foreground">Lunch</CardTitle>
+                <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground/70 hover:text-foreground disabled:text-muted-foreground/40" onClick={() => handleOpenEditModal('lunch')} disabled={status !== 'stopped'}><Pencil className="h-4 w-4" /></Button>
+              </CardHeader>
+              <CardContent>
+                <p className="text-3xl font-bold">{formatSeconds(lunchSeconds)}</p>
+              </CardContent>
             </Card>
           </div>
 
@@ -592,6 +632,7 @@ export default function WorkHoursTracker() {
                           <TableHead className="text-muted-foreground text-center">Start</TableHead>
                           <TableHead className="text-muted-foreground text-right">Worked</TableHead>
                           <TableHead className="text-muted-foreground text-right">Pause</TableHead>
+                          <TableHead className="text-muted-foreground text-right">Lunch</TableHead>
                           <TableHead className="text-muted-foreground text-right">Balance</TableHead>
                           <TableHead className="text-muted-foreground text-right">Actions</TableHead>
                       </TableRow>
@@ -616,6 +657,7 @@ export default function WorkHoursTracker() {
                                   <TableCell className="text-center">{log.startTime ? format(new Date(log.startTime), 'p') : '--:--'}</TableCell>
                                   <TableCell className="text-right">{formatSeconds(log.workedSeconds)}</TableCell>
                                   <TableCell className="text-right">{formatSeconds(log.pauseSeconds)}</TableCell>
+                                  <TableCell className="text-right">{formatSeconds(log.lunchSeconds)}</TableCell>
                                   <TableCell className={cn("text-right font-medium", balance < 0 ? 'text-destructive' : 'text-green-500')}>
                                       {formatSeconds(balance, true)}
                                   </TableCell>
@@ -628,7 +670,7 @@ export default function WorkHoursTracker() {
                           )
                       }) : (
                           <TableRow className="border-border/50 hover:bg-transparent">
-                              <TableCell colSpan={6} className="text-center text-muted-foreground py-8">No history for this month yet.</TableCell>
+                              <TableCell colSpan={7} className="text-center text-muted-foreground py-8">No history for this month yet.</TableCell>
                           </TableRow>
                       )}
                   </TableBody>
@@ -757,7 +799,7 @@ export default function WorkHoursTracker() {
                 <DialogHeader>
                     <DialogTitle>Edit Log for {editingLog ? format(parse(editingLog.date, 'yyyy-MM-dd', new Date()), 'MMM d, yyyy') : ''}</DialogTitle>
                     <DialogDescription>
-                        Update the worked and pause times for this day.
+                        Update the times for this day.
                     </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
@@ -797,6 +839,18 @@ export default function WorkHoursTracker() {
                             placeholder="HH:MM"
                         />
                     </div>
+                     <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="edit-history-lunch" className="text-right">
+                            Lunch
+                        </Label>
+                        <Input
+                            id="edit-history-lunch"
+                            value={editHistoryLunch}
+                            onChange={(e) => setEditHistoryLunch(e.target.value)}
+                            className="col-span-3"
+                            placeholder="HH:MM"
+                        />
+                    </div>
                 </div>
                 <DialogFooter>
                     <DialogClose asChild>
@@ -818,9 +872,15 @@ export default function WorkHoursTracker() {
                         Good job, skhoun lktaf! 💪
                     </DialogDescription>
                 </DialogHeader>
-                <div className="py-4 text-center">
-                    <p className="text-sm text-muted-foreground">Total break time today:</p>
-                    <p className="font-bold text-2xl text-primary">{formatSeconds(pauseSeconds)}</p>
+                <div className="py-4 text-center space-y-4">
+                    <div>
+                        <p className="text-sm text-muted-foreground">Total break time today:</p>
+                        <p className="font-bold text-2xl text-primary">{formatSeconds(pauseSeconds)}</p>
+                    </div>
+                     <div>
+                        <p className="text-sm text-muted-foreground">Total lunch time today:</p>
+                        <p className="font-bold text-2xl text-primary">{formatSeconds(lunchSeconds)}</p>
+                    </div>
                 </div>
                 <DialogFooter>
                     <DialogClose asChild>
