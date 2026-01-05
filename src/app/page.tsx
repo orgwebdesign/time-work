@@ -135,7 +135,7 @@ export default function WorkHoursTracker() {
         const allLogs: DailyLog[] = allKeys.map(key => {
             const logData = localStorage.getItem(key);
             return logData ? JSON.parse(logData) : null;
-        }).filter(Boolean);
+        }).filter((log): log is DailyLog => log !== null);
         setHistory(allLogs.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
     } catch (e) {
         console.error("Failed to load logs from localStorage", e);
@@ -426,6 +426,19 @@ export default function WorkHoursTracker() {
     setEditingLog(null);
   };
   
+  const handleDeleteLog = (logToDelete: DailyLog) => {
+    if (!window.confirm(`Are you sure you want to delete the log for ${format(new Date(logToDelete.date), 'MMM d, yyyy')}? This action cannot be undone.`)) {
+      return;
+    }
+    try {
+      localStorage.removeItem(`worklog-${logToDelete.date}`);
+      setHistory(prevHistory => prevHistory.filter(log => log.date !== logToDelete.date));
+    } catch (e) {
+      console.error("Failed to delete log", e);
+      alert("An error occurred while deleting the log.");
+    }
+  };
+
   const handleDayClick = (day: Date) => {
     if (isWeekend(day)) return; // Prevent clicking on weekends
 
@@ -603,7 +616,7 @@ export default function WorkHoursTracker() {
 
             <Card className="glass-card lg:col-span-2 row-span-2 flex flex-col items-center justify-center p-6">
               <div className="relative">
-                <ProgressRing value={dailyProgress} strokeWidth={6} />
+                <ProgressRing value={dailyProgress} strokeWidth={4} />
                 <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
                     <div className="flex items-center justify-center gap-1">
                       <span className="text-3xl sm:text-4xl font-bold tracking-tighter">{formatSeconds(currentWorkedSeconds)}</span>
@@ -695,9 +708,14 @@ export default function WorkHoursTracker() {
                                       {formatSeconds(balance, true)}
                                   </TableCell>
                                   <TableCell className="text-right">
+                                    <div className="flex justify-end gap-1">
                                       <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground" onClick={() => handleOpenHistoryEditModal(log)}>
                                           <Pencil className="h-4 w-4" />
                                       </Button>
+                                      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive/70 hover:text-destructive" onClick={() => handleDeleteLog(log)}>
+                                          <Trash2 className="h-4 w-4" />
+                                      </Button>
+                                    </div>
                                   </TableCell>
                               </TableRow>
                           )
@@ -788,19 +806,19 @@ export default function WorkHoursTracker() {
               <CardContent className="space-y-6">
                 <div className="space-y-1">
                     <p className="text-sm text-muted-foreground">Balance (This Week)</p>
-                    <p className={cn("text-2xl font-bold", weekBalance < 0 ? 'text-destructive' : 'text-green-500')}>
+                    <p className={cn("text-2xl sm:text-3xl font-bold", weekBalance < 0 ? 'text-destructive' : 'text-green-500')}>
                         {formatSeconds(weekBalance, true)}
                     </p>
                 </div>
                 <div className="space-y-1">
                     <p className="text-sm text-muted-foreground">Balance (This Month)</p>
-                    <p className={cn("text-2xl font-bold", monthTotalBalance < 0 ? 'text-destructive' : 'text-green-500')}>
+                    <p className={cn("text-2xl sm:text-3xl font-bold", monthTotalBalance < 0 ? 'text-destructive' : 'text-green-500')}>
                         {formatSeconds(monthTotalBalance, true)}
                     </p>
                 </div>
                  <div className="space-y-1">
                     <p className="text-sm text-muted-foreground">This Month (Total Worked)</p>
-                    <p className="text-2xl font-bold">
+                    <p className="text-2xl sm:text-3xl font-bold">
                         {formatSeconds(thisMonthTotal)}
                     </p>
                 </div>
