@@ -430,28 +430,31 @@ export default function WorkHoursTracker() {
     loadAllLogs(); // Reload history to reflect change
   };
   
-    const handleDeleteLog = (logDate: string) => {
-        if (window.confirm(`Are you sure you want to delete the log for ${format(new Date(logDate), 'MMM d, yyyy')}? This action cannot be undone.`)) {
-            try {
-                localStorage.removeItem(`worklog-${logDate}`);
-                
-                // If deleting today's log, reset the current state
-                if (logDate === getTodayKey()) {
-                    setWorkedSeconds(0);
-                    setPauseSeconds(0);
-                    setDayStartTime(null);
-                    setRequiredHours(getDefaultRequiredHours(new Date()));
-                    setGoalMetToday(false);
-                    localStorage.removeItem(`goalMet-${getTodayKey()}`);
-                }
-
-                loadAllLogs();
-            } catch(e) {
-                console.error("Failed to delete log", e);
-                alert("An error occurred while deleting the log.");
+  const handleDeleteLog = (logDate: string) => {
+    const formattedDate = format(parse(logDate, 'yyyy-MM-dd', new Date()), 'MMM d, yyyy');
+    if (window.confirm(`Are you sure you want to delete the log for ${formattedDate}? This action cannot be undone.`)) {
+        try {
+            localStorage.removeItem(`worklog-${logDate}`);
+            
+            // If deleting today's log, reset the current state
+            if (logDate === getTodayKey()) {
+                setWorkedSeconds(0);
+                setPauseSeconds(0);
+                setDayStartTime(null);
+                setRequiredHours(getDefaultRequiredHours(new Date()));
+                setGoalMetToday(false);
+                localStorage.removeItem(`goalMet-${getTodayKey()}`);
             }
+            
+            // Optimistically update the UI
+            setHistory(prevHistory => prevHistory.filter(log => log.date !== logDate));
+
+        } catch(e) {
+            console.error("Failed to delete log", e);
+            alert("An error occurred while deleting the log.");
         }
-    };
+    }
+};
 
   
   const balanceSecondsToday = useMemo(() => currentWorkedSeconds - requiredSecondsToday, [currentWorkedSeconds, requiredSecondsToday]);
@@ -556,7 +559,7 @@ export default function WorkHoursTracker() {
                       {(status === 'running') && (
                           <Button size="lg" variant="outline" className="w-full sm:w-auto" onClick={handlePause}>
                               <Pause className="mr-2"/>
-                              Resume
+                              Take a Break
                           </Button>
                       )}
                       {(status === 'on_break') && (
@@ -931,5 +934,3 @@ export default function WorkHoursTracker() {
   );
 }
 
-
-    
