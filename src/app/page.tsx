@@ -239,7 +239,7 @@ export default function WorkHoursTracker() {
     intervalId = setInterval(updateTimer, 1000);
 
     // Check for goal completion
-    if (currentWorkedSeconds >= requiredSecondsToday && !goalMetToday) {
+    if (currentWorkedSeconds >= requiredSecondsToday && !goalMetToday && requiredSecondsToday > 0) {
       setIsGoalMetDialogOpen(true);
       setGoalMetToday(true);
       const todayKey = getTodayKey();
