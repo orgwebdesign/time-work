@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { ArrowUp, BarChart3, Calendar, CheckCircle, Clock, Coffee, Hourglass, Pause, Play, Square, Target, History, Pencil, PlayCircle } from 'lucide-react';
-import { add, format, differenceInSeconds, startOfMonth, eachDayOfInterval, formatISO, parse } from 'date-fns';
+import { add, format, differenceInSeconds, startOfMonth, eachDayOfInterval, formatISO, parse, getDay } from 'date-fns';
 import {
   Dialog,
   DialogContent,
@@ -37,6 +37,7 @@ interface DailyLog {
   workedSeconds: number;
   pauseSeconds: number;
   startTime?: string; // ISO string
+  requiredHours?: number; // Store the required hours for this specific day
 }
 
 // --- Helper Functions ---
@@ -66,10 +67,22 @@ const secondsToTime = (seconds: number): string => {
 }
 
 const parseTimeStringToDate = (timeString: string, baseDate: Date = new Date()): Date => {
+    if (!timeString || !/^\d{2}:\d{2}$/.test(timeString)) return baseDate;
     const [hours, minutes] = timeString.split(':').map(Number);
     const newDate = new Date(baseDate);
     newDate.setHours(hours, minutes, 0, 0);
     return newDate;
+};
+
+const getDefaultRequiredHours = (date: Date): number => {
+  const dayOfWeek = getDay(date); // Sunday is 0, Monday is 1, etc.
+  if (dayOfWeek === 5) { // Friday
+    return 7.5;
+  }
+  if (dayOfWeek === 6 || dayOfWeek === 0) { // Saturday or Sunday
+    return 0;
+  }
+  return 8.5; // Monday - Thursday
 };
 
 
@@ -84,7 +97,7 @@ export default function WorkHoursTracker() {
   const [sessionStartTime, setSessionStartTime] = useState<Date | null>(null);
   const [dayStartTime, setDayStartTime] = useState<Date | null>(null);
   const [pauseTime, setPauseTime] = useState<Date | null>(null);
-  const [requiredHours, setRequiredHours] = useState(8.5);
+  const [requiredHours, setRequiredHours] = useState(getDefaultRequiredHours(new Date()));
 
   // History state
   const [history, setHistory] = useState<DailyLog[]>([]);
@@ -116,6 +129,9 @@ export default function WorkHoursTracker() {
     setIsClient(true);
     const todayKey = getTodayKey();
     const storedLog = localStorage.getItem(`worklog-${todayKey}`);
+    
+    let todaysRequiredHours = getDefaultRequiredHours(new Date());
+
     if (storedLog) {
       const data: DailyLog = JSON.parse(storedLog);
       setWorkedSeconds(data.workedSeconds || 0);
@@ -123,12 +139,12 @@ export default function WorkHoursTracker() {
       if (data.startTime) {
         setDayStartTime(new Date(data.startTime));
       }
+      // If requiredHours is stored for today, use it. Otherwise, use the default.
+      if (typeof data.requiredHours === 'number') {
+        todaysRequiredHours = data.requiredHours;
+      }
     }
-    
-    const storedRequiredHours = localStorage.getItem('workhours-requiredHours');
-    if (storedRequiredHours) {
-        setRequiredHours(parseFloat(storedRequiredHours));
-    }
+    setRequiredHours(todaysRequiredHours);
 
     loadAllLogs();
   }, [loadAllLogs]);
@@ -143,7 +159,8 @@ export default function WorkHoursTracker() {
             date: todayKey, 
             workedSeconds, 
             pauseSeconds,
-            startTime: dayStartTime?.toISOString()
+            startTime: dayStartTime?.toISOString(),
+            requiredHours,
         };
         localStorage.setItem(`worklog-${todayKey}`, JSON.stringify(log));
 
@@ -152,8 +169,6 @@ export default function WorkHoursTracker() {
             return [log, ...otherDays].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
         });
     }
-
-    localStorage.setItem('workhours-requiredHours', requiredHours.toString());
   }, [workedSeconds, pauseSeconds, dayStartTime, requiredHours, isClient, status]);
 
   // The main timer loop
@@ -270,7 +285,7 @@ export default function WorkHoursTracker() {
       ...editingLog,
       workedSeconds: parseTimeToSeconds(editHistoryWorked),
       pauseSeconds: parseTimeToSeconds(editHistoryPause),
-      startTime: parseTimeStringToDate(editHistoryStart, baseDate).toISOString(),
+      startTime: editingLog.startTime ? parseTimeStringToDate(editHistoryStart, new Date(editingLog.startTime)).toISOString() : undefined,
     };
 
     localStorage.setItem(`worklog-${editingLog.date}`, JSON.stringify(updatedLog));
@@ -301,9 +316,10 @@ export default function WorkHoursTracker() {
   
   const estimatedLeaveTime = useMemo(() => {
     if (!dayStartTime) return null;
-    const totalSecondsNeeded = requiredSecondsToday + pauseSeconds;
+    const currentPauseSeconds = status === 'paused' && pauseTime ? pauseSeconds + differenceInSeconds(new Date(), pauseTime) : pauseSeconds;
+    const totalSecondsNeeded = requiredSecondsToday + currentPauseSeconds;
     return add(dayStartTime, { seconds: totalSecondsNeeded });
-  }, [dayStartTime, pauseSeconds, requiredSecondsToday]);
+  }, [dayStartTime, pauseSeconds, requiredSecondsToday, status, pauseTime]);
 
   if (!isClient) {
     return <div className="min-h-screen bg-gray-900" />;
@@ -459,7 +475,8 @@ export default function WorkHoursTracker() {
                 </TableHeader>
                 <TableBody>
                     {history.length > 0 ? history.slice(0, 7).map(log => {
-                        const balance = log.workedSeconds - requiredSecondsToday;
+                        const dailyRequired = log.requiredHours !== undefined ? log.requiredHours * 3600 : getDefaultRequiredHours(new Date(log.date)) * 3600;
+                        const balance = log.workedSeconds - dailyRequired;
                         return (
                             <TableRow key={log.date} className="border-gray-700 hover:bg-gray-700/50">
                                 <TableCell>{format(parse(log.date, 'yyyy-MM-dd', new Date()), 'EEE, MMM d')}</TableCell>
@@ -637,5 +654,7 @@ export default function WorkHoursTracker() {
 
 
 
+
+    
 
     
