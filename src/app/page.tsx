@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { ArrowUp, BarChart3, Calendar as CalendarIconLucid, CheckCircle, Clock, Coffee, Hourglass, Pause, Play, Square, Target, History, Pencil, PlayCircle, AlarmClock, Award } from 'lucide-react';
-import { add, format, differenceInSeconds, startOfMonth, eachDayOfInterval, formatISO, parse, getDay, startOfWeek, endOfWeek, startOfDay, endOfDay, isSameDay } from 'date-fns';
+import { add, format, differenceInSeconds, startOfMonth, eachDayOfInterval, formatISO, parse, getDay, startOfWeek, endOfWeek, startOfDay, endOfDay, isSameDay, isSameMonth } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Calendar } from '@/components/ui/calendar';
 import {
@@ -338,13 +338,11 @@ export default function WorkHoursTracker() {
   const handleSaveHistoryEdit = () => {
     if (!editingLog) return;
     
-    const baseDate = new Date(editingLog.date);
-    
     const updatedLog: DailyLog = {
       ...editingLog,
       workedSeconds: parseTimeToSeconds(editHistoryWorked),
       pauseSeconds: parseTimeToSeconds(editHistoryPause),
-      startTime: editingLog.startTime ? parseTimeStringToDate(editHistoryStart, new Date(editingLog.startTime)).toISOString() : undefined,
+      startTime: editHistoryStart ? parseTimeStringToDate(editHistoryStart, new Date(editingLog.date)).toISOString() : undefined,
     };
 
     localStorage.setItem(`worklog-${editingLog.date}`, JSON.stringify(updatedLog));
@@ -407,13 +405,16 @@ export default function WorkHoursTracker() {
   const estimatedLeaveTime = useMemo(() => {
     if (!dayStartTime) return null;
     let currentTotalPause = pauseSeconds;
-    // When paused, the pause duration is actively increasing.
     if (status === 'paused' && pauseTime) {
       currentTotalPause += differenceInSeconds(new Date(), pauseTime);
+    } else if (status === 'running' && pauseTime) {
+      // This case should not happen, but as a fallback
+      currentTotalPause += differenceInSeconds(pauseTime, pauseTime);
     }
     const totalSecondsNeeded = requiredSecondsToday + currentTotalPause;
     return add(dayStartTime, { seconds: totalSecondsNeeded });
-  }, [dayStartTime, pauseSeconds, requiredSecondsToday, status, pauseTime, currentTime]);
+}, [dayStartTime, pauseSeconds, requiredSecondsToday, status, pauseTime, currentTime]);
+
 
   const { monthBalance, weekBalance, thisMonthTotal } = useMemo(() => {
     const now = new Date();
@@ -436,25 +437,34 @@ export default function WorkHoursTracker() {
             required = (log.requiredHours !== undefined ? log.requiredHours : getDefaultRequiredHours(logDate)) * 3600;
         }
 
-        thisMonthTotal += log.workedSeconds;
+        const isToday = isSameDay(logDate, now);
+
+        if (isToday) {
+            thisMonthTotal += currentWorkedSeconds;
+        } else {
+            thisMonthTotal += log.workedSeconds;
+        }
         
-        if (!isSameDay(logDate, now)) { // Exclude today from past balance
+        if (!isToday) {
            monthBalance += (log.workedSeconds - required);
         }
 
-        if(logDate >= startOfWeekDate && logDate <= now && !isSameDay(logDate, now)) {
+        if(logDate >= startOfWeekDate && logDate <= now && !isToday) {
             weekBalance += (log.workedSeconds - required);
         }
       }
     });
     
-    // Add today's balance to week balance
     weekBalance += balanceSecondsToday;
 
     return { monthBalance, weekBalance, thisMonthTotal };
-  }, [history, holidays, balanceSecondsToday]);
+  }, [history, holidays, balanceSecondsToday, currentWorkedSeconds]);
   
   const monthTotalBalance = monthBalance + balanceSecondsToday;
+
+  const currentMonthHistory = useMemo(() => {
+      return history.filter(log => isSameMonth(new Date(log.date), new Date()));
+  }, [history]);
 
   if (!isClient) {
     return <div className="min-h-screen bg-gray-900" />;
@@ -618,7 +628,7 @@ export default function WorkHoursTracker() {
           <CardHeader>
             <div className="flex items-center gap-3">
                 <History className="w-6 h-6 text-muted-foreground" />
-                <CardTitle>Daily History</CardTitle>
+                <CardTitle>Daily History ({format(new Date(), 'MMMM yyyy')})</CardTitle>
             </div>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -634,7 +644,7 @@ export default function WorkHoursTracker() {
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {history.length > 0 ? history.slice(0, 7).map(log => {
+                    {currentMonthHistory.length > 0 ? currentMonthHistory.map(log => {
                         const isHoliday = holidays.some(h => isSameDay(new Date(log.date), h));
                         let dailyRequired;
                         if (isHoliday) {
@@ -665,7 +675,7 @@ export default function WorkHoursTracker() {
                         )
                     }) : (
                         <TableRow className="border-border/50 hover:bg-transparent">
-                            <TableCell colSpan={6} className="text-center text-muted-foreground py-4">No history yet.</TableCell>
+                            <TableCell colSpan={6} className="text-center text-muted-foreground py-4">No history for this month yet.</TableCell>
                         </TableRow>
                     )}
                 </TableBody>
@@ -697,13 +707,13 @@ export default function WorkHoursTracker() {
 
             <div>
                 <div className="flex justify-between items-baseline mb-1">
-                    <span className="text-foreground/80">Total for Month (To Date)</span>
+                    <span className="text-foreground/80">Balance for Month (To Date)</span>
                     <span className={cn('text-2xl font-bold', monthTotalBalance < 0 ? 'text-destructive' : 'text-green-600 dark:text-green-400')}>
                       {formatSeconds(monthTotalBalance, true)}
                     </span>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                    (Includes today's balance, past days' balance for this month, and any manual adjustments for this month)
+                    (Includes today's balance and past days' balance for this month)
                 </p>
             </div>
 
@@ -713,7 +723,7 @@ export default function WorkHoursTracker() {
                 <div className="flex justify-between items-baseline">
                     <div className="flex items-center gap-2 text-foreground/80">
                         <CalendarIconLucid className="w-4 h-4" />
-                        <span>This Week</span>
+                        <span>This Week Balance</span>
                     </div>
                      <span className={cn('font-semibold', weekBalance < 0 ? 'text-destructive' : 'text-green-600 dark:text-green-400')}>
                         {formatSeconds(weekBalance, true)}
@@ -722,7 +732,7 @@ export default function WorkHoursTracker() {
                 <div className="flex justify-between items-baseline">
                     <div className="flex items-center gap-2 text-foreground/80">
                         <CalendarIconLucid className="w-4 h-4" />
-                        <span>This Month</span>
+                        <span>This Month (Total Worked)</span>
                     </div>
                     <span className="font-semibold text-muted-foreground">{formatSeconds(thisMonthTotal)}</span>
                 </div>
@@ -850,10 +860,3 @@ export default function WorkHoursTracker() {
     </div>
   );
 }
-
-    
-
-    
-
-
-
