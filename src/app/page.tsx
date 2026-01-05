@@ -246,10 +246,10 @@ export default function WorkHoursTracker() {
             <div>
               <div className="flex justify-between items-baseline">
                 <div className="flex items-center gap-2 text-gray-300">
-                    <ArrowUp className="w-4 h-4 text-green-400"/>
+                    <ArrowUp className="w-4 h-4 text-gray-400"/>
                     <span>From Past Days (This Month)</span>
                 </div>
-                <span className="font-bold text-green-400">+4h 32m</span>
+                <span className="font-bold text-gray-400">+0h 0m</span>
               </div>
             </div>
             
@@ -258,7 +258,7 @@ export default function WorkHoursTracker() {
             <div>
                 <div className="flex justify-between items-baseline mb-1">
                     <span className="text-gray-300">Total for Month (To Date)</span>
-                    <span className="text-2xl font-bold text-green-400">+3h 39m</span>
+                    <span className="text-2xl font-bold text-gray-400">+0h 0m</span>
                 </div>
                 <p className="text-xs text-gray-500">
                     (Includes today's balance, past days' balance for this month, and any manual adjustments for this month)
@@ -273,14 +273,14 @@ export default function WorkHoursTracker() {
                         <Calendar className="w-4 h-4" />
                         <span>This Week</span>
                     </div>
-                    <span className="font-semibold text-red-400">15h 25m needed</span>
+                    <span className="font-semibold text-gray-400">0h 0m</span>
                 </div>
                 <div className="flex justify-between items-baseline">
                     <div className="flex items-center gap-2 text-gray-300">
                         <Calendar className="w-4 h-4" />
                         <span>This Month</span>
                     </div>
-                    <span className="font-semibold text-red-400">37h 51m needed</span>
+                    <span className="font-semibold text-gray-400">0h 0m</span>
                 </div>
             </div>
           </CardContent>
@@ -296,5 +296,7 @@ export default function WorkHoursTracker() {
     </div>
   );
 }
+
+    
 
     
