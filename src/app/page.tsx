@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
-import { ArrowUp, BarChart3, Calendar as CalendarIconLucid, CheckCircle, Clock, Coffee, Hourglass, Pause, Play, Square, Target, History, Pencil, PlayCircle, AlarmClock } from 'lucide-react';
+import { ArrowUp, BarChart3, Calendar as CalendarIconLucid, CheckCircle, Clock, Coffee, Hourglass, Pause, Play, Square, Target, History, Pencil, PlayCircle, AlarmClock, Award } from 'lucide-react';
 import { add, format, differenceInSeconds, startOfMonth, eachDayOfInterval, formatISO, parse, getDay, startOfWeek, endOfWeek, startOfDay, endOfDay, isSameDay } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Calendar } from '@/components/ui/calendar';
@@ -103,6 +103,10 @@ export default function WorkHoursTracker() {
   const [liveSeconds, setLiveSeconds] = useState(0);
   const [currentTime, setCurrentTime] = useState<Date | null>(null);
 
+  // Goal Met Dialog State
+  const [isGoalMetDialogOpen, setIsGoalMetDialogOpen] = useState(false);
+  const [goalMetToday, setGoalMetToday] = useState(false);
+
 
   // History state
   const [history, setHistory] = useState<DailyLog[]>([]);
@@ -162,6 +166,12 @@ export default function WorkHoursTracker() {
             todaysRequiredHours = data.requiredHours;
           }
         }
+        
+        const storedGoalMet = localStorage.getItem(`goalMet-${todayKey}`);
+        if (storedGoalMet === 'true') {
+            setGoalMetToday(true);
+        }
+
     } catch (e) {
         console.error("Failed to parse today's log from localStorage", e);
     }
@@ -209,6 +219,9 @@ export default function WorkHoursTracker() {
     
   }, [workedSeconds, pauseSeconds, dayStartTime, requiredHours, isClient, status]);
 
+  const requiredSecondsToday = requiredHours * 3600;
+  const currentWorkedSeconds = workedSeconds + (status === 'running' ? liveSeconds : 0);
+
   // The main timer loop
   useEffect(() => {
     let intervalId: NodeJS.Timeout | undefined;
@@ -221,12 +234,20 @@ export default function WorkHoursTracker() {
         setLiveSeconds(0);
       }
     };
-
+    
     updateTimer(); // Initial call to set time immediately
     intervalId = setInterval(updateTimer, 1000);
 
+    // Check for goal completion
+    if (currentWorkedSeconds >= requiredSecondsToday && !goalMetToday) {
+      setIsGoalMetDialogOpen(true);
+      setGoalMetToday(true);
+      const todayKey = getTodayKey();
+      localStorage.setItem(`goalMet-${todayKey}`, 'true');
+    }
+
     return () => clearInterval(intervalId);
-  }, [status, sessionStartTime]);
+  }, [status, sessionStartTime, currentWorkedSeconds, requiredSecondsToday, goalMetToday]);
 
   const handleStart = () => {
     const now = new Date();
@@ -380,10 +401,7 @@ export default function WorkHoursTracker() {
   };
 
 
-  const requiredSecondsToday = requiredHours * 3600;
   
-  const currentWorkedSeconds = workedSeconds + (status === 'running' ? liveSeconds : 0);
-
   const balanceSecondsToday = currentWorkedSeconds - requiredSecondsToday;
   
   const estimatedLeaveTime = useMemo(() => {
@@ -800,6 +818,29 @@ export default function WorkHoursTracker() {
                         <Button type="button" variant="secondary" onClick={() => setIsHistoryEditModalOpen(false)}>Cancel</Button>
                     </DialogClose>
                     <Button type="button" onClick={handleSaveHistoryEdit}>Save Changes</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+        
+        <Dialog open={isGoalMetDialogOpen} onOpenChange={setIsGoalMetDialogOpen}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                        <Award className="text-yellow-500" />
+                        Congratulations!
+                    </DialogTitle>
+                    <DialogDescription className="pt-4 text-center text-lg">
+                        Good job, skhoun lktaf! 💪
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="py-4 text-center">
+                    <p className="text-sm text-muted-foreground">Total break time today:</p>
+                    <p className="font-bold text-xl">{formatSeconds(pauseSeconds)}</p>
+                </div>
+                <DialogFooter>
+                    <DialogClose asChild>
+                        <Button type="button">Close</Button>
+                    </DialogClose>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
