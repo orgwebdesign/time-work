@@ -616,10 +616,10 @@ export default function WorkHoursTracker() {
 
             <Card className="glass-card lg:col-span-2 row-span-2 flex flex-col items-center justify-center p-6">
               <div className="relative">
-                <ProgressRing value={dailyProgress} strokeWidth={4} />
+                <ProgressRing value={dailyProgress} strokeWidth={4} className="h-32 w-32 sm:h-48 sm:w-48" />
                 <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
                     <div className="flex items-center justify-center gap-1">
-                      <span className="text-3xl sm:text-4xl font-bold tracking-tighter">{formatSeconds(currentWorkedSeconds)}</span>
+                      <span className="text-2xl sm:text-4xl font-bold tracking-tighter">{formatSeconds(currentWorkedSeconds)}</span>
                     </div>
                 </div>
               </div>
@@ -806,19 +806,19 @@ export default function WorkHoursTracker() {
               <CardContent className="space-y-6">
                 <div className="space-y-1">
                     <p className="text-sm text-muted-foreground">Balance (This Week)</p>
-                    <p className={cn("text-2xl sm:text-3xl font-bold", weekBalance < 0 ? 'text-destructive' : 'text-green-500')}>
+                    <p className={cn("text-2xl font-bold", weekBalance < 0 ? 'text-destructive' : 'text-green-500', "sm:text-3xl")}>
                         {formatSeconds(weekBalance, true)}
                     </p>
                 </div>
                 <div className="space-y-1">
                     <p className="text-sm text-muted-foreground">Balance (This Month)</p>
-                    <p className={cn("text-2xl sm:text-3xl font-bold", monthTotalBalance < 0 ? 'text-destructive' : 'text-green-500')}>
+                    <p className={cn("text-2xl font-bold", monthTotalBalance < 0 ? 'text-destructive' : 'text-green-500', "sm:text-3xl")}>
                         {formatSeconds(monthTotalBalance, true)}
                     </p>
                 </div>
                  <div className="space-y-1">
                     <p className="text-sm text-muted-foreground">This Month (Total Worked)</p>
-                    <p className="text-2xl sm:text-3xl font-bold">
+                    <p className={cn("text-2xl font-bold", "sm:text-3xl")}>
                         {formatSeconds(thisMonthTotal)}
                     </p>
                 </div>
@@ -959,4 +959,3 @@ export default function WorkHoursTracker() {
     </div>
   );
 }
-
