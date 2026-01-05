@@ -467,30 +467,6 @@ export default function WorkHoursTracker() {
     loadAllLogs(); // Reload history to reflect change
   };
   
-  const handleDeleteLog = (logDate: string) => {
-      const formattedDate = format(parse(logDate, 'yyyy-MM-dd', new Date()), 'MMM d, yyyy');
-      if (window.confirm(`Are you sure you want to delete the log for ${formattedDate}? This action cannot be undone.`)) {
-          try {
-              localStorage.removeItem(`worklog-${logDate}`);
-              setHistory(prevHistory => prevHistory.filter(h => h.date !== logDate));
-              if (logDate === getTodayKey()) {
-                  setWorkedSeconds(0);
-                  setPauseSeconds(0);
-                  setDayStartTime(null);
-                  setRequiredHours(getDefaultRequiredHours(new Date()));
-                  setGoalMetToday(false);
-                  localStorage.removeItem(`goalMet-${getTodayKey()}`);
-                  setStatus('stopped');
-                  setSessionStartTime(null);
-                  setBreakStartTime(null);
-              }
-          } catch(e) {
-              console.error("Failed to delete log", e);
-              alert("An error occurred while deleting the log.");
-          }
-      }
-  };
-
   
   const balanceSecondsToday = useMemo(() => currentWorkedSeconds - requiredSecondsToday, [currentWorkedSeconds, requiredSecondsToday]);
   
@@ -721,9 +697,6 @@ export default function WorkHoursTracker() {
                                   <TableCell className="text-right">
                                       <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground" onClick={() => handleOpenHistoryEditModal(log)}>
                                           <Pencil className="h-4 w-4" />
-                                      </Button>
-                                      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive/70 hover:text-destructive" onClick={() => handleDeleteLog(log.date)}>
-                                          <Trash2 className="h-4 w-4" />
                                       </Button>
                                   </TableCell>
                               </TableRow>
@@ -968,3 +941,4 @@ export default function WorkHoursTracker() {
     </div>
   );
 }
+
