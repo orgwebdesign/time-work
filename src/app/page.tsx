@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -8,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
-import { User, BarChart, Calendar as CalendarIconLucid, CheckCircle, Clock, Coffee, Hourglass, Pause, Play, Square, Target, History, Pencil, PlayCircle, AlarmClock, Award, MoreHorizontal, History as HistoryIcon, Star } from 'lucide-react';
+import { User, BarChart, Calendar as CalendarIconLucid, CheckCircle, Clock, Coffee, Hourglass, Pause, Play, Square, Target, History, Pencil, PlayCircle, AlarmClock, Award, MoreHorizontal, History as HistoryIcon, Star, CalendarCheck } from 'lucide-react';
 import { add, format, differenceInSeconds, startOfMonth, eachDayOfInterval, formatISO, parse, getDay, startOfWeek, endOfWeek, startOfDay, endOfDay, isSameDay, isSameMonth, lastDayOfMonth } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Calendar } from '@/components/ui/calendar';
@@ -480,7 +479,7 @@ export default function WorkHoursTracker() {
         {/* Left Column */}
         <div className="lg:col-span-2 space-y-8">
           
-          {/* Time and Controls */}
+          {/* Header */}
           <Card className="glass-card">
               <CardContent className="p-6 flex flex-wrap items-center justify-between gap-4">
                   <div className='flex items-baseline gap-4'>
@@ -520,57 +519,61 @@ export default function WorkHoursTracker() {
               </CardContent>
           </Card>
           
-           <Card className="glass-card">
+          {/* Main Dashboard Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <Card className="glass-card md:col-span-2 lg:col-span-1">
               <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="text-sm font-medium uppercase text-muted-foreground">Monthly Overview</CardTitle>
-                <MoreHorizontal className="w-5 h-5 text-muted-foreground" />
+                <CardTitle className="text-sm font-medium uppercase text-muted-foreground">Start Time</CardTitle>
+                 <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground/70 hover:text-foreground disabled:text-muted-foreground/40" onClick={() => handleOpenEditModal('start')} disabled={status !== 'stopped'}><Pencil className="h-4 w-4" /></Button>
               </CardHeader>
-              <CardContent className="space-y-4">
-                  <div className="space-y-1">
-                      <p className="text-sm text-muted-foreground">Est. Leave Time</p>
-                      <p className="text-3xl font-bold text-primary">{estimatedLeaveTime ? format(estimatedLeaveTime, 'p') : '--:--'}</p>
-                  </div>
-                   <div className="space-y-1">
-                      <p className="text-sm text-muted-foreground">Reset In:</p>
-                      <p className="text-lg font-semibold">{Math.ceil(daysRemainingInMonth)} days</p>
-                  </div>
+              <CardContent>
+                <p className="text-3xl font-bold">{dayStartTime ? format(dayStartTime, 'p') : '--:--'}</p>
               </CardContent>
             </Card>
 
-          <Card className="glass-card">
-              <CardContent className="p-6 flex flex-col md:flex-row items-center justify-between gap-8">
-                  <div className="relative">
-                      <ProgressRing value={dailyProgress} />
-                      <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                          <div className="flex items-center justify-center gap-1">
-                            <span className="text-3xl font-bold">{formatSeconds(currentWorkedSeconds)}</span>
-                            <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground/70 hover:text-foreground disabled:text-muted-foreground/40" onClick={() => handleOpenEditModal('worked')} disabled={status !== 'stopped'}><Pencil className="h-3 w-3" /></Button>
-                          </div>
-                          <span className="text-sm text-muted-foreground">/ {formatSeconds(requiredSecondsToday)}</span>
-                      </div>
-                  </div>
-                  <div className="text-center md:text-left">
-                      <p className="text-lg text-muted-foreground">Good Job, Anna! 🔥</p>
-                      {holidays.some(h => isSameDay(h, new Date())) && <p className="text-primary font-semibold mt-2">🇫🇷 JOUR FÉRIÉ</p>}
-                  </div>
-                  <div className="w-full md:w-auto grid grid-cols-2 gap-x-4 gap-y-2 text-center">
-                    <div className="space-y-1">
-                      <p className="text-sm text-muted-foreground">Start Time</p>
-                      <div className="flex items-center justify-center gap-1">
-                        <p className="text-lg font-semibold">{dayStartTime ? format(dayStartTime, 'p') : '--:--'}</p>
-                        <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground/70 hover:text-foreground disabled:text-muted-foreground/40" onClick={() => handleOpenEditModal('start')} disabled={status !== 'stopped'}><Pencil className="h-3 w-3" /></Button>
-                      </div>
+            <Card className="glass-card row-span-2 flex flex-col items-center justify-center p-6">
+              <div className="relative">
+                <ProgressRing value={dailyProgress} />
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+                    <div className="flex items-center justify-center gap-1">
+                      <span className="text-4xl font-bold tracking-tighter">{formatSeconds(currentWorkedSeconds)}</span>
                     </div>
-                    <div className="space-y-1">
-                      <p className="text-sm text-muted-foreground">Pause</p>
-                      <div className="flex items-center justify-center gap-1">
-                        <p className="text-lg font-semibold">{formatSeconds(pauseSeconds)}</p>
-                        <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground/70 hover:text-foreground disabled:text-muted-foreground/40" onClick={() => handleOpenEditModal('pause')} disabled={status !== 'stopped'}><Pencil className="h-3 w-3" /></Button>
-                      </div>
-                    </div>
-                  </div>
+                </div>
+              </div>
+              <div className="mt-4 flex items-center justify-center gap-1">
+                <p className="text-sm text-muted-foreground">Worked Today</p>
+                <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground/70 hover:text-foreground disabled:text-muted-foreground/40" onClick={() => handleOpenEditModal('worked')} disabled={status !== 'stopped'}><Pencil className="h-3 w-3" /></Button>
+              </div>
+              {holidays.some(h => isSameDay(h, new Date())) && <p className="text-primary font-semibold mt-2 text-sm">🇫🇷 JOUR FÉRIÉ</p>}
+            </Card>
+
+            <Card className="glass-card">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="text-sm font-medium uppercase text-muted-foreground">Pause</CardTitle>
+                <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground/70 hover:text-foreground disabled:text-muted-foreground/40" onClick={() => handleOpenEditModal('pause')} disabled={status !== 'stopped'}><Pencil className="h-4 w-4" /></Button>
+              </CardHeader>
+              <CardContent>
+                <p className="text-3xl font-bold">{formatSeconds(pauseSeconds)}</p>
               </CardContent>
-          </Card>
+            </Card>
+            <Card className="glass-card md:col-span-2 lg:col-span-1">
+                <CardHeader className="flex flex-row items-center justify-between">
+                    <CardTitle className="text-sm font-medium uppercase text-muted-foreground">Daily Goal</CardTitle>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground/70 hover:text-foreground disabled:text-muted-foreground/40" onClick={() => handleOpenEditModal('required')} disabled={status !== 'stopped'}><Pencil className="h-4 w-4" /></Button>
+                </CardHeader>
+                <CardContent>
+                    <p className="text-3xl font-bold">{formatSeconds(requiredSecondsToday)}</p>
+                </CardContent>
+            </Card>
+             <Card className="glass-card">
+                <CardHeader>
+                    <CardTitle className="text-sm font-medium uppercase text-muted-foreground">Est. Leave Time</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <p className="text-3xl font-bold text-primary">{estimatedLeaveTime ? format(estimatedLeaveTime, 'p') : '--:--'}</p>
+                </CardContent>
+            </Card>
+          </div>
 
           {/* Daily History */}
            <Card className="glass-card">
@@ -638,10 +641,13 @@ export default function WorkHoursTracker() {
         {/* Right Column */}
         <div className="space-y-8">
             <Card className="glass-card">
-                <CardHeader>
-                    <CardTitle className="text-lg font-semibold">{format(currentMonth, 'MMMM yyyy', { locale: fr }).toUpperCase()}</CardTitle>
-                </CardHeader>
-                <CardContent className="flex justify-center">
+              <CardHeader>
+                <CardTitle className="text-sm font-medium uppercase text-muted-foreground flex items-center gap-2">
+                  <CalendarCheck />
+                  Holidays & Days Off
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="flex justify-center">
                     <Calendar
                         mode="multiple"
                         selected={holidays}
@@ -670,19 +676,28 @@ export default function WorkHoursTracker() {
 
             <Card className="glass-card">
               <CardHeader className="flex flex-row items-center justify-between">
-                 <CardTitle className="text-sm font-medium uppercase text-muted-foreground">Goals & Achievements</CardTitle>
-                 <Star className="w-5 h-5 text-muted-foreground" />
+                 <CardTitle className="text-sm font-medium uppercase text-muted-foreground">Cumulative Summaries</CardTitle>
+                 <BarChart className="w-5 h-5 text-muted-foreground" />
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-6">
                 <div className="space-y-1">
-                    <p className="text-sm text-muted-foreground">Month Total Balance</p>
-                    <p className={cn("text-3xl font-bold", monthTotalBalance < 0 ? 'text-destructive' : 'text-green-500')}>
+                    <p className="text-sm text-muted-foreground">Balance (This Week)</p>
+                    <p className={cn("text-2xl font-bold", weekBalance < 0 ? 'text-destructive' : 'text-green-500')}>
+                        {formatSeconds(weekBalance, true)}
+                    </p>
+                </div>
+                <div className="space-y-1">
+                    <p className="text-sm text-muted-foreground">Balance (This Month)</p>
+                    <p className={cn("text-2xl font-bold", monthTotalBalance < 0 ? 'text-destructive' : 'text-green-500')}>
                         {formatSeconds(monthTotalBalance, true)}
                     </p>
                 </div>
-                <Button variant="outline" className="w-full">
-                    <History className="mr-2"/> View History
-                </Button>
+                 <div className="space-y-1">
+                    <p className="text-sm text-muted-foreground">This Month (Total Worked)</p>
+                    <p className="text-2xl font-bold">
+                        {formatSeconds(thisMonthTotal)}
+                    </p>
+                </div>
               </CardContent>
             </Card>
         </div>
@@ -819,3 +834,5 @@ export default function WorkHoursTracker() {
     </div>
   );
 }
+
+    
