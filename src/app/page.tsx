@@ -402,7 +402,7 @@ export default function WorkHoursTracker() {
 
 
   
-  const balanceSecondsToday = currentWorkedSeconds - requiredSecondsToday;
+  const balanceSecondsToday = useMemo(() => currentWorkedSeconds - requiredSecondsToday, [currentWorkedSeconds, requiredSecondsToday]);
   
   const estimatedLeaveTime = useMemo(() => {
     if (!dayStartTime) return null;
@@ -544,7 +544,7 @@ export default function WorkHoursTracker() {
                       <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
                           <div className="flex items-center justify-center gap-1">
                             <span className="text-3xl font-bold">{formatSeconds(currentWorkedSeconds)}</span>
-                             <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground/70 hover:text-foreground disabled:text-muted-foreground/40" onClick={() => handleOpenEditModal('worked')} disabled={status !== 'stopped'}><Pencil className="h-3 w-3" /></Button>
+                            <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground/70 hover:text-foreground disabled:text-muted-foreground/40" onClick={() => handleOpenEditModal('worked')} disabled={status !== 'stopped'}><Pencil className="h-3 w-3" /></Button>
                           </div>
                           <span className="text-sm text-muted-foreground">/ {formatSeconds(requiredSecondsToday)}</span>
                       </div>
@@ -819,4 +819,3 @@ export default function WorkHoursTracker() {
     </div>
   );
 }
-
