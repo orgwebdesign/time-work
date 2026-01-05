@@ -220,7 +220,14 @@ export default function WorkHoursTracker() {
   }, [workedSeconds, pauseSeconds, dayStartTime, requiredHours, isClient, status]);
 
   const requiredSecondsToday = requiredHours * 3600;
-  const currentWorkedSeconds = workedSeconds + (status === 'running' ? liveSeconds : 0);
+  
+  const currentWorkedSeconds = useMemo(() => {
+      if (status === 'running' && sessionStartTime) {
+          return workedSeconds + differenceInSeconds(new Date(), sessionStartTime);
+      }
+      return workedSeconds;
+  }, [workedSeconds, sessionStartTime, status, currentTime]);
+
 
   // The main timer loop
   useEffect(() => {
@@ -228,26 +235,24 @@ export default function WorkHoursTracker() {
 
     const updateTimer = () => {
       setCurrentTime(new Date());
-      if (status === 'running' && sessionStartTime) {
-        setLiveSeconds(differenceInSeconds(new Date(), sessionStartTime));
-      } else {
-        setLiveSeconds(0);
-      }
     };
     
     updateTimer(); // Initial call to set time immediately
     intervalId = setInterval(updateTimer, 1000);
 
-    // Check for goal completion
-    if (currentWorkedSeconds >= requiredSecondsToday && !goalMetToday && requiredSecondsToday > 0) {
-      setIsGoalMetDialogOpen(true);
-      setGoalMetToday(true);
-      const todayKey = getTodayKey();
-      localStorage.setItem(`goalMet-${todayKey}`, 'true');
-    }
-
     return () => clearInterval(intervalId);
-  }, [status, sessionStartTime, currentWorkedSeconds, requiredSecondsToday, goalMetToday]);
+  }, []);
+
+  // Goal Met Check
+  useEffect(() => {
+      if (currentWorkedSeconds >= requiredSecondsToday && !goalMetToday && requiredSecondsToday > 0) {
+        setIsGoalMetDialogOpen(true);
+        setGoalMetToday(true);
+        const todayKey = getTodayKey();
+        localStorage.setItem(`goalMet-${todayKey}`, 'true');
+      }
+  }, [currentWorkedSeconds, requiredSecondsToday, goalMetToday]);
+
 
   const handleStart = () => {
     const now = new Date();
@@ -292,7 +297,6 @@ export default function WorkHoursTracker() {
     setSessionStartTime(null);
     setPauseTime(null);
     setLogSaved(true);
-    setLiveSeconds(0);
   };
 
   const handleOpenEditModal = (field: 'worked' | 'pause' | 'required' | 'start') => {
@@ -403,17 +407,14 @@ export default function WorkHoursTracker() {
   const balanceSecondsToday = currentWorkedSeconds - requiredSecondsToday;
   
   const estimatedLeaveTime = useMemo(() => {
-    if (!dayStartTime) return null;
-    let currentTotalPause = pauseSeconds;
-    if (status === 'paused' && pauseTime) {
-      currentTotalPause += differenceInSeconds(new Date(), pauseTime);
-    } else if (status === 'running' && pauseTime) {
-      // This case should not happen, but as a fallback
-      currentTotalPause += differenceInSeconds(pauseTime, pauseTime);
-    }
-    const totalSecondsNeeded = requiredSecondsToday + currentTotalPause;
-    return add(dayStartTime, { seconds: totalSecondsNeeded });
-}, [dayStartTime, pauseSeconds, requiredSecondsToday, status, pauseTime, currentTime]);
+      if (!dayStartTime) return null;
+      let currentTotalPause = pauseSeconds;
+      if (status === 'paused' && pauseTime) {
+          currentTotalPause += differenceInSeconds(new Date(), pauseTime);
+      }
+      const totalSecondsNeeded = requiredSecondsToday + currentTotalPause;
+      return add(dayStartTime, { seconds: totalSecondsNeeded });
+  }, [dayStartTime, pauseSeconds, requiredSecondsToday, status, pauseTime, currentTime]);
 
 
   const { monthBalance, weekBalance, thisMonthTotal } = useMemo(() => {
@@ -536,7 +537,7 @@ export default function WorkHoursTracker() {
               </div>
               <div className="flex items-center gap-2">
                 <span className={cn('font-semibold')}>{dayStartTime ? format(dayStartTime, 'p') : '--:--'}</span>
-                <Button variant="ghost" size="icon" className="h-6 w-6 text-foreground/70 hover:text-foreground disabled:text-muted-foreground/50 disabled:bg-transparent" onClick={() => handleOpenEditModal('start')} disabled={status !== 'stopped'}>
+                <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground disabled:text-muted-foreground/50 disabled:bg-transparent" onClick={() => handleOpenEditModal('start')} disabled={status !== 'stopped'}>
                     <Pencil className="h-4 w-4" />
                 </Button>
               </div>
@@ -548,7 +549,7 @@ export default function WorkHoursTracker() {
               </div>
               <div className="flex items-center gap-2">
                 <span id="worked-today" className={cn('font-semibold')}>{formatSeconds(currentWorkedSeconds)}</span>
-                <Button variant="ghost" size="icon" className="h-6 w-6 text-foreground/70 hover:text-foreground disabled:text-muted-foreground/50 disabled:bg-transparent" onClick={() => handleOpenEditModal('worked')} disabled={status !== 'stopped'}>
+                <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground disabled:text-muted-foreground/50 disabled:bg-transparent" onClick={() => handleOpenEditModal('worked')} disabled={status !== 'stopped'}>
                     <Pencil className="h-4 w-4" />
                 </Button>
               </div>
@@ -560,7 +561,7 @@ export default function WorkHoursTracker() {
               </div>
               <div className="flex items-center gap-2">
                 <span className={cn('font-semibold')}>{formatSeconds(pauseSeconds)}</span>
-                <Button variant="ghost" size="icon" className="h-6 w-6 text-foreground/70 hover:text-foreground disabled:text-muted-foreground/50 disabled:bg-transparent" onClick={() => handleOpenEditModal('pause')} disabled={status !== 'stopped'}>
+                <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground disabled:text-muted-foreground/50 disabled:bg-transparent" onClick={() => handleOpenEditModal('pause')} disabled={status !== 'stopped'}>
                     <Pencil className="h-4 w-4" />
                 </Button>
               </div>
@@ -572,7 +573,7 @@ export default function WorkHoursTracker() {
               </div>
                <div className="flex items-center gap-2">
                 <span className={cn('font-semibold')}>{formatSeconds(requiredSecondsToday)}</span>
-                 <Button variant="ghost" size="icon" className="h-6 w-6 text-foreground/70 hover:text-foreground disabled:text-muted-foreground/50 disabled:bg-transparent" onClick={() => handleOpenEditModal('required')} disabled={status !== 'stopped'}>
+                 <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground disabled:text-muted-foreground/50 disabled:bg-transparent" onClick={() => handleOpenEditModal('required')} disabled={status !== 'stopped'}>
                     <Pencil className="h-4 w-4" />
                 </Button>
               </div>
@@ -860,3 +861,4 @@ export default function WorkHoursTracker() {
     </div>
   );
 }
+
