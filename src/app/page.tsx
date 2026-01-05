@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -7,13 +8,32 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
-import { ArrowUp, BarChart3, Calendar, CheckCircle, Clock, Coffee, Hourglass, Pause, Play, Square, Target } from 'lucide-react';
-import { add, format, differenceInSeconds } from 'date-fns';
+import { ArrowUp, BarChart3, Calendar, CheckCircle, Clock, Coffee, Hourglass, Pause, Play, Square, Target, History, Pencil } from 'lucide-react';
+import { add, format, differenceInSeconds, startOfMonth, eachDayOfInterval, formatISO } from 'date-fns';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 
 type TimerStatus = 'stopped' | 'running' | 'paused';
 
 interface DailyLog {
-  date: string;
+  date: string; // "yyyy-MM-dd" format
   workedSeconds: number;
   pauseSeconds: number;
 }
@@ -32,6 +52,20 @@ const formatSeconds = (seconds: number, showSign = false): string => {
 
 const getTodayKey = () => format(new Date(), 'yyyy-MM-dd');
 
+const parseTimeToSeconds = (time: string): number => {
+    const parts = time.split(':');
+    const hours = parseInt(parts[0], 10) || 0;
+    const minutes = parseInt(parts[1], 10) || 0;
+    return (hours * 3600) + (minutes * 60);
+};
+
+const secondsToTime = (seconds: number): string => {
+    if (isNaN(seconds)) seconds = 0;
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+}
+
 export default function WorkHoursTracker() {
   const [isClient, setIsClient] = useState(false);
   const [logSaved, setLogSaved] = useState(false);
@@ -43,6 +77,14 @@ export default function WorkHoursTracker() {
   const [startTime, setStartTime] = useState<Date | null>(null);
   const [pauseTime, setPauseTime] = useState<Date | null>(null);
 
+  // History state
+  const [history, setHistory] = useState<DailyLog[]>([]);
+
+  // Manual edit state
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingField, setEditingField] = useState<'worked' | 'pause' | null>(null);
+  const [editTimeValue, setEditTimeValue] = useState('');
+
   // Load data from localStorage
   useEffect(() => {
     setIsClient(true);
@@ -53,15 +95,30 @@ export default function WorkHoursTracker() {
       setWorkedSeconds(data.workedSeconds || 0);
       setPauseSeconds(data.pauseSeconds || 0);
     }
+    
+    // Load all logs for history
+    const allKeys = Object.keys(localStorage).filter(key => key.startsWith('worklog-'));
+    const allLogs: DailyLog[] = allKeys.map(key => {
+        const logData = localStorage.getItem(key);
+        return logData ? JSON.parse(logData) : null;
+    }).filter(Boolean);
+    setHistory(allLogs.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+
   }, []);
 
   // Save data to localStorage whenever it changes
   useEffect(() => {
-    if (!isClient) return;
+    if (!isClient || status !== 'stopped') return;
     const todayKey = getTodayKey();
     const log: DailyLog = { date: todayKey, workedSeconds, pauseSeconds };
     localStorage.setItem(`worklog-${todayKey}`, JSON.stringify(log));
-  }, [workedSeconds, pauseSeconds, isClient]);
+
+    // Update history state
+    setHistory(prevHistory => {
+        const otherDays = prevHistory.filter(h => h.date !== todayKey);
+        return [log, ...otherDays].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    });
+  }, [workedSeconds, pauseSeconds, isClient, status]);
 
   // The main timer loop
   useEffect(() => {
@@ -73,17 +130,11 @@ export default function WorkHoursTracker() {
           setWorkedSeconds(differenceInSeconds(new Date(), startTime));
         }
       }, 1000);
-    } else if (status === 'paused') {
-      intervalId = setInterval(() => {
-        if (pauseTime) {
-          const currentPauseDuration = differenceInSeconds(new Date(), pauseTime);
-          // We don't add to pauseSeconds here to avoid feedback loop
-        }
-      }, 1000);
-    }
+    } 
+    // No need for pause interval, pause is calculated on resume
     
     return () => clearInterval(intervalId);
-  }, [status, startTime, pauseTime]);
+  }, [status, startTime]);
 
   const handleStart = () => {
     const now = new Date();
@@ -108,25 +159,42 @@ export default function WorkHoursTracker() {
     const now = new Date();
     const pauseDuration = differenceInSeconds(now, pauseTime);
     setPauseSeconds(prev => prev + pauseDuration);
-    // Adjust start time to account for the pause, so the worked duration calculation remains correct
     setStartTime(prevStartTime => prevStartTime ? add(prevStartTime, { seconds: pauseDuration }) : null);
     setPauseTime(null);
     setStatus('running');
   };
 
   const handleStop = () => {
-    if (status === 'stopped' || !startTime) return;
+    if (status === 'stopped') return;
 
-    if (status === 'running') {
+    if (status === 'running' && startTime) {
       const now = new Date();
       setWorkedSeconds(differenceInSeconds(now, startTime));
     }
-    // If paused, workedSeconds is already up-to-date.
     
     setStatus('stopped');
     setStartTime(null);
     setPauseTime(null);
     setLogSaved(true);
+  };
+
+  const handleOpenEditModal = (field: 'worked' | 'pause') => {
+    if (status !== 'stopped') return;
+    setEditingField(field);
+    const timeToEdit = field === 'worked' ? workedSeconds : pauseSeconds;
+    setEditTimeValue(secondsToTime(timeToEdit));
+    setIsEditModalOpen(true);
+  };
+  
+  const handleSaveEdit = () => {
+    const newSeconds = parseTimeToSeconds(editTimeValue);
+    if (editingField === 'worked') {
+        setWorkedSeconds(newSeconds);
+    } else if (editingField === 'pause') {
+        setPauseSeconds(newSeconds);
+    }
+    setIsEditModalOpen(false);
+    setEditingField(null);
   };
   
   const requiredSecondsToday = REQUIRED_HOURS_PER_DAY * 3600;
@@ -134,7 +202,7 @@ export default function WorkHoursTracker() {
   
   const estimatedLeaveTime = useMemo(() => {
     if (status !== 'running' || !startTime) return null;
-    const workStartedAt = new Date(startTime); // Start of the entire session
+    const workStartedAt = new Date(startTime);
     const totalSecondsNeeded = requiredSecondsToday + pauseSeconds;
     return add(workStartedAt, { seconds: totalSecondsNeeded });
   }, [startTime, pauseSeconds, requiredSecondsToday, status]);
@@ -155,7 +223,7 @@ export default function WorkHoursTracker() {
               <CheckCircle className="h-4 w-4 text-green-400" />
             <AlertTitle className="text-green-400">Log Saved</AlertTitle>
             <AlertDescription>
-              Your work session has been successfully recorded.
+              Your work session has been successfully recorded for today.
             </AlertDescription>
           </Alert>
         )}
@@ -197,14 +265,28 @@ export default function WorkHoursTracker() {
                 <Clock className="w-5 h-5 text-gray-400" />
                 <span className="text-gray-300">Worked Today</span>
               </div>
-              <span className={cn('font-semibold')}>{formatSeconds(workedSeconds)}</span>
+              <div className="flex items-center gap-2">
+                <span className={cn('font-semibold')}>{formatSeconds(workedSeconds)}</span>
+                {status === 'stopped' && (
+                    <Button variant="ghost" size="icon" className="h-6 w-6 text-gray-400 hover:text-white" onClick={() => handleOpenEditModal('worked')}>
+                        <Pencil className="h-4 w-4" />
+                    </Button>
+                )}
+              </div>
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <Coffee className="w-5 h-5 text-gray-400" />
                 <span className="text-gray-300">Pause of Today</span>
               </div>
-              <span className={cn('font-semibold')}>{formatSeconds(pauseSeconds)}</span>
+              <div className="flex items-center gap-2">
+                <span className={cn('font-semibold')}>{formatSeconds(pauseSeconds)}</span>
+                {status === 'stopped' && (
+                    <Button variant="ghost" size="icon" className="h-6 w-6 text-gray-400 hover:text-white" onClick={() => handleOpenEditModal('pause')}>
+                        <Pencil className="h-4 w-4" />
+                    </Button>
+                )}
+              </div>
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -234,7 +316,46 @@ export default function WorkHoursTracker() {
           </CardContent>
         </Card>
 
-        {/* Cumulative Summaries card remains static for now */}
+        <Card className="bg-gray-800 border-gray-700 mt-8">
+          <CardHeader>
+            <div className="flex items-center gap-3">
+                <History className="w-6 h-6 text-gray-400" />
+                <CardTitle>Daily History</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-6">
+             <Table>
+                <TableHeader>
+                    <TableRow className="border-gray-700 hover:bg-gray-800">
+                        <TableHead className="text-gray-400">Date</TableHead>
+                        <TableHead className="text-gray-400 text-right">Worked</TableHead>
+                        <TableHead className="text-gray-400 text-right">Pause</TableHead>
+                        <TableHead className="text-gray-400 text-right">Balance</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {history.length > 0 ? history.slice(0, 7).map(log => {
+                        const balance = log.workedSeconds - requiredSecondsToday;
+                        return (
+                            <TableRow key={log.date} className="border-gray-700 hover:bg-gray-700/50">
+                                <TableCell>{format(new Date(log.date), 'EEE, MMM d')}</TableCell>
+                                <TableCell className="text-right">{formatSeconds(log.workedSeconds)}</TableCell>
+                                <TableCell className="text-right">{formatSeconds(log.pauseSeconds)}</TableCell>
+                                <TableCell className={cn("text-right", balance < 0 ? 'text-red-400' : 'text-green-400')}>
+                                    {formatSeconds(balance, true)}
+                                </TableCell>
+                            </TableRow>
+                        )
+                    }) : (
+                        <TableRow className="border-gray-700 hover:bg-gray-800">
+                            <TableCell colSpan={4} className="text-center text-gray-500 py-4">No history yet.</TableCell>
+                        </TableRow>
+                    )}
+                </TableBody>
+             </Table>
+          </CardContent>
+        </Card>
+
         <Card className="bg-gray-800 border-gray-700 mt-8">
           <CardHeader>
             <div className="flex items-center gap-3">
@@ -292,11 +413,39 @@ export default function WorkHoursTracker() {
                 <a href="/app">Go to Task Dashboard</a>
             </Button>
         </div>
+
+        <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+            <DialogContent className="sm:max-w-[425px] bg-gray-800 border-gray-700 text-white">
+                <DialogHeader>
+                    <DialogTitle>Edit Time</DialogTitle>
+                    <DialogDescription>
+                        Manually set the {editingField === 'worked' ? 'worked' : 'pause'} time for today. Use HH:MM format.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="edit-time" className="text-right">
+                            Time
+                        </Label>
+                        <Input
+                            id="edit-time"
+                            value={editTimeValue}
+                            onChange={(e) => setEditTimeValue(e.target.value)}
+                            className="col-span-3 bg-gray-700 border-gray-600"
+                            placeholder="HH:MM"
+                        />
+                    </div>
+                </div>
+                <DialogFooter>
+                    <DialogClose asChild>
+                        <Button type="button" variant="secondary">Cancel</Button>
+                    </DialogClose>
+                    <Button type="button" onClick={handleSaveEdit}>Save changes</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
       </div>
     </div>
   );
 }
-
-    
-
-    
