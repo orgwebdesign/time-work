@@ -307,7 +307,7 @@ export default function AdminDashboard() {
                                     Review
                                 </Link>
                             </Button>
-                            <Button variant="destructive" size="icon" onClick={() => handleDeleteUser(user.id)} aria-label={`Delete user ${user.fullName}`}>
+                            <Button variant="destructive" size="icon" onClick={() => handleDeleteUser(user.id)} aria-label={`Delete user ${user.fullName}`} disabled={user.email === 'admin@example.com'}>
                               <Trash2 className="h-4 w-4"/>
                               <span className="sr-only">Delete User</span>
                             </Button>

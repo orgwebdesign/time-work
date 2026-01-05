@@ -97,12 +97,12 @@ export default function AppSidebar({
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter>
-        <div className="p-4 flex flex-col gap-4 items-center">
-            <Button onClick={handleAddTask} variant="default" size="icon" className="w-14 h-14 rounded-full shadow-lg">
+        <div className="p-2 md:p-4 flex flex-col gap-4 items-center">
+            <Button onClick={handleAddTask} variant="default" size="icon" className="w-14 h-14 rounded-full shadow-lg hidden md:flex">
                 <PlusCircle className="w-7 h-7" />
             </Button>
             <div className="w-full p-2 mt-2 bg-card rounded-full flex justify-around items-center">
-                <Button asChild variant="ghost" size="icon" className="rounded-full">
+                <Button asChild variant="ghost" size="icon" className={cn("rounded-full", pathname === '/' && "text-primary bg-primary/10")}>
                     <Link href="/"><Home className="w-5 h-5"/></Link>
                 </Button>
                 <Button asChild variant="ghost" size="icon" className={cn("rounded-full", pathname.startsWith('/app') && "text-primary bg-primary/10")}>

@@ -63,7 +63,11 @@ export default function LoginPage() {
 
       if (user && user.password === password) {
         localStorage.setItem('taskmaster-currentUser', JSON.stringify(user));
-        router.push('/app');
+        if (user.email === 'admin@example.com') {
+          router.push('/admin');
+        } else {
+          router.push('/app');
+        }
       } else {
         alert('Login failed. Invalid email or password.');
       }
@@ -75,7 +79,7 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-screen w-full items-center justify-center bg-background p-4 md:p-6">
-      <Card className="mx-auto max-w-sm">
+      <Card className="mx-auto max-w-sm w-full">
         <CardHeader>
           <div className="flex justify-center mb-4">
             <Logo />

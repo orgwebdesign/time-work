@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
@@ -232,9 +233,9 @@ export default function TaskItem({ task, onToggleTask, onDeleteTask, onUpdateTas
             <Circle className="size-4 text-muted-foreground/80" />
           </Button>
         )}
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           <span
-            className={cn("font-medium", task.completed && "line-through text-muted-foreground")}
+            className={cn("font-medium break-words", task.completed && "line-through text-muted-foreground")}
           >
             {task.text}
           </span>

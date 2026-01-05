@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -432,12 +431,14 @@ export default function WorkHoursTracker() {
     }
     try {
       localStorage.removeItem(`worklog-${logToDelete.date}`);
+      // Immediately update state to reflect the deletion
       setHistory(prevHistory => prevHistory.filter(log => log.date !== logToDelete.date));
     } catch (e) {
       console.error("Failed to delete log", e);
       alert("An error occurred while deleting the log.");
     }
   };
+
 
   const handleDayClick = (day: Date) => {
     if (isWeekend(day)) return; // Prevent clicking on weekends
