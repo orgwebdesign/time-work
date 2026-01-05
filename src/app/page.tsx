@@ -325,7 +325,7 @@ export default function WorkHoursTracker() {
     }
     const totalSecondsNeeded = requiredSecondsToday + currentTotalPause;
     return add(dayStartTime, { seconds: totalSecondsNeeded });
-  }, [dayStartTime, pauseSeconds, requiredSecondsToday, status, pauseTime]);
+  }, [dayStartTime, pauseSeconds, requiredSecondsToday, status, pauseTime, currentWorkedSeconds]);
 
   const { monthBalance, weekBalance, thisMonthTotal } = useMemo(() => {
     const now = new Date();
