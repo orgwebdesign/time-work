@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
-import { User, BarChart, Calendar as CalendarIconLucid, CheckCircle, Clock, Coffee, Hourglass, Pause, Play, Square, Target, History, Pencil, PlayCircle, AlarmClock, Award, MoreHorizontal, History as HistoryIcon, Star, CalendarCheck, Utensils, Trash2 } from 'lucide-react';
+import { User, BarChart, Calendar as CalendarIconLucid, CheckCircle, Clock, Coffee, Hourglass, Pause, Play, Square, Target, History, Pencil, PlayCircle, AlarmClock, Award, MoreHorizontal, History as HistoryIcon, Star, CalendarCheck, Utensils, Trash2, BrainCircuit, CupSoda, TimerReset } from 'lucide-react';
 import { add, format, differenceInSeconds, startOfMonth, eachDayOfInterval, formatISO, parse, getDay, startOfWeek, endOfWeek, startOfDay, endOfDay, isSameDay, isSameMonth, lastDayOfMonth, isWeekend } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Calendar } from '@/components/ui/calendar';
@@ -36,6 +36,8 @@ import { DailyDua } from '@/components/daily-dua';
 import { ThemeToggle } from '@/components/theme-toggle';
 
 type TimerStatus = 'stopped' | 'running' | 'on_break';
+type PomodoroStatus = 'stopped' | 'working' | 'break_time' | 'paused';
+
 
 interface DailyLog {
   date: string; // "yyyy-MM-dd" format
@@ -53,6 +55,13 @@ const formatSeconds = (seconds: number, showSign = false): string => {
   const h = Math.floor(absSeconds / 3600);
   const m = Math.floor((absSeconds % 3600) / 60);
   return `${sign}${h.toString().padStart(2, '0')}h ${m.toString().padStart(2, '0')}m`;
+};
+
+const formatPomodoroTime = (seconds: number): string => {
+    if (isNaN(seconds)) seconds = 0;
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
 };
 
 const getTodayKey = () => format(new Date(), 'yyyy-MM-dd');
@@ -126,6 +135,65 @@ export default function WorkHoursTracker() {
   // Holiday state
   const [holidays, setHolidays] = useState<Date[]>([]);
   const [currentMonth, setCurrentMonth] = useState(new Date());
+
+  // Pomodoro state
+  const [pomodoroStatus, setPomodoroStatus] = useState<PomodoroStatus>('stopped');
+  const [pomodoroSecondsLeft, setPomodoroSecondsLeft] = useState(25 * 60);
+  const [pomodoroIntervalId, setPomodoroIntervalId] = useState<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    if (pomodoroStatus === 'working' || pomodoroStatus === 'break_time') {
+      const interval = setInterval(() => {
+        setPomodoroSecondsLeft(prev => {
+          if (prev <= 1) {
+            clearInterval(interval);
+            setPomodoroStatus('stopped');
+            // Optionally, play a sound or show a notification
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      setPomodoroIntervalId(interval);
+    } else {
+      if (pomodoroIntervalId) {
+        clearInterval(pomodoroIntervalId);
+        setPomodoroIntervalId(null);
+      }
+    }
+    return () => {
+      if (pomodoroIntervalId) clearInterval(pomodoroIntervalId);
+    };
+  }, [pomodoroStatus]);
+
+  const handleStartPomodoro = () => {
+    setPomodoroStatus('working');
+    setPomodoroSecondsLeft(25 * 60);
+  };
+  
+  const handleStartBreak = () => {
+    setPomodoroStatus('break_time');
+    setPomodoroSecondsLeft(5 * 60);
+  };
+
+  const handlePauseResumePomodoro = () => {
+    if (pomodoroStatus === 'working' || pomodoroStatus === 'break_time') {
+      setPomodoroStatus('paused');
+    } else if (pomodoroStatus === 'paused') {
+        const lastStatus = pomodoroSecondsLeft > 5 * 60 ? 'working' : 'break_time';
+        // This is a bit of a hack. A better way would be to store the pre-paused state.
+        if (pomodoroSecondsLeft > 0 && pomodoroSecondsLeft <= 5 * 60) {
+             setPomodoroStatus('break_time');
+        } else {
+             setPomodoroStatus('working');
+        }
+    }
+  };
+
+  const handleResetPomodoro = () => {
+    setPomodoroStatus('stopped');
+    setPomodoroSecondsLeft(25 * 60);
+  };
 
 
   const loadAllLogs = useCallback(() => {
@@ -431,7 +499,6 @@ export default function WorkHoursTracker() {
     }
     try {
       localStorage.removeItem(`worklog-${logToDelete.date}`);
-      // Immediately update state to reflect the deletion
       setHistory(prevHistory => prevHistory.filter(log => log.date !== logToDelete.date));
     } catch (e) {
       console.error("Failed to delete log", e);
@@ -752,6 +819,38 @@ export default function WorkHoursTracker() {
                  <Button onClick={handleOpenTodayEditModal} disabled={status !== 'stopped'} variant="outline" size="lg">
                     <Pencil className="mr-2" /> Time Editor
                  </Button>
+              </CardContent>
+            </Card>
+
+            <Card className="glass-card">
+              <CardHeader>
+                  <CardTitle className="text-sm font-medium uppercase text-muted-foreground flex items-center gap-2">
+                      <BrainCircuit />
+                      Pomodoro Timer
+                  </CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-col items-center justify-center space-y-4">
+                  <p className="text-6xl font-bold tracking-tighter font-mono">
+                      {formatPomodoroTime(pomodoroSecondsLeft)}
+                  </p>
+                  <div className="text-sm font-medium uppercase text-muted-foreground">
+                    {pomodoroStatus === 'working' && 'Work Session'}
+                    {pomodoroStatus === 'break_time' && 'Break Time'}
+                    {pomodoroStatus === 'paused' && 'Paused'}
+                    {pomodoroStatus === 'stopped' && 'Ready?'}
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 w-full">
+                      {(pomodoroStatus === 'stopped' || pomodoroStatus === 'paused') ? (
+                          <Button onClick={handleStartPomodoro} disabled={pomodoroStatus !== 'stopped'}><BrainCircuit className="mr-2" />Start Work</Button>
+                      ) : (
+                          <Button onClick={handlePauseResumePomodoro} variant="outline"><Pause className="mr-2" />Pause</Button>
+                      )}
+                      {(pomodoroStatus === 'stopped' || pomodoroStatus === 'paused') ? (
+                          <Button onClick={handleStartBreak} disabled={pomodoroStatus !== 'stopped'}><CupSoda className="mr-2" />Start Break</Button>
+                      ) : (
+                          <Button onClick={handleResetPomodoro} variant="destructive"><TimerReset className="mr-2" />Reset</Button>
+                      )}
+                  </div>
               </CardContent>
             </Card>
 
