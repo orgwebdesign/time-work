@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -350,6 +351,18 @@ export default function WorkHoursTracker() {
     setEditHistoryStart(log.startTime ? format(new Date(log.startTime), 'HH:mm') : '');
     setIsHistoryEditModalOpen(true);
   };
+  
+  const handleOpenTodayEditModal = () => {
+      const todayLog: DailyLog = {
+          date: getTodayKey(),
+          workedSeconds,
+          pauseSeconds,
+          lunchSeconds,
+          startTime: dayStartTime?.toISOString(),
+          requiredHours,
+      };
+      handleOpenHistoryEditModal(todayLog);
+  };
 
   const handleSaveHistoryEdit = () => {
     if (!editingLog) return;
@@ -544,7 +557,7 @@ export default function WorkHoursTracker() {
             <Card className="glass-card">
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="text-sm font-medium uppercase text-muted-foreground">Start Time</CardTitle>
-                 <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground/70 hover:text-foreground disabled:text-muted-foreground/40" onClick={() => handleOpenEditModal('start')} disabled={status !== 'stopped'}><Pencil className="h-4 w-4" /></Button>
+                 <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground disabled:text-muted-foreground/40 disabled:hover:text-muted-foreground/40" onClick={() => handleOpenEditModal('start')} disabled={status !== 'stopped'}><Pencil className="h-4 w-4" /></Button>
               </CardHeader>
               <CardContent>
                 <p className="text-3xl font-bold">{dayStartTime ? format(dayStartTime, 'p') : '--:--'}</p>
@@ -579,7 +592,7 @@ export default function WorkHoursTracker() {
             <Card className="glass-card">
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="text-sm font-medium uppercase text-muted-foreground">Pause</CardTitle>
-                <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground/70 hover:text-foreground disabled:text-muted-foreground/40" onClick={() => handleOpenEditModal('pause')} disabled={status !== 'stopped'}><Pencil className="h-4 w-4" /></Button>
+                <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground disabled:text-muted-foreground/40 disabled:hover:text-muted-foreground/40" onClick={() => handleOpenEditModal('pause')} disabled={status !== 'stopped'}><Pencil className="h-4 w-4" /></Button>
               </CardHeader>
               <CardContent>
                 <p className="text-3xl font-bold">{formatSeconds(pauseSeconds)}</p>
@@ -589,7 +602,7 @@ export default function WorkHoursTracker() {
             <Card className="glass-card">
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="text-sm font-medium uppercase text-muted-foreground">Lunch</CardTitle>
-                <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground/70 hover:text-foreground disabled:text-muted-foreground/40" onClick={() => handleOpenEditModal('lunch')} disabled={status !== 'stopped'}><Pencil className="h-4 w-4" /></Button>
+                <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground disabled:text-muted-foreground/40 disabled:hover:text-muted-foreground/40" onClick={() => handleOpenEditModal('lunch')} disabled={status !== 'stopped'}><Pencil className="h-4 w-4" /></Button>
               </CardHeader>
               <CardContent>
                 <p className="text-3xl font-bold">{formatSeconds(lunchSeconds)}</p>
@@ -599,7 +612,7 @@ export default function WorkHoursTracker() {
             <Card className="glass-card">
                 <CardHeader className="flex flex-row items-center justify-between">
                     <CardTitle className="text-sm font-medium uppercase text-muted-foreground">Daily Goal</CardTitle>
-                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground/70 hover:text-foreground disabled:text-muted-foreground/40" onClick={() => handleOpenEditModal('required')} disabled={status !== 'stopped'}><Pencil className="h-4 w-4" /></Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground disabled:text-muted-foreground/40 disabled:hover:text-muted-foreground/40" onClick={() => handleOpenEditModal('required')} disabled={status !== 'stopped'}><Pencil className="h-4 w-4" /></Button>
                 </CardHeader>
                 <CardContent>
                     <p className="text-3xl font-bold">{formatSeconds(requiredSecondsToday)}</p>
@@ -690,6 +703,10 @@ export default function WorkHoursTracker() {
                  </Button>
                  <Button onClick={handleStop} disabled={status === 'stopped'} variant="destructive" size="lg">
                     <Square className="mr-2" /> End of Day
+                 </Button>
+                 <Separator className="my-2" />
+                 <Button onClick={handleOpenTodayEditModal} disabled={status !== 'stopped'} variant="outline" size="lg">
+                    <Pencil className="mr-2" /> Time Editor
                  </Button>
               </CardContent>
             </Card>
