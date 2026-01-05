@@ -1,15 +1,14 @@
 
-
-"use client";
+'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
-import { ArrowUp, BarChart3, Calendar as CalendarIconLucid, CheckCircle, Clock, Coffee, Hourglass, Pause, Play, Square, Target, History, Pencil, PlayCircle, AlarmClock, Award } from 'lucide-react';
-import { add, format, differenceInSeconds, startOfMonth, eachDayOfInterval, formatISO, parse, getDay, startOfWeek, endOfWeek, startOfDay, endOfDay, isSameDay, isSameMonth } from 'date-fns';
+import { User, BarChart, Calendar as CalendarIconLucid, CheckCircle, Clock, Coffee, Hourglass, Pause, Play, Square, Target, History, Pencil, PlayCircle, AlarmClock, Award, MoreHorizontal, History as HistoryIcon, Star } from 'lucide-react';
+import { add, format, differenceInSeconds, startOfMonth, eachDayOfInterval, formatISO, parse, getDay, startOfWeek, endOfWeek, startOfDay, endOfDay, isSameDay, isSameMonth, lastDayOfMonth } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Calendar } from '@/components/ui/calendar';
 import {
@@ -31,6 +30,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { ProgressRing } from '@/components/progress-ring';
+import Link from 'next/link';
 
 type TimerStatus = 'stopped' | 'running' | 'paused';
 
@@ -49,7 +50,7 @@ const formatSeconds = (seconds: number, showSign = false): string => {
   const absSeconds = Math.abs(seconds);
   const h = Math.floor(absSeconds / 3600);
   const m = Math.floor((absSeconds % 3600) / 60);
-  return `${sign}${h}h ${m}m`;
+  return `${sign}${h.toString().padStart(2, '0')}h ${m.toString().padStart(2, '0')}m`;
 };
 
 const getTodayKey = () => format(new Date(), 'yyyy-MM-dd');
@@ -90,7 +91,6 @@ const getDefaultRequiredHours = (date: Date): number => {
 
 export default function WorkHoursTracker() {
   const [isClient, setIsClient] = useState(false);
-  const [logSaved, setLogSaved] = useState(false);
   
   // Time tracking state
   const [status, setStatus] = useState<TimerStatus>('stopped');
@@ -100,13 +100,11 @@ export default function WorkHoursTracker() {
   const [dayStartTime, setDayStartTime] = useState<Date | null>(null);
   const [pauseTime, setPauseTime] = useState<Date | null>(null);
   const [requiredHours, setRequiredHours] = useState(getDefaultRequiredHours(new Date()));
-  const [liveSeconds, setLiveSeconds] = useState(0);
   const [currentTime, setCurrentTime] = useState<Date | null>(null);
 
   // Goal Met Dialog State
   const [isGoalMetDialogOpen, setIsGoalMetDialogOpen] = useState(false);
   const [goalMetToday, setGoalMetToday] = useState(false);
-
 
   // History state
   const [history, setHistory] = useState<DailyLog[]>([]);
@@ -219,16 +217,7 @@ export default function WorkHoursTracker() {
     
   }, [workedSeconds, pauseSeconds, dayStartTime, requiredHours, isClient, status]);
 
-  const requiredSecondsToday = requiredHours * 3600;
   
-  const currentWorkedSeconds = useMemo(() => {
-      if (status === 'running' && sessionStartTime) {
-          return workedSeconds + differenceInSeconds(new Date(), sessionStartTime);
-      }
-      return workedSeconds;
-  }, [workedSeconds, sessionStartTime, status, currentTime]);
-
-
   // The main timer loop
   useEffect(() => {
     let intervalId: NodeJS.Timeout | undefined;
@@ -242,6 +231,16 @@ export default function WorkHoursTracker() {
 
     return () => clearInterval(intervalId);
   }, []);
+  
+  const currentWorkedSeconds = useMemo(() => {
+      if (status === 'running' && sessionStartTime) {
+          return workedSeconds + differenceInSeconds(new Date(), sessionStartTime);
+      }
+      return workedSeconds;
+  }, [workedSeconds, sessionStartTime, status, currentTime]);
+
+
+  const requiredSecondsToday = requiredHours * 3600;
 
   // Goal Met Check
   useEffect(() => {
@@ -261,7 +260,6 @@ export default function WorkHoursTracker() {
       setDayStartTime(now);
     }
     setStatus('running');
-    setLogSaved(false);
   };
   
   const handlePause = () => {
@@ -296,7 +294,6 @@ export default function WorkHoursTracker() {
     setStatus('stopped');
     setSessionStartTime(null);
     setPauseTime(null);
-    setLogSaved(true);
   };
 
   const handleOpenEditModal = (field: 'worked' | 'pause' | 'required' | 'start') => {
@@ -407,13 +404,13 @@ export default function WorkHoursTracker() {
   const balanceSecondsToday = currentWorkedSeconds - requiredSecondsToday;
   
   const estimatedLeaveTime = useMemo(() => {
-      if (!dayStartTime) return null;
-      let currentTotalPause = pauseSeconds;
-      if (status === 'paused' && pauseTime) {
-          currentTotalPause += differenceInSeconds(new Date(), pauseTime);
-      }
-      const totalSecondsNeeded = requiredSecondsToday + currentTotalPause;
-      return add(dayStartTime, { seconds: totalSecondsNeeded });
+    if (!dayStartTime) return null;
+    let currentTotalPause = pauseSeconds;
+    if (status === 'paused' && pauseTime) {
+        currentTotalPause += differenceInSeconds(new Date(), pauseTime);
+    }
+    const totalSecondsNeeded = requiredSecondsToday + currentTotalPause;
+    return add(dayStartTime, { seconds: totalSecondsNeeded });
   }, [dayStartTime, pauseSeconds, requiredSecondsToday, status, pauseTime, currentTime]);
 
 
@@ -464,288 +461,245 @@ export default function WorkHoursTracker() {
   const monthTotalBalance = monthBalance + balanceSecondsToday;
 
   const currentMonthHistory = useMemo(() => {
-      return history.filter(log => isSameMonth(new Date(log.date), new Date()));
-  }, [history]);
+      return history.filter(log => isSameMonth(new Date(log.date), currentMonth));
+  }, [history, currentMonth]);
+
+  const dailyProgress = requiredSecondsToday > 0 ? Math.min((currentWorkedSeconds / requiredSecondsToday) * 100, 100) : 0;
+  
+  const daysRemainingInMonth = differenceInSeconds(lastDayOfMonth(new Date()), new Date()) / (60 * 60 * 24);
 
   if (!isClient) {
-    return <div className="min-h-screen bg-gray-900" />;
+    return <div className="min-h-screen bg-background" />;
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground p-4 sm:p-6 md:p-8">
-      <div className="max-w-3xl mx-auto">
-        <header className="mb-8">
-          <h1 className="text-3xl font-bold text-center">Work Hours</h1>
-        </header>
-
-        {logSaved && (
-          <Alert className="bg-green-600/10 border-green-600/20 text-green-700 dark:text-green-300 mb-8">
-              <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
-            <AlertTitle className="text-green-800 dark:text-green-300">Log Saved</AlertTitle>
-            <AlertDescription>
-              Your work session has been successfully recorded for today.
-            </AlertDescription>
-          </Alert>
-        )}
+    <div className="min-h-screen bg-background text-foreground p-4 sm:p-6 md:p-8 font-body">
+      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
         
-        <Card className="glass-card mb-8">
-            <CardContent className="p-6 flex flex-col items-center justify-around gap-4">
-               {status === 'stopped' ? (
-                <div className="text-center">
-                    <Button size="lg" className="w-full sm:w-auto" onClick={handleStart}>
-                        <Play className="mr-2"/>
-                        Start Day
-                    </Button>
-                    <p className="text-muted-foreground text-sm mt-2">{format(new Date(), 'PPP')}</p>
-                </div>
-              ) : (
-                  <div className="flex flex-col sm:flex-row items-center justify-around gap-4 w-full">
-                     {status === 'running' ? (
+        {/* Left Column */}
+        <div className="lg:col-span-2 space-y-8">
+          
+          {/* Time and Controls */}
+          <Card className="glass-card">
+              <CardContent className="p-6 flex flex-wrap items-center justify-between gap-4">
+                  <div className='flex items-baseline gap-4'>
+                    <p className="text-xl sm:text-2xl font-semibold">
+                      TIME NOW:
+                    </p>
+                    <p className="text-2xl sm:text-3xl font-bold tracking-tighter">
+                      {currentTime ? format(currentTime, 'p') : '--:--'}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                     {status === 'stopped' && (
+                        <Button size="lg" className="w-full sm:w-auto" onClick={handleStart}>
+                            <Play className="mr-2"/>
+                            Start Day
+                        </Button>
+                      )}
+                      {status === 'running' && (
                           <Button size="lg" variant="outline" className="w-full sm:w-auto" onClick={handlePause}>
                               <Pause className="mr-2"/>
                               Pause
                           </Button>
-                      ) : (
+                      )}
+                      {status === 'paused' && (
                           <Button size="lg" variant="outline" className="w-full sm:w-auto" onClick={handleResume}>
                               <Play className="mr-2"/>
                               Resume
                           </Button>
                       )}
-                      <Button size="lg" variant="destructive" className="w-full sm:w-auto" onClick={handleStop}>
-                          <Square className="mr-2"/>
-                          End Day
-                      </Button>
+                      {status !== 'stopped' && (
+                          <Button size="lg" variant="destructive" className="w-full sm:w-auto" onClick={handleStop}>
+                              <Square className="mr-2"/>
+                              End Day
+                          </Button>
+                      )}
                   </div>
-              )}
-            </CardContent>
-        </Card>
+              </CardContent>
+          </Card>
+          
+          <Card className="glass-card">
+              <CardContent className="p-6 flex flex-col md:flex-row items-center justify-between gap-8">
+                  <div className="relative">
+                      <ProgressRing value={dailyProgress} />
+                      <div className="absolute inset-0 flex flex-col items-center justify-center">
+                          <span className="text-3xl font-bold">{formatSeconds(currentWorkedSeconds)}</span>
+                          <span className="text-sm text-muted-foreground">/ {formatSeconds(requiredSecondsToday)}</span>
+                      </div>
+                  </div>
+                  <div className="text-center md:text-left">
+                      <p className="text-lg text-muted-foreground">Good Job, Anna! 🔥</p>
+                      {holidays.some(h => isSameDay(h, new Date())) && <p className="text-primary font-semibold mt-2">🇫🇷 JOUR FÉRIÉ</p>}
+                  </div>
+                  <div className="w-full md:w-auto grid grid-cols-2 gap-4 text-center">
+                    <div className="space-y-1">
+                      <p className="text-sm text-muted-foreground">Start Time</p>
+                      <div className="flex items-center justify-center gap-1">
+                        <p className="text-lg font-semibold">{dayStartTime ? format(dayStartTime, 'p') : '--:--'}</p>
+                        <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground/70 hover:text-foreground disabled:text-muted-foreground/40" onClick={() => handleOpenEditModal('start')} disabled={status !== 'stopped'}><Pencil className="h-3 w-3" /></Button>
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-sm text-muted-foreground">Pause</p>
+                      <div className="flex items-center justify-center gap-1">
+                        <p className="text-lg font-semibold">{formatSeconds(pauseSeconds)}</p>
+                        <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground/70 hover:text-foreground disabled:text-muted-foreground/40" onClick={() => handleOpenEditModal('pause')} disabled={status !== 'stopped'}><Pencil className="h-3 w-3" /></Button>
+                      </div>
+                    </div>
+                  </div>
+              </CardContent>
+          </Card>
 
-
-        <Card className="glass-card">
-          <CardContent className="p-6 space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <AlarmClock className="w-5 h-5 text-muted-foreground" />
-                <span className="text-foreground/80">Time Now</span>
-              </div>
-              <span className={cn('font-semibold')}>{currentTime ? format(currentTime, 'p') : '--:--'}</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <PlayCircle className="w-5 h-5 text-muted-foreground" />
-                <span className="text-foreground/80">Start Time</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className={cn('font-semibold')}>{dayStartTime ? format(dayStartTime, 'p') : '--:--'}</span>
-                <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground disabled:text-muted-foreground/50 disabled:bg-transparent" onClick={() => handleOpenEditModal('start')} disabled={status !== 'stopped'}>
-                    <Pencil className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Clock className="w-5 h-5 text-muted-foreground" />
-                <span className="text-foreground/80">Worked Today</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span id="worked-today" className={cn('font-semibold')}>{formatSeconds(currentWorkedSeconds)}</span>
-                <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground disabled:text-muted-foreground/50 disabled:bg-transparent" onClick={() => handleOpenEditModal('worked')} disabled={status !== 'stopped'}>
-                    <Pencil className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Coffee className="w-5 h-5 text-muted-foreground" />
-                <span className="text-foreground/80">Pause of Today</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className={cn('font-semibold')}>{formatSeconds(pauseSeconds)}</span>
-                <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground disabled:text-muted-foreground/50 disabled:bg-transparent" onClick={() => handleOpenEditModal('pause')} disabled={status !== 'stopped'}>
-                    <Pencil className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Target className="w-5 h-5 text-muted-foreground" />
-                <span className="text-foreground/80">Required Today</span>
-              </div>
-               <div className="flex items-center gap-2">
-                <span className={cn('font-semibold')}>{formatSeconds(requiredSecondsToday)}</span>
-                 <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground disabled:text-muted-foreground/50 disabled:bg-transparent" onClick={() => handleOpenEditModal('required')} disabled={status !== 'stopped'}>
-                    <Pencil className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Hourglass className="w-5 h-5 text-muted-foreground" />
-                <span className="text-foreground/80">Balance for Today</span>
-              </div>
-              <span className={cn('font-semibold', balanceSecondsToday < 0 ? 'text-destructive' : 'text-green-600 dark:text-green-400')}>
-                {formatSeconds(balanceSecondsToday, true)}
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <CalendarIconLucid className="w-5 h-5 text-muted-foreground" />
-                <span className="text-foreground/80">Est. Leave Time</span>
-              </div>
-              <span className={cn('font-semibold', 'text-primary')}>
-                {estimatedLeaveTime ? format(estimatedLeaveTime, 'p') : '--:--'}
-              </span>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="glass-card mt-8">
+          {/* Daily History */}
+           <Card className="glass-card">
             <CardHeader>
-                <div className="flex items-center gap-3">
-                    <CalendarIconLucid className="w-6 h-6 text-muted-foreground" />
-                    <CardTitle>Holidays &amp; Days Off</CardTitle>
-                </div>
+              <CardTitle className="flex items-center gap-3">
+                  <HistoryIcon className="w-6 h-6 text-muted-foreground" />
+                  Daily History ({format(currentMonth, 'MMMM yyyy')})
+              </CardTitle>
             </CardHeader>
-            <CardContent className="flex justify-center">
-                <Calendar
-                    mode="multiple"
-                    selected={holidays}
-                    onSelect={(days) => {
-                        if (days) {
-                            // Logic to handle adding/removing multiple days if needed
-                            // For simplicity, we assume single day clicks are the primary interaction
-                        }
-                    }}
-                    onDayClick={handleDayClick}
-                    locale={fr}
-                    month={currentMonth}
-                    onMonthChange={setCurrentMonth}
-                    className="p-0"
-                />
-            </CardContent>
-        </Card>
+            <CardContent className="space-y-6">
+              <div className="max-h-96 overflow-y-auto">
+               <Table>
+                  <TableHeader className="sticky top-0 bg-card/80 backdrop-blur-sm">
+                      <TableRow className="border-border/50 hover:bg-transparent">
+                          <TableHead className="text-muted-foreground">Date</TableHead>
+                          <TableHead className="text-muted-foreground text-center">Start</TableHead>
+                          <TableHead className="text-muted-foreground text-right">Worked</TableHead>
+                          <TableHead className="text-muted-foreground text-right">Pause</TableHead>
+                          <TableHead className="text-muted-foreground text-right">Balance</TableHead>
+                          <TableHead className="text-muted-foreground text-right">Actions</TableHead>
+                      </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                      {currentMonthHistory.length > 0 ? currentMonthHistory.map(log => {
+                          const isHoliday = holidays.some(h => isSameDay(new Date(log.date), h));
+                          let dailyRequired;
+                          if (isHoliday) {
+                              dailyRequired = 0;
+                          } else {
+                              dailyRequired = log.requiredHours !== undefined ? log.requiredHours * 3600 : getDefaultRequiredHours(new Date(log.date)) * 3600;
+                          }
 
-        <Card className="glass-card mt-8">
-          <CardHeader>
-            <div className="flex items-center gap-3">
-                <History className="w-6 h-6 text-muted-foreground" />
-                <CardTitle>Daily History ({format(new Date(), 'MMMM yyyy')})</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-6">
-             <Table>
-                <TableHeader>
-                    <TableRow className="border-border/50 hover:bg-transparent">
-                        <TableHead className="text-muted-foreground">Date</TableHead>
-                        <TableHead className="text-muted-foreground text-center">Start</TableHead>
-                        <TableHead className="text-muted-foreground text-right">Worked</TableHead>
-                        <TableHead className="text-muted-foreground text-right">Pause</TableHead>
-                        <TableHead className="text-muted-foreground text-right">Balance</TableHead>
-                        <TableHead className="text-muted-foreground text-right">Actions</TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {currentMonthHistory.length > 0 ? currentMonthHistory.map(log => {
-                        const isHoliday = holidays.some(h => isSameDay(new Date(log.date), h));
-                        let dailyRequired;
-                        if (isHoliday) {
-                            dailyRequired = 0;
-                        } else {
-                            dailyRequired = log.requiredHours !== undefined ? log.requiredHours * 3600 : getDefaultRequiredHours(new Date(log.date)) * 3600;
-                        }
-
-                        const balance = log.workedSeconds - dailyRequired;
-                        return (
-                            <TableRow key={log.date} className={cn("border-border/50 hover:bg-muted/30", isHoliday && "bg-blue-500/10")}>
-                                <TableCell>
-                                    <span>{format(parse(log.date, 'yyyy-MM-dd', new Date()), 'EEE, MMM d')}</span>
-                                    {isHoliday && <span className="ml-2 text-xs text-blue-600 dark:text-blue-400">(Off)</span>}
-                                </TableCell>
-                                <TableCell className="text-center">{log.startTime ? format(new Date(log.startTime), 'p') : '--:--'}</TableCell>
-                                <TableCell className="text-right">{formatSeconds(log.workedSeconds)}</TableCell>
-                                <TableCell className="text-right">{formatSeconds(log.pauseSeconds)}</TableCell>
-                                <TableCell className={cn("text-right", balance < 0 ? 'text-destructive' : 'text-green-600 dark:text-green-400')}>
-                                    {formatSeconds(balance, true)}
-                                </TableCell>
-                                <TableCell className="text-right">
-                                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground" onClick={() => handleOpenHistoryEditModal(log)}>
-                                        <Pencil className="h-4 w-4" />
-                                    </Button>
-                                </TableCell>
-                            </TableRow>
-                        )
-                    }) : (
-                        <TableRow className="border-border/50 hover:bg-transparent">
-                            <TableCell colSpan={6} className="text-center text-muted-foreground py-4">No history for this month yet.</TableCell>
-                        </TableRow>
-                    )}
-                </TableBody>
-             </Table>
-          </CardContent>
-        </Card>
-
-        <Card className="glass-card mt-8">
-          <CardHeader>
-            <div className="flex items-center gap-3">
-                <BarChart3 className="w-6 h-6 text-muted-foreground" />
-                <CardTitle>Cumulative Summaries</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div>
-              <div className="flex justify-between items-baseline">
-                <div className="flex items-center gap-2 text-foreground/80">
-                    <ArrowUp className="w-4 h-4 text-muted-foreground"/>
-                    <span>From Past Days (This Month)</span>
-                </div>
-                <span className={cn('font-bold', monthBalance < 0 ? 'text-destructive' : 'text-green-600 dark:text-green-400')}>
-                  {formatSeconds(monthBalance, true)}
-                </span>
+                          const balance = log.workedSeconds - dailyRequired;
+                          return (
+                              <TableRow key={log.date} className={cn("border-border/50 hover:bg-muted/30", isHoliday && "bg-primary/10")}>
+                                  <TableCell>
+                                      <span>{format(parse(log.date, 'yyyy-MM-dd', new Date()), 'EEE, MMM d')}</span>
+                                      {isHoliday && <span className="ml-2 text-xs text-primary font-semibold">(Off)</span>}
+                                  </TableCell>
+                                  <TableCell className="text-center">{log.startTime ? format(new Date(log.startTime), 'p') : '--:--'}</TableCell>
+                                  <TableCell className="text-right">{formatSeconds(log.workedSeconds)}</TableCell>
+                                  <TableCell className="text-right">{formatSeconds(log.pauseSeconds)}</TableCell>
+                                  <TableCell className={cn("text-right font-medium", balance < 0 ? 'text-destructive' : 'text-green-500')}>
+                                      {formatSeconds(balance, true)}
+                                  </TableCell>
+                                  <TableCell className="text-right">
+                                      <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground" onClick={() => handleOpenHistoryEditModal(log)}>
+                                          <Pencil className="h-4 w-4" />
+                                      </Button>
+                                  </TableCell>
+                              </TableRow>
+                          )
+                      }) : (
+                          <TableRow className="border-border/50 hover:bg-transparent">
+                              <TableCell colSpan={6} className="text-center text-muted-foreground py-8">No history for this month yet.</TableCell>
+                          </TableRow>
+                      )}
+                  </TableBody>
+               </Table>
               </div>
-            </div>
-            
-            <Separator className="bg-border/50" />
+            </CardContent>
+          </Card>
+        </div>
 
-            <div>
-                <div className="flex justify-between items-baseline mb-1">
-                    <span className="text-foreground/80">Balance for Month (To Date)</span>
-                    <span className={cn('text-2xl font-bold', monthTotalBalance < 0 ? 'text-destructive' : 'text-green-600 dark:text-green-400')}>
-                      {formatSeconds(monthTotalBalance, true)}
-                    </span>
+        {/* Right Column */}
+        <div className="space-y-8">
+            <Card className="glass-card">
+                <CardHeader>
+                    <CardTitle className="text-lg font-semibold">{format(currentMonth, 'MMMM yyyy', { locale: fr }).toUpperCase()}</CardTitle>
+                </CardHeader>
+                <CardContent className="flex justify-center">
+                    <Calendar
+                        mode="multiple"
+                        selected={holidays}
+                        onSelect={(days) => {
+                            if (days) {
+                                // Logic to handle adding/removing multiple days if needed
+                                // For simplicity, we assume single day clicks are the primary interaction
+                            }
+                        }}
+                        onDayClick={handleDayClick}
+                        locale={fr}
+                        month={currentMonth}
+                        onMonthChange={setCurrentMonth}
+                        className="p-0"
+                        classNames={{
+                          head_cell: "w-10 text-muted-foreground rounded-md text-[0.8rem]",
+                          cell: "h-10 w-10 text-center rounded-full text-sm p-0 relative [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-full last:[&:has([aria-selected])]:rounded-r-full focus-within:relative focus-within:z-20",
+                          day: "h-10 w-10 p-0 font-normal rounded-full aria-selected:opacity-100",
+                          day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
+                          day_today: "bg-accent text-accent-foreground rounded-full",
+                          day_outside: "text-muted-foreground opacity-50",
+                        }}
+                    />
+                </CardContent>
+            </Card>
+
+             <Card className="glass-card">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="text-sm font-medium uppercase text-muted-foreground">Monthly Overview</CardTitle>
+                <MoreHorizontal className="w-5 h-5 text-muted-foreground" />
+              </CardHeader>
+              <CardContent className="space-y-4">
+                  <div className="space-y-1">
+                      <p className="text-sm text-muted-foreground">Est. Leave Time</p>
+                      <p className="text-3xl font-bold text-primary">{estimatedLeaveTime ? format(estimatedLeaveTime, 'p') : '--:--'}</p>
+                  </div>
+                   <div className="space-y-1">
+                      <p className="text-sm text-muted-foreground">Reset In:</p>
+                      <p className="text-lg font-semibold">{Math.ceil(daysRemainingInMonth)} days</p>
+                  </div>
+              </CardContent>
+            </Card>
+
+            <Card className="glass-card">
+              <CardHeader className="flex flex-row items-center justify-between">
+                 <CardTitle className="text-sm font-medium uppercase text-muted-foreground">Goals & Achievements</CardTitle>
+                 <Star className="w-5 h-5 text-muted-foreground" />
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-1">
+                    <p className="text-sm text-muted-foreground">Month Total Balance</p>
+                    <p className={cn("text-3xl font-bold", monthTotalBalance < 0 ? 'text-destructive' : 'text-green-500')}>
+                        {formatSeconds(monthTotalBalance, true)}
+                    </p>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                    (Includes today's balance and past days' balance for this month)
-                </p>
-            </div>
+                <Button variant="outline" className="w-full">
+                    <History className="mr-2"/> View History
+                </Button>
+              </CardContent>
+            </Card>
+        </div>
 
-            <Separator className="bg-border/50" />
 
-            <div className="space-y-4">
-                <div className="flex justify-between items-baseline">
-                    <div className="flex items-center gap-2 text-foreground/80">
-                        <CalendarIconLucid className="w-4 h-4" />
-                        <span>This Week Balance</span>
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50">
+            <Card className="glass-card">
+                <CardContent className="p-2">
+                    <div className="flex items-center gap-2">
+                        <Button asChild variant="ghost" size="icon" className="rounded-full h-12 w-12 bg-primary text-primary-foreground shadow-lg">
+                           <a href="/app"><User className="w-6 h-6"/></a>
+                        </Button>
+                        <Button asChild variant="ghost" size="icon" className="rounded-full h-12 w-12">
+                           <a href="/app"><CalendarIconLucid className="w-6 h-6"/></a>
+                        </Button>
+                         <Button asChild variant="ghost" size="icon" className="rounded-full h-12 w-12">
+                           <a href="/app"><BarChart className="w-6 h-6"/></a>
+                        </Button>
                     </div>
-                     <span className={cn('font-semibold', weekBalance < 0 ? 'text-destructive' : 'text-green-600 dark:text-green-400')}>
-                        {formatSeconds(weekBalance, true)}
-                    </span>
-                </div>
-                <div className="flex justify-between items-baseline">
-                    <div className="flex items-center gap-2 text-foreground/80">
-                        <CalendarIconLucid className="w-4 h-4" />
-                        <span>This Month (Total Worked)</span>
-                    </div>
-                    <span className="font-semibold text-muted-foreground">{formatSeconds(thisMonthTotal)}</span>
-                </div>
-            </div>
-          </CardContent>
-        </Card>
-
-
-        <div className="mt-8 flex justify-center">
-            <Button asChild variant="outline">
-                <a href="/app">Go to Task Dashboard</a>
-            </Button>
+                </CardContent>
+            </Card>
         </div>
 
         <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
@@ -837,21 +791,21 @@ export default function WorkHoursTracker() {
         <Dialog open={isGoalMetDialogOpen} onOpenChange={setIsGoalMetDialogOpen}>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle className="flex items-center gap-2">
-                        <Award className="text-yellow-500" />
+                    <DialogTitle className="flex items-center gap-2 text-2xl">
+                        <Award className="text-yellow-400 w-8 h-8" />
                         Congratulations!
                     </DialogTitle>
-                    <DialogDescription className="pt-4 text-center text-lg">
+                    <DialogDescription className="pt-4 text-center text-lg text-foreground/90">
                         Good job, skhoun lktaf! 💪
                     </DialogDescription>
                 </DialogHeader>
                 <div className="py-4 text-center">
                     <p className="text-sm text-muted-foreground">Total break time today:</p>
-                    <p className="font-bold text-xl">{formatSeconds(pauseSeconds)}</p>
+                    <p className="font-bold text-2xl text-primary">{formatSeconds(pauseSeconds)}</p>
                 </div>
                 <DialogFooter>
                     <DialogClose asChild>
-                        <Button type="button">Close</Button>
+                        <Button type="button" className="w-full">Close</Button>
                     </DialogClose>
                 </DialogFooter>
             </DialogContent>
@@ -861,4 +815,3 @@ export default function WorkHoursTracker() {
     </div>
   );
 }
-
