@@ -98,6 +98,8 @@ export default function WorkHoursTracker() {
   const [dayStartTime, setDayStartTime] = useState<Date | null>(null);
   const [pauseTime, setPauseTime] = useState<Date | null>(null);
   const [requiredHours, setRequiredHours] = useState(getDefaultRequiredHours(new Date()));
+  const [liveSeconds, setLiveSeconds] = useState(0);
+
 
   // History state
   const [history, setHistory] = useState<DailyLog[]>([]);
@@ -151,46 +153,39 @@ export default function WorkHoursTracker() {
 
   // Save data to localStorage whenever it changes
   useEffect(() => {
-    if (!isClient) return;
+    if (!isClient || status !== 'stopped') return;
 
-    if (status === 'stopped') {
-        const todayKey = getTodayKey();
-        const log: DailyLog = { 
-            date: todayKey, 
-            workedSeconds, 
-            pauseSeconds,
-            startTime: dayStartTime?.toISOString(),
-            requiredHours,
-        };
-        localStorage.setItem(`worklog-${todayKey}`, JSON.stringify(log));
+    const todayKey = getTodayKey();
+    const log: DailyLog = { 
+        date: todayKey, 
+        workedSeconds, 
+        pauseSeconds,
+        startTime: dayStartTime?.toISOString(),
+        requiredHours,
+    };
+    localStorage.setItem(`worklog-${todayKey}`, JSON.stringify(log));
 
-        setHistory(prevHistory => {
-            const otherDays = prevHistory.filter(h => h.date !== todayKey);
-            return [log, ...otherDays].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-        });
-    }
+    setHistory(prevHistory => {
+        const otherDays = prevHistory.filter(h => h.date !== todayKey);
+        return [log, ...otherDays].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    });
+    
   }, [workedSeconds, pauseSeconds, dayStartTime, requiredHours, isClient, status]);
 
   // The main timer loop
   useEffect(() => {
     let intervalId: NodeJS.Timeout | undefined;
 
-    if (status === 'running') {
+    if (status === 'running' && sessionStartTime) {
       intervalId = setInterval(() => {
-        if (sessionStartTime) {
-          const now = new Date();
-          const sessionElapsed = differenceInSeconds(now, sessionStartTime);
-          const totalWorked = (workedSeconds || 0) + sessionElapsed;
-          
-          // This is a bit of a hack to keep workedSeconds up to date without saving it constantly
-          const displayElement = document.getElementById('worked-today');
-          if(displayElement) displayElement.textContent = formatSeconds(totalWorked);
-        }
+        setLiveSeconds(differenceInSeconds(new Date(), sessionStartTime));
       }, 1000);
-    } 
+    } else {
+      setLiveSeconds(0);
+    }
     
     return () => clearInterval(intervalId);
-  }, [status, sessionStartTime, workedSeconds]);
+  }, [status, sessionStartTime]);
 
   const handleStart = () => {
     const now = new Date();
@@ -225,10 +220,11 @@ export default function WorkHoursTracker() {
   const handleStop = () => {
     if (status === 'stopped') return;
 
+    let finalWorkedSeconds = workedSeconds;
     if (status === 'running' && sessionStartTime) {
-      const now = new Date();
-      setWorkedSeconds(prev => prev + differenceInSeconds(now, sessionStartTime));
+      finalWorkedSeconds += differenceInSeconds(new Date(), sessionStartTime);
     }
+    setWorkedSeconds(finalWorkedSeconds);
     
     setStatus('stopped');
     setSessionStartTime(null);
@@ -304,13 +300,7 @@ export default function WorkHoursTracker() {
   
   const requiredSecondsToday = requiredHours * 3600;
 
-  const currentWorkedSeconds = useMemo(() => {
-    if (status === 'running' && sessionStartTime) {
-      // This is a snapshot in time for calculation, the display updates via the effect
-      return workedSeconds + differenceInSeconds(new Date(), sessionStartTime);
-    }
-    return workedSeconds;
-  }, [workedSeconds, sessionStartTime, status]);
+  const currentWorkedSeconds = workedSeconds + liveSeconds;
 
   const balanceSecondsToday = currentWorkedSeconds - requiredSecondsToday;
   
@@ -384,11 +374,9 @@ export default function WorkHoursTracker() {
               </div>
               <div className="flex items-center gap-2">
                 <span className={cn('font-semibold')}>{dayStartTime ? format(dayStartTime, 'p') : '--:--'}</span>
-                {status === 'stopped' && (
-                    <Button variant="ghost" size="icon" className="h-6 w-6 text-gray-400 hover:text-white" onClick={() => handleOpenEditModal('start')}>
-                        <Pencil className="h-4 w-4" />
-                    </Button>
-                )}
+                <Button variant="ghost" size="icon" className="h-6 w-6 text-gray-400 hover:text-white disabled:text-gray-600 disabled:bg-transparent" onClick={() => handleOpenEditModal('start')} disabled={status !== 'stopped'}>
+                    <Pencil className="h-4 w-4" />
+                </Button>
               </div>
             </div>
             <div className="flex items-center justify-between">
@@ -397,12 +385,10 @@ export default function WorkHoursTracker() {
                 <span className="text-gray-300">Worked Today</span>
               </div>
               <div className="flex items-center gap-2">
-                <span id="worked-today" className={cn('font-semibold')}>{formatSeconds(workedSeconds)}</span>
-                {status === 'stopped' && (
-                    <Button variant="ghost" size="icon" className="h-6 w-6 text-gray-400 hover:text-white" onClick={() => handleOpenEditModal('worked')}>
-                        <Pencil className="h-4 w-4" />
-                    </Button>
-                )}
+                <span id="worked-today" className={cn('font-semibold')}>{formatSeconds(currentWorkedSeconds)}</span>
+                <Button variant="ghost" size="icon" className="h-6 w-6 text-gray-400 hover:text-white disabled:text-gray-600 disabled:bg-transparent" onClick={() => handleOpenEditModal('worked')} disabled={status !== 'stopped'}>
+                    <Pencil className="h-4 w-4" />
+                </Button>
               </div>
             </div>
             <div className="flex items-center justify-between">
@@ -412,11 +398,9 @@ export default function WorkHoursTracker() {
               </div>
               <div className="flex items-center gap-2">
                 <span className={cn('font-semibold')}>{formatSeconds(pauseSeconds)}</span>
-                {status === 'stopped' && (
-                    <Button variant="ghost" size="icon" className="h-6 w-6 text-gray-400 hover:text-white" onClick={() => handleOpenEditModal('pause')}>
-                        <Pencil className="h-4 w-4" />
-                    </Button>
-                )}
+                <Button variant="ghost" size="icon" className="h-6 w-6 text-gray-400 hover:text-white disabled:text-gray-600 disabled:bg-transparent" onClick={() => handleOpenEditModal('pause')} disabled={status !== 'stopped'}>
+                    <Pencil className="h-4 w-4" />
+                </Button>
               </div>
             </div>
             <div className="flex items-center justify-between">
@@ -426,11 +410,9 @@ export default function WorkHoursTracker() {
               </div>
                <div className="flex items-center gap-2">
                 <span className={cn('font-semibold')}>{formatSeconds(requiredSecondsToday)}</span>
-                 {status === 'stopped' && (
-                    <Button variant="ghost" size="icon" className="h-6 w-6 text-gray-400 hover:text-white" onClick={() => handleOpenEditModal('required')}>
-                        <Pencil className="h-4 w-4" />
-                    </Button>
-                )}
+                 <Button variant="ghost" size="icon" className="h-6 w-6 text-gray-400 hover:text-white disabled:text-gray-600 disabled:bg-transparent" onClick={() => handleOpenEditModal('required')} disabled={status !== 'stopped'}>
+                    <Pencil className="h-4 w-4" />
+                </Button>
               </div>
             </div>
             <div className="flex items-center justify-between">
