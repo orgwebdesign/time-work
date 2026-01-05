@@ -99,6 +99,7 @@ export default function WorkHoursTracker() {
   const [pauseTime, setPauseTime] = useState<Date | null>(null);
   const [requiredHours, setRequiredHours] = useState(getDefaultRequiredHours(new Date()));
   const [liveSeconds, setLiveSeconds] = useState(0);
+  const [currentTime, setCurrentTime] = useState<Date | null>(null);
 
 
   // History state
@@ -188,14 +189,18 @@ export default function WorkHoursTracker() {
   useEffect(() => {
     let intervalId: NodeJS.Timeout | undefined;
 
-    if (status === 'running' && sessionStartTime) {
-      intervalId = setInterval(() => {
+    const updateTimer = () => {
+      setCurrentTime(new Date());
+      if (status === 'running' && sessionStartTime) {
         setLiveSeconds(differenceInSeconds(new Date(), sessionStartTime));
-      }, 1000);
-    } else {
-      setLiveSeconds(0);
-    }
-    
+      } else {
+        setLiveSeconds(0);
+      }
+    };
+
+    updateTimer(); // Initial call to set time immediately
+    intervalId = setInterval(updateTimer, 1000);
+
     return () => clearInterval(intervalId);
   }, [status, sessionStartTime]);
 
@@ -367,6 +372,7 @@ export default function WorkHoursTracker() {
       <div className="max-w-3xl mx-auto">
         <header className="mb-8">
           <h1 className="text-3xl font-bold text-center">Work Hours</h1>
+          {currentTime && <p className="text-center text-gray-400 text-lg">{format(currentTime, 'p')}</p>}
         </header>
 
         {logSaved && (
@@ -686,3 +692,5 @@ export default function WorkHoursTracker() {
     </div>
   );
 }
+
+    
