@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { ArrowUp, BarChart3, Calendar, CheckCircle, Clock, Coffee, Hourglass, Pause, Play, Square, Target, History, Pencil } from 'lucide-react';
-import { add, format, differenceInSeconds, startOfMonth, eachDayOfInterval, formatISO } from 'date-fns';
+import { add, format, differenceInSeconds, startOfMonth, eachDayOfInterval, formatISO, parse } from 'date-fns';
 import {
   Dialog,
   DialogContent,
@@ -38,8 +38,6 @@ interface DailyLog {
   pauseSeconds: number;
 }
 
-const REQUIRED_HOURS_PER_DAY = 8.5;
-
 // --- Helper Functions ---
 const formatSeconds = (seconds: number, showSign = false): string => {
   if (isNaN(seconds)) seconds = 0;
@@ -60,7 +58,7 @@ const parseTimeToSeconds = (time: string): number => {
 };
 
 const secondsToTime = (seconds: number): string => {
-    if (isNaN(seconds)) seconds = 0;
+    if (isNaN(seconds) || seconds < 0) seconds = 0;
     const h = Math.floor(seconds / 3600);
     const m = Math.floor((seconds % 3600) / 60);
     return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
@@ -76,16 +74,33 @@ export default function WorkHoursTracker() {
   const [pauseSeconds, setPauseSeconds] = useState(0);
   const [startTime, setStartTime] = useState<Date | null>(null);
   const [pauseTime, setPauseTime] = useState<Date | null>(null);
+  const [requiredHours, setRequiredHours] = useState(8.5);
 
   // History state
   const [history, setHistory] = useState<DailyLog[]>([]);
 
   // Manual edit state
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [editingField, setEditingField] = useState<'worked' | 'pause' | null>(null);
+  const [editingField, setEditingField] = useState<'worked' | 'pause' | 'required' | null>(null);
   const [editTimeValue, setEditTimeValue] = useState('');
 
-  // Load data from localStorage
+  // History edit state
+  const [isHistoryEditModalOpen, setIsHistoryEditModalOpen] = useState(false);
+  const [editingLog, setEditingLog] = useState<DailyLog | null>(null);
+  const [editHistoryWorked, setEditHistoryWorked] = useState('');
+  const [editHistoryPause, setEditHistoryPause] = useState('');
+
+
+  const loadAllLogs = useCallback(() => {
+    const allKeys = Object.keys(localStorage).filter(key => key.startsWith('worklog-'));
+    const allLogs: DailyLog[] = allKeys.map(key => {
+        const logData = localStorage.getItem(key);
+        return logData ? JSON.parse(logData) : null;
+    }).filter(Boolean);
+    setHistory(allLogs.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+  }, []);
+
+  // Load data from localStorage on mount
   useEffect(() => {
     setIsClient(true);
     const todayKey = getTodayKey();
@@ -96,29 +111,31 @@ export default function WorkHoursTracker() {
       setPauseSeconds(data.pauseSeconds || 0);
     }
     
-    // Load all logs for history
-    const allKeys = Object.keys(localStorage).filter(key => key.startsWith('worklog-'));
-    const allLogs: DailyLog[] = allKeys.map(key => {
-        const logData = localStorage.getItem(key);
-        return logData ? JSON.parse(logData) : null;
-    }).filter(Boolean);
-    setHistory(allLogs.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+    const storedRequiredHours = localStorage.getItem('workhours-requiredHours');
+    if (storedRequiredHours) {
+        setRequiredHours(parseFloat(storedRequiredHours));
+    }
 
-  }, []);
+    loadAllLogs();
+  }, [loadAllLogs]);
 
   // Save data to localStorage whenever it changes
   useEffect(() => {
-    if (!isClient || status !== 'stopped') return;
-    const todayKey = getTodayKey();
-    const log: DailyLog = { date: todayKey, workedSeconds, pauseSeconds };
-    localStorage.setItem(`worklog-${todayKey}`, JSON.stringify(log));
+    if (!isClient) return;
 
-    // Update history state
-    setHistory(prevHistory => {
-        const otherDays = prevHistory.filter(h => h.date !== todayKey);
-        return [log, ...otherDays].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    });
-  }, [workedSeconds, pauseSeconds, isClient, status]);
+    if (status === 'stopped') {
+        const todayKey = getTodayKey();
+        const log: DailyLog = { date: todayKey, workedSeconds, pauseSeconds };
+        localStorage.setItem(`worklog-${todayKey}`, JSON.stringify(log));
+
+        setHistory(prevHistory => {
+            const otherDays = prevHistory.filter(h => h.date !== todayKey);
+            return [log, ...otherDays].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        });
+    }
+
+    localStorage.setItem('workhours-requiredHours', requiredHours.toString());
+  }, [workedSeconds, pauseSeconds, requiredHours, isClient, status]);
 
   // The main timer loop
   useEffect(() => {
@@ -131,7 +148,6 @@ export default function WorkHoursTracker() {
         }
       }, 1000);
     } 
-    // No need for pause interval, pause is calculated on resume
     
     return () => clearInterval(intervalId);
   }, [status, startTime]);
@@ -178,11 +194,17 @@ export default function WorkHoursTracker() {
     setLogSaved(true);
   };
 
-  const handleOpenEditModal = (field: 'worked' | 'pause') => {
+  const handleOpenEditModal = (field: 'worked' | 'pause' | 'required') => {
     if (status !== 'stopped') return;
     setEditingField(field);
-    const timeToEdit = field === 'worked' ? workedSeconds : pauseSeconds;
-    setEditTimeValue(secondsToTime(timeToEdit));
+    if (field === 'required') {
+        const hours = Math.floor(requiredHours);
+        const minutes = Math.round((requiredHours % 1) * 60);
+        setEditTimeValue(`${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`);
+    } else {
+        const timeToEdit = field === 'worked' ? workedSeconds : pauseSeconds;
+        setEditTimeValue(secondsToTime(timeToEdit));
+    }
     setIsEditModalOpen(true);
   };
   
@@ -192,12 +214,44 @@ export default function WorkHoursTracker() {
         setWorkedSeconds(newSeconds);
     } else if (editingField === 'pause') {
         setPauseSeconds(newSeconds);
+    } else if (editingField === 'required') {
+        const hours = newSeconds / 3600;
+        setRequiredHours(hours);
     }
     setIsEditModalOpen(false);
     setEditingField(null);
   };
+
+  const handleOpenHistoryEditModal = (log: DailyLog) => {
+    setEditingLog(log);
+    setEditHistoryWorked(secondsToTime(log.workedSeconds));
+    setEditHistoryPause(secondsToTime(log.pauseSeconds));
+    setIsHistoryEditModalOpen(true);
+  };
+
+  const handleSaveHistoryEdit = () => {
+    if (!editingLog) return;
+    
+    const updatedLog: DailyLog = {
+      ...editingLog,
+      workedSeconds: parseTimeToSeconds(editHistoryWorked),
+      pauseSeconds: parseTimeToSeconds(editHistoryPause),
+    };
+
+    localStorage.setItem(`worklog-${editingLog.date}`, JSON.stringify(updatedLog));
+    
+    const todayKey = getTodayKey();
+    if (editingLog.date === todayKey) {
+        setWorkedSeconds(updatedLog.workedSeconds);
+        setPauseSeconds(updatedLog.pauseSeconds);
+    }
+
+    loadAllLogs();
+    setIsHistoryEditModalOpen(false);
+    setEditingLog(null);
+  };
   
-  const requiredSecondsToday = REQUIRED_HOURS_PER_DAY * 3600;
+  const requiredSecondsToday = requiredHours * 3600;
   const balanceSecondsToday = workedSeconds - requiredSecondsToday;
   
   const estimatedLeaveTime = useMemo(() => {
@@ -293,7 +347,14 @@ export default function WorkHoursTracker() {
                 <Target className="w-5 h-5 text-gray-400" />
                 <span className="text-gray-300">Required Today</span>
               </div>
-              <span className={cn('font-semibold')}>{formatSeconds(requiredSecondsToday)}</span>
+               <div className="flex items-center gap-2">
+                <span className={cn('font-semibold')}>{formatSeconds(requiredSecondsToday)}</span>
+                 {status === 'stopped' && (
+                    <Button variant="ghost" size="icon" className="h-6 w-6 text-gray-400 hover:text-white" onClick={() => handleOpenEditModal('required')}>
+                        <Pencil className="h-4 w-4" />
+                    </Button>
+                )}
+              </div>
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -331,6 +392,7 @@ export default function WorkHoursTracker() {
                         <TableHead className="text-gray-400 text-right">Worked</TableHead>
                         <TableHead className="text-gray-400 text-right">Pause</TableHead>
                         <TableHead className="text-gray-400 text-right">Balance</TableHead>
+                        <TableHead className="text-gray-400 text-right">Actions</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -338,17 +400,22 @@ export default function WorkHoursTracker() {
                         const balance = log.workedSeconds - requiredSecondsToday;
                         return (
                             <TableRow key={log.date} className="border-gray-700 hover:bg-gray-700/50">
-                                <TableCell>{format(new Date(log.date), 'EEE, MMM d')}</TableCell>
+                                <TableCell>{format(parse(log.date, 'yyyy-MM-dd', new Date()), 'EEE, MMM d')}</TableCell>
                                 <TableCell className="text-right">{formatSeconds(log.workedSeconds)}</TableCell>
                                 <TableCell className="text-right">{formatSeconds(log.pauseSeconds)}</TableCell>
                                 <TableCell className={cn("text-right", balance < 0 ? 'text-red-400' : 'text-green-400')}>
                                     {formatSeconds(balance, true)}
                                 </TableCell>
+                                <TableCell className="text-right">
+                                    <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-400 hover:text-white" onClick={() => handleOpenHistoryEditModal(log)}>
+                                        <Pencil className="h-4 w-4" />
+                                    </Button>
+                                </TableCell>
                             </TableRow>
                         )
                     }) : (
                         <TableRow className="border-gray-700 hover:bg-gray-800">
-                            <TableCell colSpan={4} className="text-center text-gray-500 py-4">No history yet.</TableCell>
+                            <TableCell colSpan={5} className="text-center text-gray-500 py-4">No history yet.</TableCell>
                         </TableRow>
                     )}
                 </TableBody>
@@ -419,7 +486,7 @@ export default function WorkHoursTracker() {
                 <DialogHeader>
                     <DialogTitle>Edit Time</DialogTitle>
                     <DialogDescription>
-                        Manually set the {editingField === 'worked' ? 'worked' : 'pause'} time for today. Use HH:MM format.
+                        Manually set the {editingField} time. Use HH:MM format.
                     </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
@@ -445,7 +512,51 @@ export default function WorkHoursTracker() {
             </DialogContent>
         </Dialog>
 
+        <Dialog open={isHistoryEditModalOpen} onOpenChange={setIsHistoryEditModalOpen}>
+            <DialogContent className="sm:max-w-[425px] bg-gray-800 border-gray-700 text-white">
+                <DialogHeader>
+                    <DialogTitle>Edit Log for {editingLog ? format(parse(editingLog.date, 'yyyy-MM-dd', new Date()), 'MMM d, yyyy') : ''}</DialogTitle>
+                    <DialogDescription>
+                        Update the worked and pause times for this day.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="edit-history-worked" className="text-right">
+                            Worked
+                        </Label>
+                        <Input
+                            id="edit-history-worked"
+                            value={editHistoryWorked}
+                            onChange={(e) => setEditHistoryWorked(e.target.value)}
+                            className="col-span-3 bg-gray-700 border-gray-600"
+                            placeholder="HH:MM"
+                        />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="edit-history-pause" className="text-right">
+                            Pause
+                        </Label>
+                        <Input
+                            id="edit-history-pause"
+                            value={editHistoryPause}
+                            onChange={(e) => setEditHistoryPause(e.target.value)}
+                            className="col-span-3 bg-gray-700 border-gray-600"
+                            placeholder="HH:MM"
+                        />
+                    </div>
+                </div>
+                <DialogFooter>
+                    <DialogClose asChild>
+                        <Button type="button" variant="secondary" onClick={() => setIsHistoryEditModalOpen(false)}>Cancel</Button>
+                    </DialogClose>
+                    <Button type="button" onClick={handleSaveHistoryEdit}>Save Changes</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
       </div>
     </div>
   );
 }
+
