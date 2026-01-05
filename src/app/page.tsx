@@ -85,7 +85,7 @@ const getDefaultRequiredHours = (date: Date): number => {
   if (dayOfWeek === 5) { // Friday
     return 7.5;
   }
-  if (dayOfWeek === 6 || dayOfWeek === 0) { // Saturday or Sunday
+  if (isWeekend(date)) { // Saturday or Sunday
     return 0;
   }
   return 8.5; // Monday - Thursday
@@ -445,8 +445,8 @@ const handleDeleteLog = (logDate: string) => {
                 localStorage.removeItem(`goalMet-${getTodayKey()}`);
             }
             
-            // Reload logs from storage to ensure UI is in sync
-            loadAllLogs();
+            // Correctly update the history state to trigger a re-render
+            setHistory(prevHistory => prevHistory.filter(h => h.date !== logDate));
 
         } catch(e) {
             console.error("Failed to delete log", e);
@@ -889,7 +889,7 @@ const handleDeleteLog = (logDate: string) => {
                         <Input
                             id="edit-history-pause"
                             value={editHistoryPause}
-                            onChange={(e) => setEditHistoryPause(e.target.value)}
+                            onChange={(e) => setEditHistoryPause(e.g.target.value)}
                             className="col-span-3"
                             placeholder="HH:MM"
                         />
