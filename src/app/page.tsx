@@ -525,7 +525,7 @@ export default function WorkHoursTracker() {
               </div>
               <div className="flex items-center gap-2">
                 <span className={cn('font-semibold')}>{dayStartTime ? format(dayStartTime, 'p') : '--:--'}</span>
-                <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground disabled:text-muted-foreground/50 disabled:bg-transparent" onClick={() => handleOpenEditModal('start')} disabled={status !== 'stopped'}>
+                <Button variant="ghost" size="icon" className="h-6 w-6 text-foreground/70 hover:text-foreground disabled:text-muted-foreground/50 disabled:bg-transparent" onClick={() => handleOpenEditModal('start')} disabled={status !== 'stopped'}>
                     <Pencil className="h-4 w-4" />
                 </Button>
               </div>
@@ -537,7 +537,7 @@ export default function WorkHoursTracker() {
               </div>
               <div className="flex items-center gap-2">
                 <span id="worked-today" className={cn('font-semibold')}>{formatSeconds(currentWorkedSeconds)}</span>
-                <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground disabled:text-muted-foreground/50 disabled:bg-transparent" onClick={() => handleOpenEditModal('worked')} disabled={status !== 'stopped'}>
+                <Button variant="ghost" size="icon" className="h-6 w-6 text-foreground/70 hover:text-foreground disabled:text-muted-foreground/50 disabled:bg-transparent" onClick={() => handleOpenEditModal('worked')} disabled={status !== 'stopped'}>
                     <Pencil className="h-4 w-4" />
                 </Button>
               </div>
@@ -549,7 +549,7 @@ export default function WorkHoursTracker() {
               </div>
               <div className="flex items-center gap-2">
                 <span className={cn('font-semibold')}>{formatSeconds(pauseSeconds)}</span>
-                <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground disabled:text-muted-foreground/50 disabled:bg-transparent" onClick={() => handleOpenEditModal('pause')} disabled={status !== 'stopped'}>
+                <Button variant="ghost" size="icon" className="h-6 w-6 text-foreground/70 hover:text-foreground disabled:text-muted-foreground/50 disabled:bg-transparent" onClick={() => handleOpenEditModal('pause')} disabled={status !== 'stopped'}>
                     <Pencil className="h-4 w-4" />
                 </Button>
               </div>
@@ -561,7 +561,7 @@ export default function WorkHoursTracker() {
               </div>
                <div className="flex items-center gap-2">
                 <span className={cn('font-semibold')}>{formatSeconds(requiredSecondsToday)}</span>
-                 <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground disabled:text-muted-foreground/50 disabled:bg-transparent" onClick={() => handleOpenEditModal('required')} disabled={status !== 'stopped'}>
+                 <Button variant="ghost" size="icon" className="h-6 w-6 text-foreground/70 hover:text-foreground disabled:text-muted-foreground/50 disabled:bg-transparent" onClick={() => handleOpenEditModal('required')} disabled={status !== 'stopped'}>
                     <Pencil className="h-4 w-4" />
                 </Button>
               </div>
@@ -853,3 +853,4 @@ export default function WorkHoursTracker() {
     
 
     
+
