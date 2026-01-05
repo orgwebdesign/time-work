@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { ArrowUp, BarChart3, Calendar, CheckCircle, Clock, Coffee, Hourglass, Pause, Play, Square, Target, History, Pencil, PlayCircle } from 'lucide-react';
-import { add, format, differenceInSeconds, startOfMonth, eachDayOfInterval, formatISO, parse, getDay } from 'date-fns';
+import { add, format, differenceInSeconds, startOfMonth, eachDayOfInterval, formatISO, parse, getDay, startOfWeek, endOfWeek, startOfDay, endOfDay } from 'date-fns';
 import {
   Dialog,
   DialogContent,
@@ -118,40 +118,47 @@ export default function WorkHoursTracker() {
 
 
   const loadAllLogs = useCallback(() => {
-    const allKeys = Object.keys(localStorage).filter(key => key.startsWith('worklog-'));
-    const allLogs: DailyLog[] = allKeys.map(key => {
-        const logData = localStorage.getItem(key);
-        return logData ? JSON.parse(logData) : null;
-    }).filter(Boolean);
-    setHistory(allLogs.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+    try {
+        const allKeys = Object.keys(localStorage).filter(key => key.startsWith('worklog-'));
+        const allLogs: DailyLog[] = allKeys.map(key => {
+            const logData = localStorage.getItem(key);
+            return logData ? JSON.parse(logData) : null;
+        }).filter(Boolean);
+        setHistory(allLogs.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+    } catch (e) {
+        console.error("Failed to load logs from localStorage", e);
+    }
   }, []);
 
   // Load data from localStorage on mount
   useEffect(() => {
     setIsClient(true);
     const todayKey = getTodayKey();
-    const storedLog = localStorage.getItem(`worklog-${todayKey}`);
-    
     let todaysRequiredHours = getDefaultRequiredHours(new Date());
 
-    if (storedLog) {
-      const data: DailyLog = JSON.parse(storedLog);
-      setWorkedSeconds(data.workedSeconds || 0);
-      setPauseSeconds(data.pauseSeconds || 0);
-      if (data.startTime) {
-        setDayStartTime(new Date(data.startTime));
-      }
-      // If requiredHours is stored for today, use it. Otherwise, use the default.
-      if (typeof data.requiredHours === 'number') {
-        todaysRequiredHours = data.requiredHours;
-      }
+    try {
+        const storedLog = localStorage.getItem(`worklog-${todayKey}`);
+        
+        if (storedLog) {
+          const data: DailyLog = JSON.parse(storedLog);
+          setWorkedSeconds(data.workedSeconds || 0);
+          setPauseSeconds(data.pauseSeconds || 0);
+          if (data.startTime) {
+            setDayStartTime(new Date(data.startTime));
+          }
+          if (typeof data.requiredHours === 'number') {
+            todaysRequiredHours = data.requiredHours;
+          }
+        }
+    } catch (e) {
+        console.error("Failed to parse today's log from localStorage", e);
     }
     setRequiredHours(todaysRequiredHours);
 
     loadAllLogs();
   }, [loadAllLogs]);
 
-  // Save data to localStorage whenever it changes
+  // Save data to localStorage whenever it changes while stopped
   useEffect(() => {
     if (!isClient || status !== 'stopped') return;
 
@@ -163,12 +170,17 @@ export default function WorkHoursTracker() {
         startTime: dayStartTime?.toISOString(),
         requiredHours,
     };
-    localStorage.setItem(`worklog-${todayKey}`, JSON.stringify(log));
+    
+    try {
+        localStorage.setItem(`worklog-${todayKey}`, JSON.stringify(log));
 
-    setHistory(prevHistory => {
-        const otherDays = prevHistory.filter(h => h.date !== todayKey);
-        return [log, ...otherDays].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    });
+        setHistory(prevHistory => {
+            const otherDays = prevHistory.filter(h => h.date !== todayKey);
+            return [log, ...otherDays].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        });
+    } catch(e) {
+        console.error("Failed to save log to localStorage", e);
+    }
     
   }, [workedSeconds, pauseSeconds, dayStartTime, requiredHours, isClient, status]);
 
@@ -230,6 +242,7 @@ export default function WorkHoursTracker() {
     setSessionStartTime(null);
     setPauseTime(null);
     setLogSaved(true);
+    setLiveSeconds(0);
   };
 
   const handleOpenEditModal = (field: 'worked' | 'pause' | 'required' | 'start') => {
@@ -299,17 +312,51 @@ export default function WorkHoursTracker() {
   };
   
   const requiredSecondsToday = requiredHours * 3600;
-
-  const currentWorkedSeconds = workedSeconds + liveSeconds;
+  
+  const currentWorkedSeconds = workedSeconds + (status === 'running' ? liveSeconds : 0);
 
   const balanceSecondsToday = currentWorkedSeconds - requiredSecondsToday;
   
   const estimatedLeaveTime = useMemo(() => {
     if (!dayStartTime) return null;
-    const currentPauseSeconds = status === 'paused' && pauseTime ? pauseSeconds + differenceInSeconds(new Date(), pauseTime) : pauseSeconds;
-    const totalSecondsNeeded = requiredSecondsToday + currentPauseSeconds;
+    let currentTotalPause = pauseSeconds;
+    if(status === 'paused' && pauseTime) {
+      currentTotalPause += differenceInSeconds(new Date(), pauseTime);
+    }
+    const totalSecondsNeeded = requiredSecondsToday + currentTotalPause;
     return add(dayStartTime, { seconds: totalSecondsNeeded });
   }, [dayStartTime, pauseSeconds, requiredSecondsToday, status, pauseTime]);
+
+  const { monthBalance, weekBalance, thisMonthTotal } = useMemo(() => {
+    const now = new Date();
+    const startOfMonthDate = startOfMonth(now);
+    const startOfWeekDate = startOfWeek(now, { weekStartsOn: 1 }); // Monday
+    let monthBalance = 0;
+    let weekBalance = 0;
+    let thisMonthTotal = 0;
+
+    history.forEach(log => {
+      const logDate = new Date(log.date);
+      const isThisMonth = logDate >= startOfMonthDate && logDate <= now;
+
+      if(isThisMonth) {
+        const required = (log.requiredHours !== undefined ? log.requiredHours : getDefaultRequiredHours(logDate)) * 3600;
+        thisMonthTotal += log.workedSeconds;
+        
+        if (log.date !== getTodayKey()) { // Exclude today from past balance
+           monthBalance += (log.workedSeconds - required);
+        }
+
+        if(logDate >= startOfWeekDate && logDate <= now) {
+            weekBalance += (log.workedSeconds - required);
+        }
+      }
+    });
+
+    return { monthBalance, weekBalance, thisMonthTotal };
+  }, [history]);
+  
+  const monthTotalBalance = monthBalance + balanceSecondsToday;
 
   if (!isClient) {
     return <div className="min-h-screen bg-gray-900" />;
@@ -499,7 +546,9 @@ export default function WorkHoursTracker() {
                     <ArrowUp className="w-4 h-4 text-gray-400"/>
                     <span>From Past Days (This Month)</span>
                 </div>
-                <span className="font-bold text-gray-400">+0h 0m</span>
+                <span className={cn('font-bold', monthBalance < 0 ? 'text-red-400' : 'text-green-400')}>
+                  {formatSeconds(monthBalance, true)}
+                </span>
               </div>
             </div>
             
@@ -508,7 +557,9 @@ export default function WorkHoursTracker() {
             <div>
                 <div className="flex justify-between items-baseline mb-1">
                     <span className="text-gray-300">Total for Month (To Date)</span>
-                    <span className="text-2xl font-bold text-gray-400">+0h 0m</span>
+                    <span className={cn('text-2xl font-bold', monthTotalBalance < 0 ? 'text-red-400' : 'text-green-400')}>
+                      {formatSeconds(monthTotalBalance, true)}
+                    </span>
                 </div>
                 <p className="text-xs text-gray-500">
                     (Includes today's balance, past days' balance for this month, and any manual adjustments for this month)
@@ -523,14 +574,16 @@ export default function WorkHoursTracker() {
                         <Calendar className="w-4 h-4" />
                         <span>This Week</span>
                     </div>
-                    <span className="font-semibold text-gray-400">0h 0m</span>
+                     <span className={cn('font-semibold', weekBalance < 0 ? 'text-red-400' : 'text-green-400')}>
+                        {formatSeconds(weekBalance, true)}
+                    </span>
                 </div>
                 <div className="flex justify-between items-baseline">
                     <div className="flex items-center gap-2 text-gray-300">
                         <Calendar className="w-4 h-4" />
                         <span>This Month</span>
                     </div>
-                    <span className="font-semibold text-gray-400">0h 0m</span>
+                    <span className="font-semibold text-gray-400">{formatSeconds(thisMonthTotal)}</span>
                 </div>
             </div>
           </CardContent>
@@ -633,10 +686,3 @@ export default function WorkHoursTracker() {
     </div>
   );
 }
-
-
-
-
-    
-
-    
