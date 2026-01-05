@@ -430,13 +430,12 @@ export default function WorkHoursTracker() {
     loadAllLogs(); // Reload history to reflect change
   };
   
-  const handleDeleteLog = (logDate: string) => {
+const handleDeleteLog = (logDate: string) => {
     const formattedDate = format(parse(logDate, 'yyyy-MM-dd', new Date()), 'MMM d, yyyy');
     if (window.confirm(`Are you sure you want to delete the log for ${formattedDate}? This action cannot be undone.`)) {
         try {
             localStorage.removeItem(`worklog-${logDate}`);
             
-            // If deleting today's log, reset the current state
             if (logDate === getTodayKey()) {
                 setWorkedSeconds(0);
                 setPauseSeconds(0);
@@ -446,8 +445,8 @@ export default function WorkHoursTracker() {
                 localStorage.removeItem(`goalMet-${getTodayKey()}`);
             }
             
-            // Optimistically update the UI
-            setHistory(prevHistory => prevHistory.filter(log => log.date !== logDate));
+            // Reload logs from storage to ensure UI is in sync
+            loadAllLogs();
 
         } catch(e) {
             console.error("Failed to delete log", e);
