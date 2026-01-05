@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
-import { ArrowUp, BarChart3, Calendar, CheckCircle, Clock, Coffee, Hourglass, Pause, Play, Square, Target, History, Pencil, PlayCircle } from 'lucide-react';
+import { ArrowUp, BarChart3, Calendar, CheckCircle, Clock, Coffee, Hourglass, Pause, Play, Square, Target, History, Pencil, PlayCircle, AlarmClock } from 'lucide-react';
 import { add, format, differenceInSeconds, startOfMonth, eachDayOfInterval, formatISO, parse, getDay, startOfWeek, endOfWeek, startOfDay, endOfDay } from 'date-fns';
 import {
   Dialog,
@@ -372,7 +372,6 @@ export default function WorkHoursTracker() {
       <div className="max-w-3xl mx-auto">
         <header className="mb-8">
           <h1 className="text-3xl font-bold text-center">Work Hours</h1>
-          {currentTime && <p className="text-center text-gray-400 text-lg">{format(currentTime, 'p')}</p>}
         </header>
 
         {logSaved && (
@@ -420,6 +419,13 @@ export default function WorkHoursTracker() {
 
         <Card className="bg-gray-800 border-gray-700">
           <CardContent className="p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <AlarmClock className="w-5 h-5 text-gray-400" />
+                <span className="text-gray-300">Time Now</span>
+              </div>
+              <span className={cn('font-semibold')}>{currentTime ? format(currentTime, 'p') : '--:--'}</span>
+            </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <PlayCircle className="w-5 h-5 text-gray-400" />
