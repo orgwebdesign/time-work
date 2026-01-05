@@ -841,7 +841,7 @@ export default function WorkHoursTracker() {
                       {(pomodoroStatus === 'working' || pomodoroStatus === 'break_time') ? (
                           <Button onClick={handlePauseResumePomodoro} variant="outline"><Pause className="mr-2" />Pause</Button>
                       ) : (
-                          <Button onClick={handlePauseResumePomodoro} disabled={pomodoroStatus === 'stopped'}><Play className="mr-2" />Resume</Button>
+                          <Button onClick={handlePauseResumePomodoro} disabled={pomodoroStatus === 'stopped' || pomodoroStatus === 'working' || pomodoroStatus === 'break_time'}><Play className="mr-2" />Resume</Button>
                       )}
                       
                       {pomodoroStatus === 'stopped' ? (
@@ -851,7 +851,7 @@ export default function WorkHoursTracker() {
                       )}
                   </div>
                    <div className="grid grid-cols-1 gap-2 w-full pt-2">
-                     <Button onClick={handleStartBreak} disabled={pomodoroStatus === 'break_time'} variant="secondary"><CupSoda className="mr-2" />Start Break</Button>
+                     <Button onClick={handleStartBreak} disabled={pomodoroStatus === 'break_time' || pomodoroStatus === 'paused'} variant="secondary"><CupSoda className="mr-2" />Start Break</Button>
                    </div>
               </CardContent>
             </Card>
@@ -1061,4 +1061,3 @@ export default function WorkHoursTracker() {
     </div>
   );
 }
-
