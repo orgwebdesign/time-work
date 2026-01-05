@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/table"
 import { ProgressRing } from '@/components/progress-ring';
 import Link from 'next/link';
+import { DailyDua } from '@/components/daily-dua';
 
 type TimerStatus = 'stopped' | 'running' | 'on_break';
 
@@ -535,7 +536,7 @@ export default function WorkHoursTracker() {
                       {(status === 'running') && (
                           <Button size="lg" variant="outline" className="w-full sm:w-auto" onClick={handlePause}>
                               <Pause className="mr-2"/>
-                              Pause
+                              Resume
                           </Button>
                       )}
                       {(status === 'on_break') && (
@@ -568,7 +569,7 @@ export default function WorkHoursTracker() {
 
             <Card className="glass-card lg:col-span-2 row-span-2 flex flex-col items-center justify-center p-6">
               <div className="relative">
-                <ProgressRing value={dailyProgress} />
+                <ProgressRing value={dailyProgress} strokeWidth={8} />
                 <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
                     <div className="flex items-center justify-center gap-1">
                       <span className="text-4xl font-bold tracking-tighter">{formatSeconds(currentWorkedSeconds)}</span>
@@ -700,6 +701,8 @@ export default function WorkHoursTracker() {
                  </Button>
               </CardContent>
             </Card>
+
+            <DailyDua />
 
             <Card className="glass-card">
               <CardHeader>
@@ -861,8 +864,7 @@ export default function WorkHoursTracker() {
                 </div>
                 <DialogFooter>
                     <DialogClose asChild>
-                        <Button type="button" variant="secondary" onClick={() => setIsHistoryEditModalOpen(false)}>Cancel</Button>
-                    </DialogClose>
+                        <Button type="button" variant="secondary" onClick={() => setIsHistoryEditModalOpen(false)}>Cancel</Button></DialogClose>
                     <Button type="button" onClick={handleSaveHistoryEdit}>Save Changes</Button>
                 </DialogFooter>
             </DialogContent>
