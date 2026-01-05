@@ -8,8 +8,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
-import { ArrowUp, BarChart3, Calendar, CheckCircle, Clock, Coffee, Hourglass, Pause, Play, Square, Target, History, Pencil, PlayCircle, AlarmClock } from 'lucide-react';
-import { add, format, differenceInSeconds, startOfMonth, eachDayOfInterval, formatISO, parse, getDay, startOfWeek, endOfWeek, startOfDay, endOfDay } from 'date-fns';
+import { ArrowUp, BarChart3, Calendar as CalendarIconLucid, CheckCircle, Clock, Coffee, Hourglass, Pause, Play, Square, Target, History, Pencil, PlayCircle, AlarmClock } from 'lucide-react';
+import { add, format, differenceInSeconds, startOfMonth, eachDayOfInterval, formatISO, parse, getDay, startOfWeek, endOfWeek, startOfDay, endOfDay, isSameDay } from 'date-fns';
+import { fr } from 'date-fns/locale';
+import { Calendar } from '@/components/ui/calendar';
 import {
   Dialog,
   DialogContent,
@@ -116,6 +118,10 @@ export default function WorkHoursTracker() {
   const [editHistoryWorked, setEditHistoryWorked] = useState('');
   const [editHistoryPause, setEditHistoryPause] = useState('');
   const [editHistoryStart, setEditHistoryStart] = useState('');
+  
+  // Holiday state
+  const [holidays, setHolidays] = useState<Date[]>([]);
+  const [currentMonth, setCurrentMonth] = useState(new Date());
 
 
   const loadAllLogs = useCallback(() => {
@@ -138,6 +144,11 @@ export default function WorkHoursTracker() {
     let todaysRequiredHours = getDefaultRequiredHours(new Date());
 
     try {
+        const storedHolidays = localStorage.getItem('work-holidays');
+        if (storedHolidays) {
+            setHolidays(JSON.parse(storedHolidays).map((d: string) => new Date(d)));
+        }
+
         const storedLog = localStorage.getItem(`worklog-${todayKey}`);
         
         if (storedLog) {
@@ -158,6 +169,19 @@ export default function WorkHoursTracker() {
 
     loadAllLogs();
   }, [loadAllLogs]);
+  
+  useEffect(() => {
+    if (!isClient) return;
+    try {
+        const isHoliday = holidays.some(h => isSameDay(h, new Date()));
+        if (isHoliday) {
+            setRequiredHours(0);
+        }
+    } catch (e) {
+      console.error("Failed to check for holiday", e);
+    }
+  }, [holidays, isClient]);
+
 
   // Save data to localStorage whenever it changes while stopped
   useEffect(() => {
@@ -316,6 +340,46 @@ export default function WorkHoursTracker() {
     setEditingLog(null);
   };
   
+  const handleDayClick = (day: Date) => {
+    const dayKey = format(day, 'yyyy-MM-dd');
+    let newHolidays: Date[];
+    
+    const isAlreadyHoliday = holidays.some(h => isSameDay(h, day));
+    
+    if (isAlreadyHoliday) {
+      newHolidays = holidays.filter(h => !isSameDay(h, day));
+    } else {
+      newHolidays = [...holidays, day];
+    }
+    
+    setHolidays(newHolidays);
+    localStorage.setItem('work-holidays', JSON.stringify(newHolidays.map(d => d.toISOString())));
+
+    // Update or create log for the selected day
+    const logKey = `worklog-${dayKey}`;
+    const storedLog = localStorage.getItem(logKey);
+    const existingLog: DailyLog = storedLog ? JSON.parse(storedLog) : {
+      date: dayKey,
+      workedSeconds: 0,
+      pauseSeconds: 0,
+    };
+
+    const updatedLog = {
+      ...existingLog,
+      requiredHours: isAlreadyHoliday ? getDefaultRequiredHours(day) : 0
+    };
+
+    localStorage.setItem(logKey, JSON.stringify(updatedLog));
+    
+    // If we're modifying today's log, update the state
+    if (dayKey === getTodayKey()) {
+      setRequiredHours(updatedLog.requiredHours);
+    }
+    
+    loadAllLogs(); // Reload history to reflect change
+  };
+
+
   const requiredSecondsToday = requiredHours * 3600;
   
   const currentWorkedSeconds = workedSeconds + (status === 'running' ? liveSeconds : 0);
@@ -330,7 +394,7 @@ export default function WorkHoursTracker() {
     }
     const totalSecondsNeeded = requiredSecondsToday + currentTotalPause;
     return add(dayStartTime, { seconds: totalSecondsNeeded });
-  }, [dayStartTime, pauseSeconds, requiredSecondsToday, status, pauseTime, currentWorkedSeconds]);
+  }, [dayStartTime, pauseSeconds, requiredSecondsToday, status, pauseTime]);
 
   const { monthBalance, weekBalance, thisMonthTotal } = useMemo(() => {
     const now = new Date();
@@ -345,21 +409,31 @@ export default function WorkHoursTracker() {
       const isThisMonth = logDate >= startOfMonthDate && logDate <= now;
 
       if(isThisMonth) {
-        const required = (log.requiredHours !== undefined ? log.requiredHours : getDefaultRequiredHours(logDate)) * 3600;
+        const isHoliday = holidays.some(h => isSameDay(h, logDate));
+        let required;
+        if (isHoliday) {
+            required = 0;
+        } else {
+            required = (log.requiredHours !== undefined ? log.requiredHours : getDefaultRequiredHours(logDate)) * 3600;
+        }
+
         thisMonthTotal += log.workedSeconds;
         
-        if (log.date !== getTodayKey()) { // Exclude today from past balance
+        if (!isSameDay(logDate, now)) { // Exclude today from past balance
            monthBalance += (log.workedSeconds - required);
         }
 
-        if(logDate >= startOfWeekDate && logDate <= now) {
+        if(logDate >= startOfWeekDate && logDate <= now && !isSameDay(logDate, now)) {
             weekBalance += (log.workedSeconds - required);
         }
       }
     });
+    
+    // Add today's balance to week balance
+    weekBalance += balanceSecondsToday;
 
     return { monthBalance, weekBalance, thisMonthTotal };
-  }, [history]);
+  }, [history, holidays, balanceSecondsToday]);
   
   const monthTotalBalance = monthBalance + balanceSecondsToday;
 
@@ -485,7 +559,7 @@ export default function WorkHoursTracker() {
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <Calendar className="w-5 h-5 text-muted-foreground" />
+                <CalendarIconLucid className="w-5 h-5 text-muted-foreground" />
                 <span className="text-foreground/80">Est. Leave Time</span>
               </div>
               <span className={cn('font-semibold', 'text-primary')}>
@@ -493,6 +567,32 @@ export default function WorkHoursTracker() {
               </span>
             </div>
           </CardContent>
+        </Card>
+
+        <Card className="glass-card mt-8">
+            <CardHeader>
+                <div className="flex items-center gap-3">
+                    <CalendarIconLucid className="w-6 h-6 text-muted-foreground" />
+                    <CardTitle>Holidays &amp; Days Off</CardTitle>
+                </div>
+            </CardHeader>
+            <CardContent className="flex justify-center">
+                <Calendar
+                    mode="multiple"
+                    selected={holidays}
+                    onSelect={(days) => {
+                        if (days) {
+                            // Logic to handle adding/removing multiple days if needed
+                            // For simplicity, we assume single day clicks are the primary interaction
+                        }
+                    }}
+                    onDayClick={handleDayClick}
+                    locale={fr}
+                    month={currentMonth}
+                    onMonthChange={setCurrentMonth}
+                    className="p-0"
+                />
+            </CardContent>
         </Card>
 
         <Card className="glass-card mt-8">
@@ -516,11 +616,21 @@ export default function WorkHoursTracker() {
                 </TableHeader>
                 <TableBody>
                     {history.length > 0 ? history.slice(0, 7).map(log => {
-                        const dailyRequired = log.requiredHours !== undefined ? log.requiredHours * 3600 : getDefaultRequiredHours(new Date(log.date)) * 3600;
+                        const isHoliday = holidays.some(h => isSameDay(new Date(log.date), h));
+                        let dailyRequired;
+                        if (isHoliday) {
+                            dailyRequired = 0;
+                        } else {
+                            dailyRequired = log.requiredHours !== undefined ? log.requiredHours * 3600 : getDefaultRequiredHours(new Date(log.date)) * 3600;
+                        }
+
                         const balance = log.workedSeconds - dailyRequired;
                         return (
-                            <TableRow key={log.date} className="border-border/50 hover:bg-muted/30">
-                                <TableCell>{format(parse(log.date, 'yyyy-MM-dd', new Date()), 'EEE, MMM d')}</TableCell>
+                            <TableRow key={log.date} className={cn("border-border/50 hover:bg-muted/30", isHoliday && "bg-blue-500/10")}>
+                                <TableCell>
+                                    <span>{format(parse(log.date, 'yyyy-MM-dd', new Date()), 'EEE, MMM d')}</span>
+                                    {isHoliday && <span className="ml-2 text-xs text-blue-600 dark:text-blue-400">(Off)</span>}
+                                </TableCell>
                                 <TableCell className="text-center">{log.startTime ? format(new Date(log.startTime), 'p') : '--:--'}</TableCell>
                                 <TableCell className="text-right">{formatSeconds(log.workedSeconds)}</TableCell>
                                 <TableCell className="text-right">{formatSeconds(log.pauseSeconds)}</TableCell>
@@ -583,7 +693,7 @@ export default function WorkHoursTracker() {
             <div className="space-y-4">
                 <div className="flex justify-between items-baseline">
                     <div className="flex items-center gap-2 text-foreground/80">
-                        <Calendar className="w-4 h-4" />
+                        <CalendarIconLucid className="w-4 h-4" />
                         <span>This Week</span>
                     </div>
                      <span className={cn('font-semibold', weekBalance < 0 ? 'text-destructive' : 'text-green-600 dark:text-green-400')}>
@@ -592,7 +702,7 @@ export default function WorkHoursTracker() {
                 </div>
                 <div className="flex justify-between items-baseline">
                     <div className="flex items-center gap-2 text-foreground/80">
-                        <Calendar className="w-4 h-4" />
+                        <CalendarIconLucid className="w-4 h-4" />
                         <span>This Month</span>
                     </div>
                     <span className="font-semibold text-muted-foreground">{formatSeconds(thisMonthTotal)}</span>
@@ -698,5 +808,7 @@ export default function WorkHoursTracker() {
     </div>
   );
 }
+
+    
 
     
