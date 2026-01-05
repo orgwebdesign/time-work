@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { User, BarChart, Calendar as CalendarIconLucid, CheckCircle, Clock, Coffee, Hourglass, Pause, Play, Square, Target, History, Pencil, PlayCircle, AlarmClock, Award, MoreHorizontal, History as HistoryIcon, Star, CalendarCheck, Utensils, Trash2 } from 'lucide-react';
-import { add, format, differenceInSeconds, startOfMonth, eachDayOfInterval, formatISO, parse, getDay, startOfWeek, endOfWeek, startOfDay, endOfDay, isSameDay, isSameMonth, lastDayOfMonth } from 'date-fns';
+import { add, format, differenceInSeconds, startOfMonth, eachDayOfInterval, formatISO, parse, getDay, startOfWeek, endOfWeek, startOfDay, endOfDay, isSameDay, isSameMonth, lastDayOfMonth, isWeekend } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Calendar } from '@/components/ui/calendar';
 import {
@@ -184,11 +184,25 @@ export default function WorkHoursTracker() {
     if (!isClient) return;
     try {
         const isHoliday = holidays.some(h => isSameDay(h, new Date()));
-        if (isHoliday) {
+        const isWeekendDay = isWeekend(new Date());
+
+        if (isHoliday || isWeekendDay) {
             setRequiredHours(0);
+        } else if (!isHoliday && !isWeekendDay) {
+            // If it's not a holiday and not a weekend, set default hours if no custom one is set for the day
+            const todayKey = getTodayKey();
+            const storedLog = localStorage.getItem(`worklog-${todayKey}`);
+            if (storedLog) {
+                const data: DailyLog = JSON.parse(storedLog);
+                if (typeof data.requiredHours !== 'number') {
+                     setRequiredHours(getDefaultRequiredHours(new Date()));
+                }
+            } else {
+                 setRequiredHours(getDefaultRequiredHours(new Date()));
+            }
         }
     } catch (e) {
-      console.error("Failed to check for holiday", e);
+      console.error("Failed to check for holiday/weekend", e);
     }
   }, [holidays, isClient]);
 
@@ -375,6 +389,8 @@ export default function WorkHoursTracker() {
   };
   
   const handleDayClick = (day: Date) => {
+    if (isWeekend(day)) return; // Prevent clicking on weekends
+
     const dayKey = format(day, 'yyyy-MM-dd');
     let newHolidays: Date[];
     
@@ -569,7 +585,7 @@ export default function WorkHoursTracker() {
 
             <Card className="glass-card lg:col-span-2 row-span-2 flex flex-col items-center justify-center p-6">
               <div className="relative">
-                <ProgressRing value={dailyProgress} strokeWidth={8} />
+                <ProgressRing value={dailyProgress} strokeWidth={6} />
                 <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
                     <div className="flex items-center justify-center gap-1">
                       <span className="text-4xl font-bold tracking-tighter">{formatSeconds(currentWorkedSeconds)}</span>
@@ -580,7 +596,7 @@ export default function WorkHoursTracker() {
                 <p className="text-sm text-muted-foreground">Worked Today</p>
                 <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground/70 hover:text-foreground disabled:text-muted-foreground/40" onClick={() => handleOpenEditModal('worked')} disabled={status !== 'stopped'}><Pencil className="h-3 w-3" /></Button>
               </div>
-              {holidays.some(h => isSameDay(h, new Date())) && <p className="text-primary font-semibold mt-2 text-sm">🇫🇷 JOUR FÉRIÉ</p>}
+              {(holidays.some(h => isSameDay(h, new Date())) || isWeekend(new Date())) && <p className="text-primary font-semibold mt-2 text-sm">🇫🇷 JOUR FÉRIÉ / WEEK-END</p>}
             </Card>
 
              <Card className="glass-card">
@@ -636,20 +652,23 @@ export default function WorkHoursTracker() {
                   </TableHeader>
                   <TableBody>
                       {currentMonthHistory.length > 0 ? currentMonthHistory.map(log => {
-                          const isHoliday = holidays.some(h => isSameDay(new Date(log.date), h));
+                          const logDate = new Date(log.date);
+                          const isHoliday = holidays.some(h => isSameDay(logDate, h));
+                          const isWeekendDay = isWeekend(logDate);
                           let dailyRequired;
-                          if (isHoliday) {
+                          
+                          if (isHoliday || isWeekendDay) {
                               dailyRequired = 0;
                           } else {
-                              dailyRequired = log.requiredHours !== undefined ? log.requiredHours * 3600 : getDefaultRequiredHours(new Date(log.date)) * 3600;
+                              dailyRequired = log.requiredHours !== undefined ? log.requiredHours * 3600 : getDefaultRequiredHours(logDate) * 3600;
                           }
 
                           const balance = log.workedSeconds - dailyRequired;
                           return (
-                              <TableRow key={log.date} className={cn("border-border/50 hover:bg-muted/30", isHoliday && "bg-primary/10")}>
+                              <TableRow key={log.date} className={cn("border-border/50 hover:bg-muted/30", (isHoliday || isWeekendDay) && "bg-primary/10")}>
                                   <TableCell>
                                       <span>{format(parse(log.date, 'yyyy-MM-dd', new Date()), 'EEE, MMM d')}</span>
-                                      {isHoliday && <span className="ml-2 text-xs text-primary font-semibold">(Off)</span>}
+                                      {(isHoliday || isWeekendDay) && <span className="ml-2 text-xs text-primary font-semibold">(Off)</span>}
                                   </TableCell>
                                   <TableCell className="text-center">{log.startTime ? format(new Date(log.startTime), 'p') : '--:--'}</TableCell>
                                   <TableCell className="text-right">{formatSeconds(log.workedSeconds)}</TableCell>
@@ -733,7 +752,15 @@ export default function WorkHoursTracker() {
                           day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
                           day_today: "bg-accent text-accent-foreground rounded-full",
                           day_outside: "text-muted-foreground opacity-50",
+                          day_disabled: "text-muted-foreground opacity-30",
                         }}
+                        modifiers={{
+                           weekend: isWeekend
+                        }}
+                        modifiersClassNames={{
+                           weekend: "text-muted-foreground font-light opacity-70"
+                        }}
+                        disabled={isWeekend}
                     />
                 </CardContent>
             </Card>
@@ -899,3 +926,6 @@ export default function WorkHoursTracker() {
     </div>
   );
 }
+
+
+    
