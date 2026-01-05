@@ -327,32 +327,35 @@ export default function WorkHoursTracker() {
         )}
         
         <Card className="bg-gray-800 border-gray-700 mb-8">
-          <CardContent className="p-6 flex flex-col sm:flex-row items-center justify-around gap-4">
-             {status === 'stopped' ? (
-                <Button size="lg" className="bg-green-600 hover:bg-green-700 w-full sm:w-auto" onClick={handleStart}>
-                    <Play className="mr-2"/>
-                    Start Day
-                </Button>
-            ) : (
-                <>
-                   {status === 'running' ? (
-                        <Button size="lg" variant="outline" className="w-full sm:w-auto text-yellow-400 border-yellow-400 hover:bg-yellow-900/50 hover:text-yellow-300" onClick={handlePause}>
-                            <Pause className="mr-2"/>
-                            Pause
-                        </Button>
-                    ) : (
-                        <Button size="lg" variant="outline" className="w-full sm:w-auto text-green-400 border-green-400 hover:bg-green-900/50 hover:text-green-300" onClick={handleResume}>
-                            <Play className="mr-2"/>
-                            Resume
-                        </Button>
-                    )}
-                    <Button size="lg" variant="destructive" className="w-full sm:w-auto" onClick={handleStop}>
-                        <Square className="mr-2"/>
-                        End Day
+            <CardContent className="p-6 flex flex-col items-center justify-around gap-4">
+               {status === 'stopped' ? (
+                <div className="text-center">
+                    <Button size="lg" className="bg-green-600 hover:bg-green-700 w-full sm:w-auto" onClick={handleStart}>
+                        <Play className="mr-2"/>
+                        Start Day
                     </Button>
-                </>
-            )}
-          </CardContent>
+                    <p className="text-gray-400 text-sm mt-2">{format(new Date(), 'PPP')}</p>
+                </div>
+              ) : (
+                  <div className="flex flex-col sm:flex-row items-center justify-around gap-4 w-full">
+                     {status === 'running' ? (
+                          <Button size="lg" variant="outline" className="w-full sm:w-auto text-yellow-400 border-yellow-400 hover:bg-yellow-900/50 hover:text-yellow-300" onClick={handlePause}>
+                              <Pause className="mr-2"/>
+                              Pause
+                          </Button>
+                      ) : (
+                          <Button size="lg" variant="outline" className="w-full sm:w-auto text-green-400 border-green-400 hover:bg-green-900/50 hover:text-green-300" onClick={handleResume}>
+                              <Play className="mr-2"/>
+                              Resume
+                          </Button>
+                      )}
+                      <Button size="lg" variant="destructive" className="w-full sm:w-auto" onClick={handleStop}>
+                          <Square className="mr-2"/>
+                          End Day
+                      </Button>
+                  </div>
+              )}
+            </CardContent>
         </Card>
 
 
@@ -633,3 +636,6 @@ export default function WorkHoursTracker() {
 }
 
 
+
+
+    
