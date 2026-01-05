@@ -4,25 +4,25 @@
 
 @layer base {
   :root {
-    --background: 210 40% 98%;
-    --foreground: 224 71% 4%;
-    --card: 0 0% 100%;
-    --card-foreground: 224 71% 4%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 224 71% 4%;
-    --primary: 34.9, 98.6%, 53.1%;
-    --primary-foreground: 35.5, 96.3%, 97.1%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 224 71% 4%;
+    --background: 48 33% 96%;
+    --foreground: 200 15% 25%;
+    --card: 48 33% 99%;
+    --card-foreground: 200 15% 25%;
+    --popover: 48 33% 99%;
+    --popover-foreground: 200 15% 25%;
+    --primary: 195 40% 42%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 190 40% 62%;
+    --secondary-foreground: 200 15% 25%;
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 56.9%;
-    --accent: 210 40% 94%;
-    --accent-foreground: 224 71% 4%;
-    --destructive: 0 84.2% 60.2%;
+    --accent: 190 40% 62%;
+    --accent-foreground: 200 15% 25%;
+    --destructive: 6 77% 65%;
     --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 35.5, 96.3%, 97.1%;
+    --border: 200 15% 88%;
+    --input: 200 15% 92%;
+    --ring: 195 40% 42%;
     --radius: 1.2rem;
 
     --sidebar-background: 210 40% 98%;
@@ -42,19 +42,19 @@
     --card-foreground: 210 40% 98%;
     --popover: 222.2 84% 4.9%;
     --popover-foreground: 210 40% 98%;
-    --primary: 34.9, 98.6%, 53.1%;
-    --primary-foreground: 35.5, 96.3%, 97.1%;
-    --secondary: 224 13% 22%;
+    --primary: 195 40% 42%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 190 40% 62%;
     --secondary-foreground: 210 40% 98%;
     --muted: 224 13% 22%;
     --muted-foreground: 215 20.2% 65.1%;
-    --accent: 24.6 95% 53.1%;
+    --accent: 190 40% 62%;
     --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
+    --destructive: 6 77% 65%;
     --destructive-foreground: 210 40% 98%;
     --border: 224 13% 25%;
     --input: 224 13% 22%;
-    --ring: 35.5, 96.3%, 97.1%;
+    --ring: 195 40% 42%;
     --radius: 1.2rem;
     
     --sidebar-background: 224 13% 11%;
@@ -76,9 +76,10 @@
     @apply bg-background text-foreground;
   }
   .glass-card {
-    @apply bg-card border-transparent shadow-md;
+    @apply bg-card/60 backdrop-blur-xl border-card/50 shadow-lg shadow-black/5;
   }
+
   .dark .glass-card {
-    @apply bg-card border-transparent shadow-lg shadow-black/20;
+    @apply bg-card/60 backdrop-blur-xl border-card/50 shadow-lg shadow-black/20;
   }
 }

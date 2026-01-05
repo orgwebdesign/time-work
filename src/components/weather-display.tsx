@@ -14,7 +14,7 @@ export default function WeatherDisplay({ weather, time }: WeatherDisplayProps) {
   
   if (!time || !weather) {
       return (
-          <Card className="glass-card w-full bg-background/30 backdrop-blur-sm">
+          <Card className="glass-card">
             <CardContent className="p-4">
                 <div className="flex justify-between items-center">
                     <div>
@@ -40,7 +40,7 @@ export default function WeatherDisplay({ weather, time }: WeatherDisplayProps) {
 
 
   return (
-    <Card className="glass-card w-full bg-background/30 backdrop-blur-sm border-white/20">
+    <Card className="glass-card">
       <CardContent className="p-4">
         <div className="flex justify-between items-center">
           <div>

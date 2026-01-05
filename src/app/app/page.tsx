@@ -297,30 +297,6 @@ export default function Home() {
     return Math.round((completedTasks / totalTasks) * 100);
   }, [filteredTasks, activeTasksCount]);
 
-  const getBackgroundClass = (weather: Weather | null): string => {
-    if (!weather) return "bg-background";
-    
-    const { condition, isDay } = weather;
-    let bgClass = '';
-
-    if (isDay) {
-        if (condition === 'Sunny') bgClass = 'bg-sunny-day';
-        else if (condition === 'Partly Cloudy') bgClass = 'bg-partly-cloudy-day';
-        else if (condition === 'Cloudy') bgClass = 'bg-cloudy-day';
-        else if (condition === 'Rainy') bgClass = 'bg-rainy-day';
-    } else {
-        if (condition === 'Clear') bgClass = 'bg-clear-night';
-        else if (condition === 'Partly Cloudy' || condition === 'Cloudy') bgClass = 'bg-partly-cloudy-night';
-        else if (condition === 'Rainy') bgClass = 'bg-rainy-day';
-    }
-    
-    if (!bgClass) {
-        bgClass = isDay ? 'bg-sunny-day' : 'bg-clear-night';
-    }
-
-    return `${bgClass} bg-cover bg-[50%] animate-gradient-pan`;
-  };
-
   if (!isClient || !currentUser) {
     return <div className="flex h-screen w-full items-center justify-center bg-background"><p>Loading TaskFlow...</p></div>;
   }
@@ -328,10 +304,7 @@ export default function Home() {
   return (
     <SidebarProvider>
       <div
-        className={cn(
-          "flex h-screen w-full transition-all duration-1000",
-          getBackgroundClass(weather)
-        )}
+        className="flex h-screen w-full"
         style={isCelebrating ? celebrationStyle : {}}
         onClick={() => {
           if (isCelebrating) setIsCelebrating(false);
@@ -371,7 +344,6 @@ export default function Home() {
           </header>
 
           <section className="mb-6">
-            <h3 className="text-xl font-semibold mb-2 text-foreground/90">Personal</h3>
             <WeatherDisplay weather={weather} time={currentTime} />
           </section>
 

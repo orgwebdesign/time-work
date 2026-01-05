@@ -368,41 +368,41 @@ export default function WorkHoursTracker() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-4 sm:p-6 md:p-8">
+    <div className="min-h-screen bg-background text-foreground p-4 sm:p-6 md:p-8">
       <div className="max-w-3xl mx-auto">
         <header className="mb-8">
           <h1 className="text-3xl font-bold text-center">Work Hours</h1>
         </header>
 
         {logSaved && (
-          <Alert className="bg-gray-800 border-gray-700 mb-8">
-              <CheckCircle className="h-4 w-4 text-green-400" />
-            <AlertTitle className="text-green-400">Log Saved</AlertTitle>
+          <Alert className="bg-green-600/10 border-green-600/20 text-green-700 dark:text-green-300 mb-8">
+              <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+            <AlertTitle className="text-green-800 dark:text-green-300">Log Saved</AlertTitle>
             <AlertDescription>
               Your work session has been successfully recorded for today.
             </AlertDescription>
           </Alert>
         )}
         
-        <Card className="bg-gray-800 border-gray-700 mb-8">
+        <Card className="glass-card mb-8">
             <CardContent className="p-6 flex flex-col items-center justify-around gap-4">
                {status === 'stopped' ? (
                 <div className="text-center">
-                    <Button size="lg" className="bg-green-600 hover:bg-green-700 w-full sm:w-auto" onClick={handleStart}>
+                    <Button size="lg" className="w-full sm:w-auto" onClick={handleStart}>
                         <Play className="mr-2"/>
                         Start Day
                     </Button>
-                    <p className="text-gray-400 text-sm mt-2">{format(new Date(), 'PPP')}</p>
+                    <p className="text-muted-foreground text-sm mt-2">{format(new Date(), 'PPP')}</p>
                 </div>
               ) : (
                   <div className="flex flex-col sm:flex-row items-center justify-around gap-4 w-full">
                      {status === 'running' ? (
-                          <Button size="lg" variant="outline" className="w-full sm:w-auto text-yellow-400 border-yellow-400 hover:bg-yellow-900/50 hover:text-yellow-300" onClick={handlePause}>
+                          <Button size="lg" variant="outline" className="w-full sm:w-auto" onClick={handlePause}>
                               <Pause className="mr-2"/>
                               Pause
                           </Button>
                       ) : (
-                          <Button size="lg" variant="outline" className="w-full sm:w-auto text-green-400 border-green-400 hover:bg-green-900/50 hover:text-green-300" onClick={handleResume}>
+                          <Button size="lg" variant="outline" className="w-full sm:w-auto" onClick={handleResume}>
                               <Play className="mr-2"/>
                               Resume
                           </Button>
@@ -417,76 +417,76 @@ export default function WorkHoursTracker() {
         </Card>
 
 
-        <Card className="bg-gray-800 border-gray-700">
+        <Card className="glass-card">
           <CardContent className="p-6 space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <AlarmClock className="w-5 h-5 text-gray-400" />
-                <span className="text-gray-300">Time Now</span>
+                <AlarmClock className="w-5 h-5 text-muted-foreground" />
+                <span className="text-foreground/80">Time Now</span>
               </div>
               <span className={cn('font-semibold')}>{currentTime ? format(currentTime, 'p') : '--:--'}</span>
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <PlayCircle className="w-5 h-5 text-gray-400" />
-                <span className="text-gray-300">Start Time</span>
+                <PlayCircle className="w-5 h-5 text-muted-foreground" />
+                <span className="text-foreground/80">Start Time</span>
               </div>
               <div className="flex items-center gap-2">
                 <span className={cn('font-semibold')}>{dayStartTime ? format(dayStartTime, 'p') : '--:--'}</span>
-                <Button variant="ghost" size="icon" className="h-6 w-6 text-gray-400 hover:text-white disabled:text-gray-600 disabled:bg-transparent" onClick={() => handleOpenEditModal('start')} disabled={status !== 'stopped'}>
+                <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground disabled:text-muted-foreground/50 disabled:bg-transparent" onClick={() => handleOpenEditModal('start')} disabled={status !== 'stopped'}>
                     <Pencil className="h-4 w-4" />
                 </Button>
               </div>
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <Clock className="w-5 h-5 text-gray-400" />
-                <span className="text-gray-300">Worked Today</span>
+                <Clock className="w-5 h-5 text-muted-foreground" />
+                <span className="text-foreground/80">Worked Today</span>
               </div>
               <div className="flex items-center gap-2">
                 <span id="worked-today" className={cn('font-semibold')}>{formatSeconds(currentWorkedSeconds)}</span>
-                <Button variant="ghost" size="icon" className="h-6 w-6 text-gray-400 hover:text-white disabled:text-gray-600 disabled:bg-transparent" onClick={() => handleOpenEditModal('worked')} disabled={status !== 'stopped'}>
+                <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground disabled:text-muted-foreground/50 disabled:bg-transparent" onClick={() => handleOpenEditModal('worked')} disabled={status !== 'stopped'}>
                     <Pencil className="h-4 w-4" />
                 </Button>
               </div>
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <Coffee className="w-5 h-5 text-gray-400" />
-                <span className="text-gray-300">Pause of Today</span>
+                <Coffee className="w-5 h-5 text-muted-foreground" />
+                <span className="text-foreground/80">Pause of Today</span>
               </div>
               <div className="flex items-center gap-2">
                 <span className={cn('font-semibold')}>{formatSeconds(pauseSeconds)}</span>
-                <Button variant="ghost" size="icon" className="h-6 w-6 text-gray-400 hover:text-white disabled:text-gray-600 disabled:bg-transparent" onClick={() => handleOpenEditModal('pause')} disabled={status !== 'stopped'}>
+                <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground disabled:text-muted-foreground/50 disabled:bg-transparent" onClick={() => handleOpenEditModal('pause')} disabled={status !== 'stopped'}>
                     <Pencil className="h-4 w-4" />
                 </Button>
               </div>
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <Target className="w-5 h-5 text-gray-400" />
-                <span className="text-gray-300">Required Today</span>
+                <Target className="w-5 h-5 text-muted-foreground" />
+                <span className="text-foreground/80">Required Today</span>
               </div>
                <div className="flex items-center gap-2">
                 <span className={cn('font-semibold')}>{formatSeconds(requiredSecondsToday)}</span>
-                 <Button variant="ghost" size="icon" className="h-6 w-6 text-gray-400 hover:text-white disabled:text-gray-600 disabled:bg-transparent" onClick={() => handleOpenEditModal('required')} disabled={status !== 'stopped'}>
+                 <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground disabled:text-muted-foreground/50 disabled:bg-transparent" onClick={() => handleOpenEditModal('required')} disabled={status !== 'stopped'}>
                     <Pencil className="h-4 w-4" />
                 </Button>
               </div>
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <Hourglass className="w-5 h-5 text-gray-400" />
-                <span className="text-gray-300">Balance for Today</span>
+                <Hourglass className="w-5 h-5 text-muted-foreground" />
+                <span className="text-foreground/80">Balance for Today</span>
               </div>
-              <span className={cn('font-semibold', balanceSecondsToday < 0 ? 'text-red-400' : 'text-green-400')}>
+              <span className={cn('font-semibold', balanceSecondsToday < 0 ? 'text-destructive' : 'text-green-600 dark:text-green-400')}>
                 {formatSeconds(balanceSecondsToday, true)}
               </span>
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <Calendar className="w-5 h-5 text-gray-400" />
-                <span className="text-gray-300">Est. Leave Time</span>
+                <Calendar className="w-5 h-5 text-muted-foreground" />
+                <span className="text-foreground/80">Est. Leave Time</span>
               </div>
               <span className={cn('font-semibold', 'text-primary')}>
                 {estimatedLeaveTime ? format(estimatedLeaveTime, 'p') : '--:--'}
@@ -495,23 +495,23 @@ export default function WorkHoursTracker() {
           </CardContent>
         </Card>
 
-        <Card className="bg-gray-800 border-gray-700 mt-8">
+        <Card className="glass-card mt-8">
           <CardHeader>
             <div className="flex items-center gap-3">
-                <History className="w-6 h-6 text-gray-400" />
+                <History className="w-6 h-6 text-muted-foreground" />
                 <CardTitle>Daily History</CardTitle>
             </div>
           </CardHeader>
           <CardContent className="space-y-6">
              <Table>
                 <TableHeader>
-                    <TableRow className="border-gray-700 hover:bg-gray-800">
-                        <TableHead className="text-gray-400">Date</TableHead>
-                        <TableHead className="text-gray-400 text-center">Start</TableHead>
-                        <TableHead className="text-gray-400 text-right">Worked</TableHead>
-                        <TableHead className="text-gray-400 text-right">Pause</TableHead>
-                        <TableHead className="text-gray-400 text-right">Balance</TableHead>
-                        <TableHead className="text-gray-400 text-right">Actions</TableHead>
+                    <TableRow className="border-border/50 hover:bg-transparent">
+                        <TableHead className="text-muted-foreground">Date</TableHead>
+                        <TableHead className="text-muted-foreground text-center">Start</TableHead>
+                        <TableHead className="text-muted-foreground text-right">Worked</TableHead>
+                        <TableHead className="text-muted-foreground text-right">Pause</TableHead>
+                        <TableHead className="text-muted-foreground text-right">Balance</TableHead>
+                        <TableHead className="text-muted-foreground text-right">Actions</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -519,24 +519,24 @@ export default function WorkHoursTracker() {
                         const dailyRequired = log.requiredHours !== undefined ? log.requiredHours * 3600 : getDefaultRequiredHours(new Date(log.date)) * 3600;
                         const balance = log.workedSeconds - dailyRequired;
                         return (
-                            <TableRow key={log.date} className="border-gray-700 hover:bg-gray-700/50">
+                            <TableRow key={log.date} className="border-border/50 hover:bg-muted/30">
                                 <TableCell>{format(parse(log.date, 'yyyy-MM-dd', new Date()), 'EEE, MMM d')}</TableCell>
                                 <TableCell className="text-center">{log.startTime ? format(new Date(log.startTime), 'p') : '--:--'}</TableCell>
                                 <TableCell className="text-right">{formatSeconds(log.workedSeconds)}</TableCell>
                                 <TableCell className="text-right">{formatSeconds(log.pauseSeconds)}</TableCell>
-                                <TableCell className={cn("text-right", balance < 0 ? 'text-red-400' : 'text-green-400')}>
+                                <TableCell className={cn("text-right", balance < 0 ? 'text-destructive' : 'text-green-600 dark:text-green-400')}>
                                     {formatSeconds(balance, true)}
                                 </TableCell>
                                 <TableCell className="text-right">
-                                    <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-400 hover:text-white" onClick={() => handleOpenHistoryEditModal(log)}>
+                                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground" onClick={() => handleOpenHistoryEditModal(log)}>
                                         <Pencil className="h-4 w-4" />
                                     </Button>
                                 </TableCell>
                             </TableRow>
                         )
                     }) : (
-                        <TableRow className="border-gray-700 hover:bg-gray-800">
-                            <TableCell colSpan={6} className="text-center text-gray-500 py-4">No history yet.</TableCell>
+                        <TableRow className="border-border/50 hover:bg-transparent">
+                            <TableCell colSpan={6} className="text-center text-muted-foreground py-4">No history yet.</TableCell>
                         </TableRow>
                     )}
                 </TableBody>
@@ -544,58 +544,58 @@ export default function WorkHoursTracker() {
           </CardContent>
         </Card>
 
-        <Card className="bg-gray-800 border-gray-700 mt-8">
+        <Card className="glass-card mt-8">
           <CardHeader>
             <div className="flex items-center gap-3">
-                <BarChart3 className="w-6 h-6 text-gray-400" />
+                <BarChart3 className="w-6 h-6 text-muted-foreground" />
                 <CardTitle>Cumulative Summaries</CardTitle>
             </div>
           </CardHeader>
           <CardContent className="space-y-6">
             <div>
               <div className="flex justify-between items-baseline">
-                <div className="flex items-center gap-2 text-gray-300">
-                    <ArrowUp className="w-4 h-4 text-gray-400"/>
+                <div className="flex items-center gap-2 text-foreground/80">
+                    <ArrowUp className="w-4 h-4 text-muted-foreground"/>
                     <span>From Past Days (This Month)</span>
                 </div>
-                <span className={cn('font-bold', monthBalance < 0 ? 'text-red-400' : 'text-green-400')}>
+                <span className={cn('font-bold', monthBalance < 0 ? 'text-destructive' : 'text-green-600 dark:text-green-400')}>
                   {formatSeconds(monthBalance, true)}
                 </span>
               </div>
             </div>
             
-            <Separator className="bg-gray-700" />
+            <Separator className="bg-border/50" />
 
             <div>
                 <div className="flex justify-between items-baseline mb-1">
-                    <span className="text-gray-300">Total for Month (To Date)</span>
-                    <span className={cn('text-2xl font-bold', monthTotalBalance < 0 ? 'text-red-400' : 'text-green-400')}>
+                    <span className="text-foreground/80">Total for Month (To Date)</span>
+                    <span className={cn('text-2xl font-bold', monthTotalBalance < 0 ? 'text-destructive' : 'text-green-600 dark:text-green-400')}>
                       {formatSeconds(monthTotalBalance, true)}
                     </span>
                 </div>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-muted-foreground">
                     (Includes today's balance, past days' balance for this month, and any manual adjustments for this month)
                 </p>
             </div>
 
-            <Separator className="bg-gray-700" />
+            <Separator className="bg-border/50" />
 
             <div className="space-y-4">
                 <div className="flex justify-between items-baseline">
-                    <div className="flex items-center gap-2 text-gray-300">
+                    <div className="flex items-center gap-2 text-foreground/80">
                         <Calendar className="w-4 h-4" />
                         <span>This Week</span>
                     </div>
-                     <span className={cn('font-semibold', weekBalance < 0 ? 'text-red-400' : 'text-green-400')}>
+                     <span className={cn('font-semibold', weekBalance < 0 ? 'text-destructive' : 'text-green-600 dark:text-green-400')}>
                         {formatSeconds(weekBalance, true)}
                     </span>
                 </div>
                 <div className="flex justify-between items-baseline">
-                    <div className="flex items-center gap-2 text-gray-300">
+                    <div className="flex items-center gap-2 text-foreground/80">
                         <Calendar className="w-4 h-4" />
                         <span>This Month</span>
                     </div>
-                    <span className="font-semibold text-gray-400">{formatSeconds(thisMonthTotal)}</span>
+                    <span className="font-semibold text-muted-foreground">{formatSeconds(thisMonthTotal)}</span>
                 </div>
             </div>
           </CardContent>
@@ -603,13 +603,13 @@ export default function WorkHoursTracker() {
 
 
         <div className="mt-8 flex justify-center">
-            <Button asChild variant="outline" className="bg-gray-700 border-gray-600 hover:bg-gray-600">
+            <Button asChild variant="outline">
                 <a href="/app">Go to Task Dashboard</a>
             </Button>
         </div>
 
         <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-            <DialogContent className="sm:max-w-[425px] bg-gray-800 border-gray-700 text-white">
+            <DialogContent>
                 <DialogHeader>
                     <DialogTitle>Edit Time</DialogTitle>
                     <DialogDescription>
@@ -625,7 +625,7 @@ export default function WorkHoursTracker() {
                             id="edit-time"
                             value={editTimeValue}
                             onChange={(e) => setEditTimeValue(e.target.value)}
-                            className="col-span-3 bg-gray-700 border-gray-600"
+                            className="col-span-3"
                             placeholder="HH:MM"
                         />
                     </div>
@@ -640,7 +640,7 @@ export default function WorkHoursTracker() {
         </Dialog>
 
         <Dialog open={isHistoryEditModalOpen} onOpenChange={setIsHistoryEditModalOpen}>
-            <DialogContent className="sm:max-w-[425px] bg-gray-800 border-gray-700 text-white">
+            <DialogContent>
                 <DialogHeader>
                     <DialogTitle>Edit Log for {editingLog ? format(parse(editingLog.date, 'yyyy-MM-dd', new Date()), 'MMM d, yyyy') : ''}</DialogTitle>
                     <DialogDescription>
@@ -656,7 +656,7 @@ export default function WorkHoursTracker() {
                             id="edit-history-start"
                             value={editHistoryStart}
                             onChange={(e) => setEditHistoryStart(e.target.value)}
-                            className="col-span-3 bg-gray-700 border-gray-600"
+                            className="col-span-3"
                             placeholder="HH:MM"
                         />
                     </div>
@@ -668,7 +668,7 @@ export default function WorkHoursTracker() {
                             id="edit-history-worked"
                             value={editHistoryWorked}
                             onChange={(e) => setEditHistoryWorked(e.target.value)}
-                            className="col-span-3 bg-gray-700 border-gray-600"
+                            className="col-span-3"
                             placeholder="HH:MM"
                         />
                     </div>
@@ -680,7 +680,7 @@ export default function WorkHoursTracker() {
                             id="edit-history-pause"
                             value={editHistoryPause}
                             onChange={(e) => setEditHistoryPause(e.target.value)}
-                            className="col-span-3 bg-gray-700 border-gray-600"
+                            className="col-span-3"
                             placeholder="HH:MM"
                         />
                     </div>
