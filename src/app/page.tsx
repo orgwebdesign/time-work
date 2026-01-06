@@ -655,6 +655,20 @@ export default function WorkHoursTracker() {
                     </div>
                     <ThemeToggle />
                   </div>
+                  <div className="flex items-center gap-2">
+                    {status === 'stopped' && (
+                        <Button onClick={handleStart} className="bg-green-500/20 hover:bg-green-500/30 text-green-500 border border-green-500/30"><Play className="mr-2" /> Start Day</Button>
+                    )}
+                    {status === 'running' && (
+                        <Button onClick={handlePause} variant={'outline'} className="bg-amber-500/20 hover:bg-amber-500/30 text-amber-500 border-amber-500/30"><Pause className="mr-2" /> Take a Break</Button>
+                    )}
+                    {status === 'on_break' && (
+                        <Button onClick={handleResume} className="bg-blue-500/20 hover:bg-blue-500/30 text-blue-500 border-blue-500/30"><Coffee className="mr-2" /> Resume Work</Button>
+                    )}
+                    {(status === 'running' || status === 'on_break') && (
+                        <Button onClick={handleStop} variant={'destructive'}><Square className="mr-2" /> End Day</Button>
+                    )}
+                  </div>
               </CardContent>
           </Card>
           
