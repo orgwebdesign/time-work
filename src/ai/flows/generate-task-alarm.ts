@@ -13,12 +13,12 @@ import {z} from 'genkit';
 import wav from 'wav';
 
 const GenerateTaskAlarmInputSchema = z.object({
-  taskDescription: z.string().describe('The description of the task.'),
+  taskDescription: z.string().describe('The description of the task or achievement.'),
 });
 export type GenerateTaskAlarmInput = z.infer<typeof GenerateTaskAlarmInputSchema>;
 
 const GenerateTaskAlarmOutputSchema = z.object({
-  message: z.string().describe('A beautiful and motivational message about the task.'),
+  message: z.string().describe('A beautiful and motivational message about the task or achievement.'),
   audioDataUri: z.string().describe("The audio alarm as a data URI. Expected format: 'data:audio/wav;base64,<encoded_data>'."),
 });
 export type GenerateTaskAlarmOutput = z.infer<typeof GenerateTaskAlarmOutputSchema>;
@@ -62,9 +62,19 @@ const generateTaskAlarmFlow = ai.defineFlow(
     outputSchema: GenerateTaskAlarmOutputSchema,
   },
   async ({ taskDescription }) => {
+    
+    const messagePrompt = taskDescription.startsWith('Goal Met:')
+      ? `Generate a short, beautiful, and motivational message for achieving a daily work goal. The goal was: "${taskDescription.replace('Goal Met: ', '')}"`
+      : `Generate a short, beautiful, and motivational message for completing the following task: "${taskDescription}"`;
+      
+    const audioPrompt = taskDescription.startsWith('Goal Met:')
+       ? `A pleasant, short, rewarding sound for completing a daily goal.`
+       : `Time is up for your task: ${taskDescription}. You can do this!`;
+
+
     const [messageResponse, audioResponse] = await Promise.all([
       ai.generate({
-        prompt: `Generate a short, beautiful, and motivational message for completing the following task: "${taskDescription}"`,
+        prompt: messagePrompt,
         model: 'googleai/gemini-2.0-flash',
       }),
       ai.generate({
@@ -77,7 +87,7 @@ const generateTaskAlarmFlow = ai.defineFlow(
             },
           },
         },
-        prompt: `Time is up for your task: ${taskDescription}. You can do this!`,
+        prompt: audioPrompt,
       }),
     ]);
     

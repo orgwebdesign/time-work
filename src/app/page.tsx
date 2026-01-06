@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -34,6 +34,8 @@ import { ProgressRing } from '@/components/progress-ring';
 import Link from 'next/link';
 import { DailyDua } from '@/components/daily-dua';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { getTaskAlarm } from '@/lib/actions';
+
 
 type TimerStatus = 'stopped' | 'running' | 'on_break';
 type PomodoroStatus = 'stopped' | 'working' | 'break_time' | 'paused';
@@ -116,6 +118,12 @@ export default function WorkHoursTracker() {
   // Goal Met Dialog State
   const [isGoalMetDialogOpen, setIsGoalMetDialogOpen] = useState(false);
   const [goalMetToday, setGoalMetToday] = useState(false);
+  const [goalMetMessage, setGoalMetMessage] = useState("Good job, skhoun lktaf! 💪");
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Celebration state
+  const [isCelebrating, setIsCelebrating] = useState(false);
+  const [celebrationStyle, setCelebrationStyle] = useState<React.CSSProperties>({});
 
   // History state
   const [history, setHistory] = useState<DailyLog[]>([]);
@@ -359,13 +367,54 @@ export default function WorkHoursTracker() {
 
   // Goal Met Check
   useEffect(() => {
+    const checkGoal = async () => {
       if (currentWorkedSeconds >= requiredSecondsToday && !goalMetToday && requiredSecondsToday > 0) {
+        setIsCelebrating(true); // Start animation
         setIsGoalMetDialogOpen(true);
         setGoalMetToday(true);
         const todayKey = getTodayKey();
         localStorage.setItem(`goalMet-${todayKey}`, 'true');
+
+        try {
+            const alarmData = await getTaskAlarm(`Goal Met: ${formatSeconds(requiredSecondsToday)}`);
+            if(alarmData) {
+                setGoalMetMessage(alarmData.message);
+                if (audioRef.current) {
+                    audioRef.current.src = alarmData.audioDataUri;
+                    audioRef.current.play().catch(e => console.error("Audio playback failed:", e));
+                } else {
+                    audioRef.current = new Audio(alarmData.audioDataUri);
+                    audioRef.current.play().catch(e => console.error("Audio playback failed:", e));
+                }
+            }
+        } catch (e) {
+            console.error("Failed to get goal met alarm", e);
+        }
       }
+    }
+    checkGoal();
   }, [currentWorkedSeconds, requiredSecondsToday, goalMetToday]);
+
+  // Celebration animation effect
+  useEffect(() => {
+    let intervalId: NodeJS.Timeout | undefined;
+
+    if (isCelebrating) {
+      intervalId = setInterval(() => {
+        const hue = Math.floor(Math.random() * 360);
+        setCelebrationStyle({
+          backgroundColor: `hsl(${hue}, 80%, 60%)`,
+          transition: 'background-color 1s ease-in-out',
+        });
+      }, 1000);
+    } else {
+      setCelebrationStyle({});
+    }
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [isCelebrating]);
 
 
   const handleStart = () => {
@@ -635,7 +684,13 @@ export default function WorkHoursTracker() {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground p-4 sm:p-6 md:p-8 font-body">
+    <div
+      className="min-h-screen bg-background text-foreground p-4 sm:p-6 md:p-8 font-body transition-colors duration-1000"
+      style={celebrationStyle}
+      onClick={() => {
+        if (isCelebrating) setIsCelebrating(false);
+      }}
+    >
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
         
         {/* Left Column */}
@@ -1060,7 +1115,7 @@ export default function WorkHoursTracker() {
                         Congratulations!
                     </DialogTitle>
                     <DialogDescription className="pt-4 text-center text-lg text-foreground/90">
-                        Good job, skhoun lktaf! 💪
+                        {goalMetMessage}
                     </DialogDescription>
                 </DialogHeader>
                 <div className="py-4 text-center space-y-4">
