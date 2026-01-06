@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -9,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { User, BarChart, Calendar as CalendarIconLucid, CheckCircle, Clock, Coffee, Hourglass, Pause, Play, Square, Target, History, Pencil, PlayCircle, AlarmClock, Award, MoreHorizontal, History as HistoryIcon, Star, CalendarCheck, Utensils, Trash2, BrainCircuit, CupSoda, TimerReset } from 'lucide-react';
-import { add, format, differenceInSeconds, startOfMonth, eachDayOfInterval, formatISO, parse, getDay, startOfWeek, endOfWeek, startOfDay, endOfDay, isSameDay, isSameMonth, lastDayOfMonth, isWeekend } from 'date-fns';
+import { add, format, differenceInSeconds, startOfMonth, eachDayOfInterval, formatISO, parse, getDay, startOfWeek, endOfWeek, startOfDay, endOfDay, isSameDay, isSameMonth, lastDayOfMonth, isWeekend, isAfter } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Calendar } from '@/components/ui/calendar';
 import {
@@ -142,6 +141,9 @@ export default function WorkHoursTracker() {
   const [pomodoroSecondsLeft, setPomodoroSecondsLeft] = useState(25 * 60);
   const [pomodoroIntervalId, setPomodoroIntervalId] = useState<NodeJS.Timeout | null>(null);
   const [prePauseStatus, setPrePauseStatus] = useState<PomodoroStatus>('working');
+
+  // Mood Widget State
+  const [showRecoveryAlert, setShowRecoveryAlert] = useState(false);
 
 
   useEffect(() => {
@@ -570,7 +572,7 @@ export default function WorkHoursTracker() {
 
     history.forEach(log => {
       const logDate = new Date(log.date);
-      const isThisMonth = logDate >= startOfMonthDate && logDate <= now;
+      const isThisMonth = isSameMonth(logDate, now);
 
       if(isThisMonth) {
         const isHoliday = holidays.some(h => isSameDay(h, logDate));
@@ -605,6 +607,20 @@ export default function WorkHoursTracker() {
   }, [history, holidays, balanceSecondsToday, currentWorkedSeconds]);
   
   const monthTotalBalance = monthBalance + balanceSecondsToday;
+
+  // Recovery Mode Alert Logic
+  useEffect(() => {
+    const today = new Date();
+    const dayOfMonth = today.getDate();
+    const isRecoveryTime = dayOfMonth >= 20;
+
+    if (isRecoveryTime && monthTotalBalance < 0) {
+      setShowRecoveryAlert(true);
+    } else {
+      setShowRecoveryAlert(false);
+    }
+  }, [monthTotalBalance, currentTime]);
+
 
   const currentMonthHistory = useMemo(() => {
       return history.filter(log => isSameMonth(new Date(log.date), currentMonth));
@@ -676,7 +692,7 @@ export default function WorkHoursTracker() {
                  <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground disabled:text-muted-foreground/40 disabled:hover:text-muted-foreground/40" onClick={() => handleOpenEditModal('start')} disabled={status !== 'stopped'}><Pencil className="h-4 w-4" /></Button>
               </CardHeader>
               <CardContent>
-                <p className="text-2xl font-bold sm:text-3xl">{dayStartTime ? format(dayStartTime, 'p') : '--:--'}</p>
+                <p className="text-2xl sm:text-3xl font-bold">{dayStartTime ? format(dayStartTime, 'p') : '--:--'}</p>
               </CardContent>
             </Card>
 
@@ -685,7 +701,7 @@ export default function WorkHoursTracker() {
                 <ProgressRing value={dailyProgress} strokeWidth={4} className="h-32 w-32 sm:h-48 sm:w-48" />
                 <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
                     <div className="flex items-center justify-center gap-1">
-                      <span className="text-2xl font-bold tracking-tighter sm:text-4xl">{formatSeconds(currentWorkedSeconds)}</span>
+                      <span className="text-2xl sm:text-4xl font-bold tracking-tighter">{formatSeconds(currentWorkedSeconds)}</span>
                     </div>
                 </div>
               </div>
@@ -701,7 +717,7 @@ export default function WorkHoursTracker() {
                     <CardTitle className="text-sm font-medium uppercase text-muted-foreground">Est. Leave Time</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <p className="text-2xl font-bold text-primary sm:text-3xl">{estimatedLeaveTime ? format(estimatedLeaveTime, 'p') : '--:--'}</p>
+                    <p className="text-2xl sm:text-3xl font-bold text-primary">{estimatedLeaveTime ? format(estimatedLeaveTime, 'p') : '--:--'}</p>
                 </CardContent>
             </Card>
 
@@ -711,7 +727,7 @@ export default function WorkHoursTracker() {
                 <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground disabled:text-muted-foreground/40 disabled:hover:text-muted-foreground/40" onClick={() => handleOpenEditModal('pause')} disabled={status !== 'stopped'}><Pencil className="h-4 w-4" /></Button>
               </CardHeader>
               <CardContent>
-                <p className="text-2xl font-bold sm:text-3xl">{formatSeconds(pauseSeconds)}</p>
+                <p className="text-2xl sm:text-3xl font-bold">{formatSeconds(pauseSeconds)}</p>
               </CardContent>
             </Card>
             
@@ -721,7 +737,7 @@ export default function WorkHoursTracker() {
                     <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground disabled:text-muted-foreground/40 disabled:hover:text-muted-foreground/40" onClick={() => handleOpenEditModal('required')} disabled={status !== 'stopped'}><Pencil className="h-4 w-4" /></Button>
                 </CardHeader>
                 <CardContent>
-                    <p className="text-2xl font-bold sm:text-3xl">{formatSeconds(requiredSecondsToday)}</p>
+                    <p className="text-2xl sm:text-3xl font-bold">{formatSeconds(requiredSecondsToday)}</p>
                 </CardContent>
             </Card>
           </div>
@@ -799,24 +815,40 @@ export default function WorkHoursTracker() {
 
         {/* Right Column */}
         <div className="space-y-8">
-            <Card className="glass-card">
+            <Card className={cn(
+                "glass-card transition-all",
+                monthTotalBalance >= 0 ? "shadow-green-500/20" : "shadow-destructive/20"
+            )}>
               <CardHeader>
                 <CardTitle className="text-sm font-medium uppercase text-muted-foreground flex items-center gap-2">
-                  <PlayCircle />
-                  Check-in / Manual Entry
+                  Monthly Mood
                 </CardTitle>
               </CardHeader>
-              <CardContent className="grid grid-cols-1 gap-2">
-                 <Button onClick={handlePause} disabled={status !== 'running'} size="lg">
-                    <Pause className="mr-2" /> Take a Break
-                 </Button>
-                 <Button onClick={handleStop} disabled={status === 'stopped'} variant="destructive" size="lg">
-                    <Square className="mr-2" /> End of Day
-                 </Button>
-                 <Separator className="my-2" />
-                 <Button onClick={handleOpenTodayEditModal} disabled={status !== 'stopped'} variant="outline" size="lg">
-                    <Pencil className="mr-2" /> Time Editor
-                 </Button>
+              <CardContent className="text-center">
+                {monthTotalBalance >= 0 ? (
+                  <div>
+                    <span className="text-5xl">🌟</span>
+                    <p className="mt-2 text-lg font-semibold text-green-500">
+                      Great job! You have {formatSeconds(monthTotalBalance, true)} extra this month.
+                    </p>
+                  </div>
+                ) : (
+                  <div>
+                    <span className="text-5xl">😟</span>
+                    <p className="mt-2 text-lg font-semibold text-destructive">
+                      You're behind by {formatSeconds(monthTotalBalance, true)}. Let's catch up!
+                    </p>
+                  </div>
+                )}
+                {showRecoveryAlert && (
+                  <Alert variant="destructive" className="mt-4 text-left animate-pulse">
+                    <AlarmClock className="h-4 w-4" />
+                    <AlertTitle>Recovery Mode</AlertTitle>
+                    <AlertDescription>
+                      Only {Math.ceil(daysRemainingInMonth)} days left to balance your hours!
+                    </AlertDescription>
+                  </Alert>
+                )}
               </CardContent>
             </Card>
 
@@ -838,20 +870,20 @@ export default function WorkHoursTracker() {
                     {pomodoroStatus === 'stopped' && 'Ready?'}
                   </div>
                   <div className="grid grid-cols-2 gap-2 w-full">
-                      {(pomodoroStatus === 'working' || pomodoroStatus === 'break_time') ? (
-                          <Button onClick={handlePauseResumePomodoro} variant="outline"><Pause className="mr-2" />Pause</Button>
-                      ) : (
-                          <Button onClick={handlePauseResumePomodoro} disabled={pomodoroStatus === 'stopped' || pomodoroStatus === 'working' || pomodoroStatus === 'break_time'}><Play className="mr-2" />Resume</Button>
-                      )}
+                       {(pomodoroStatus === 'paused' || pomodoroStatus === 'stopped') ? (
+                           <Button onClick={handlePauseResumePomodoro} disabled={pomodoroStatus === 'stopped'}><Play className="mr-2" />Resume</Button>
+                       ) : (
+                           <Button onClick={handlePauseResumePomodoro} variant="outline" disabled={pomodoroStatus === 'stopped'}><Pause className="mr-2" />Pause</Button>
+                       )}
                       
-                      {pomodoroStatus === 'stopped' ? (
+                      {(pomodoroStatus === 'stopped' || pomodoroStatus === 'paused') ? (
                           <Button onClick={handleStartPomodoro}><BrainCircuit className="mr-2" />Start Work</Button>
                       ) : (
                           <Button onClick={handleResetPomodoro} variant="destructive"><TimerReset className="mr-2" />Reset</Button>
                       )}
                   </div>
                    <div className="grid grid-cols-1 gap-2 w-full pt-2">
-                     <Button onClick={handleStartBreak} disabled={pomodoroStatus === 'break_time' || pomodoroStatus === 'paused'} variant="secondary"><CupSoda className="mr-2" />Start Break</Button>
+                     <Button onClick={handleStartBreak} disabled={pomodoroStatus === 'break_time' || pomodoroStatus === 'working'} variant="secondary"><CupSoda className="mr-2" />Start Break</Button>
                    </div>
               </CardContent>
             </Card>
@@ -908,19 +940,19 @@ export default function WorkHoursTracker() {
               <CardContent className="space-y-6">
                 <div className="space-y-1">
                     <p className="text-sm text-muted-foreground">Balance (This Week)</p>
-                    <p className={cn("text-2xl font-bold sm:text-3xl", weekBalance < 0 ? 'text-destructive' : 'text-green-500')}>
+                    <p className={cn("text-2xl sm:text-3xl font-bold", weekBalance < 0 ? 'text-destructive' : 'text-green-500')}>
                         {formatSeconds(weekBalance, true)}
                     </p>
                 </div>
                 <div className="space-y-1">
                     <p className="text-sm text-muted-foreground">Balance (This Month)</p>
-                    <p className={cn("text-2xl font-bold sm:text-3xl", monthTotalBalance < 0 ? 'text-destructive' : 'text-green-500')}>
+                    <p className={cn("text-2xl sm:text-3xl font-bold", monthTotalBalance < 0 ? 'text-destructive' : 'text-green-500')}>
                         {formatSeconds(monthTotalBalance, true)}
                     </p>
                 </div>
                  <div className="space-y-1">
                     <p className="text-sm text-muted-foreground">This Month (Total Worked)</p>
-                    <p className={cn("text-2xl font-bold sm:text-3xl", )}>
+                    <p className={cn("text-2xl sm:text-3xl font-bold", )}>
                         {formatSeconds(thisMonthTotal)}
                     </p>
                 </div>
@@ -1061,3 +1093,5 @@ export default function WorkHoursTracker() {
     </div>
   );
 }
+
+    
