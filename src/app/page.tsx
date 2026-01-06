@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -951,9 +952,9 @@ export default function WorkHoursTracker() {
                     </p>
                 </div>
                  <div className="space-y-1">
-                    <p className="text-sm text-muted-foreground">This Month (Total Worked)</p>
-                    <p className={cn("text-2xl sm:text-3xl font-bold", )}>
-                        {formatSeconds(thisMonthTotal)}
+                    <p className="text-sm text-muted-foreground">Carryover (Until Yesterday)</p>
+                    <p className={cn("text-xl font-bold", monthBalance < 0 ? 'text-destructive' : 'text-green-500')}>
+                        {formatSeconds(monthBalance, true)}
                     </p>
                 </div>
               </CardContent>
