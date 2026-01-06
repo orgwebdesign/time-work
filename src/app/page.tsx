@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -656,32 +655,6 @@ export default function WorkHoursTracker() {
                     </div>
                     <ThemeToggle />
                   </div>
-                  <div className="flex items-center gap-2">
-                     {status === 'stopped' && (
-                        <Button size="lg" className="w-full sm:w-auto" onClick={handleStart}>
-                            <Play className="mr-2"/>
-                            Start Day
-                        </Button>
-                      )}
-                      {(status === 'running') && (
-                          <Button size="lg" variant="outline" className="w-full sm:w-auto" onClick={handlePause}>
-                              <Pause className="mr-2"/>
-                              Take a Break
-                          </Button>
-                      )}
-                      {(status === 'on_break') && (
-                          <Button size="lg" variant="outline" className="w-full sm:w-auto" onClick={handleResume}>
-                              <Play className="mr-2"/>
-                              Resume
-                          </Button>
-                      )}
-                      {status !== 'stopped' && (
-                          <Button size="lg" variant="destructive" className="w-full sm:w-auto" onClick={handleStop}>
-                              <Square className="mr-2"/>
-                              End Day
-                          </Button>
-                      )}
-                  </div>
               </CardContent>
           </Card>
           
@@ -1094,5 +1067,3 @@ export default function WorkHoursTracker() {
     </div>
   );
 }
-
-    
