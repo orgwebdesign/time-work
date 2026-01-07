@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
-import { User, BarChart, Calendar as CalendarIconLucid, CheckCircle, Clock, Coffee, Hourglass, Pause, Play, Square, Target, History, Pencil, PlayCircle, AlarmClock, Award, MoreHorizontal, History as HistoryIcon, Star, CalendarCheck, Utensils, Trash2, BrainCircuit, CupSoda, TimerReset } from 'lucide-react';
+import { User, BarChart, Calendar as CalendarIconLucid, CheckCircle, Clock, Coffee, Hourglass, Pause, Play, Square, Target, History, Pencil, PlayCircle, AlarmClock, Award, MoreHorizontal, History as HistoryIcon, Star, CalendarCheck, Utensils, Trash2, BrainCircuit, CupSoda, TimerReset, ListCollapse } from 'lucide-react';
 import { add, format, differenceInSeconds, startOfMonth, eachDayOfInterval, formatISO, parse, getDay, startOfWeek, endOfWeek, startOfDay, endOfDay, isSameDay, isSameMonth, lastDayOfMonth, isWeekend, isAfter, differenceInMilliseconds } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Calendar } from '@/components/ui/calendar';
@@ -36,6 +36,7 @@ import Link from 'next/link';
 import { DailyDua } from '@/components/daily-dua';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { getTaskAlarm } from '@/lib/actions';
+import type { ActivityEvent } from '@/lib/types';
 
 
 type TimerStatus = 'stopped' | 'running' | 'on_break';
@@ -128,6 +129,7 @@ export default function WorkHoursTracker() {
 
   // History state
   const [history, setHistory] = useState<DailyLog[]>([]);
+  const [activityLog, setActivityLog] = useState<ActivityEvent[]>([]);
 
   // Manual edit state
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -248,6 +250,11 @@ export default function WorkHoursTracker() {
         if (storedGoalMet === 'true') {
             setGoalMetToday(true);
         }
+        
+        const storedActivityLog = localStorage.getItem(`activitylog-${todayKey}`);
+        if (storedActivityLog) {
+            setActivityLog(JSON.parse(storedActivityLog));
+        }
 
     } catch (e) {
         console.error("Failed to parse today's log from localStorage", e);
@@ -307,6 +314,7 @@ export default function WorkHoursTracker() {
     
     try {
         localStorage.setItem(`worklog-${todayKey}`, JSON.stringify(log));
+        localStorage.setItem(`activitylog-${todayKey}`, JSON.stringify(activityLog));
         
         // Update history in state as well for reactivity
         setHistory(prevHistory => {
@@ -316,7 +324,7 @@ export default function WorkHoursTracker() {
     } catch(e) {
         console.error("Failed to save log to localStorage", e);
     }
-  }, [isClient, workedSeconds, pauseSeconds, dayStartTime, requiredHours, status, sessionStartTime, breakStartTime]);
+  }, [isClient, workedSeconds, pauseSeconds, dayStartTime, requiredHours, status, sessionStartTime, breakStartTime, activityLog]);
 
 
   // Autosave every 10 seconds while timer is active
@@ -339,7 +347,7 @@ export default function WorkHoursTracker() {
       saveData();
     }
     
-  }, [workedSeconds, pauseSeconds, dayStartTime, requiredHours, isClient, status, saveData]);
+  }, [workedSeconds, pauseSeconds, dayStartTime, requiredHours, isClient, status, saveData, activityLog]);
 
   
   // The main timer loop
@@ -417,6 +425,13 @@ export default function WorkHoursTracker() {
     };
   }, [isCelebrating]);
 
+  const addActivity = (action: ActivityEvent['action']) => {
+    const newActivity: ActivityEvent = {
+        action,
+        timestamp: new Date().toISOString(),
+    };
+    setActivityLog(prev => [newActivity, ...prev]);
+  };
 
   const handleStart = () => {
     const now = new Date();
@@ -425,6 +440,7 @@ export default function WorkHoursTracker() {
       setDayStartTime(now);
     }
     setStatus('running');
+    addActivity('Start Day');
   };
   
   const handlePause = () => {
@@ -435,6 +451,7 @@ export default function WorkHoursTracker() {
     setBreakStartTime(now);
     setSessionStartTime(null);
     setStatus('on_break');
+    addActivity('Take a Break');
   };
 
   const handleResume = () => {
@@ -445,6 +462,7 @@ export default function WorkHoursTracker() {
     setSessionStartTime(now);
     setBreakStartTime(null);
     setStatus('running');
+    addActivity('Resume Work');
   };
 
   const handleStop = () => {
@@ -465,6 +483,7 @@ export default function WorkHoursTracker() {
     setStatus('stopped');
     setSessionStartTime(null);
     setBreakStartTime(null);
+    addActivity('End Day');
   };
 
   const handleOpenEditModal = (field: 'worked' | 'pause' | 'required' | 'start') => {
@@ -553,6 +572,11 @@ export default function WorkHoursTracker() {
           setPauseSeconds(0);
           setDayStartTime(null);
           setRequiredHours(getDefaultRequiredHours(new Date()));
+      }
+      
+      if(logToDelete.date === getTodayKey()){
+        setActivityLog([]);
+        localStorage.removeItem(`activitylog-${todayKey}`);
       }
 
       loadAllLogs();
@@ -698,6 +722,16 @@ export default function WorkHoursTracker() {
 
   if (!isClient) {
     return <div className="min-h-screen bg-background" />;
+  }
+
+  const getActivityIcon = (action: ActivityEvent['action']) => {
+    switch(action) {
+      case 'Start Day': return <Play className="h-4 w-4 text-green-500" />;
+      case 'Take a Break': return <Pause className="h-4 w-4 text-amber-500" />;
+      case 'Resume Work': return <Coffee className="h-4 w-4 text-blue-500" />;
+      case 'End Day': return <Square className="h-4 w-4 text-red-500" />;
+      default: return <Clock className="h-4 w-4 text-muted-foreground" />;
+    }
   }
 
   return (
@@ -882,6 +916,36 @@ export default function WorkHoursTracker() {
               </div>
             </CardContent>
           </Card>
+          
+           {/* Activity Log */}
+           <Card className="glass-card">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-3">
+                    <ListCollapse className="w-6 h-6 text-muted-foreground" />
+                    Today's Activity Log
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="max-h-60 overflow-y-auto pr-2">
+                  {activityLog.length > 0 ? (
+                    <div className="space-y-4">
+                      {activityLog.map((activity, index) => (
+                        <div key={index} className="flex items-center gap-4">
+                          {getActivityIcon(activity.action)}
+                          <div>
+                            <p className="font-medium">{activity.action}</p>
+                            <p className="text-sm text-muted-foreground">{format(new Date(activity.timestamp), 'p')}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-center text-muted-foreground py-4">No activity recorded for today yet. Press "Start Day" to begin.</p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
         </div>
 
         {/* Right Column */}

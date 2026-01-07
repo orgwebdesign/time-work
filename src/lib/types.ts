@@ -41,3 +41,8 @@ export interface Report {
   description: string;
   createdAt: string;
 }
+
+export interface ActivityEvent {
+    action: 'Start Day' | 'Take a Break' | 'Resume Work' | 'End Day';
+    timestamp: string; // ISO string
+}
