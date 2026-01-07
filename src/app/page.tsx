@@ -37,6 +37,7 @@ import { DailyDua } from '@/components/daily-dua';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { getTaskAlarm } from '@/lib/actions';
 import type { ActivityEvent } from '@/lib/types';
+import WellnessTracker from '@/components/wellness-tracker';
 
 
 type TimerStatus = 'stopped' | 'running' | 'on_break';
@@ -987,6 +988,8 @@ export default function WorkHoursTracker() {
               </CardContent>
             </Card>
 
+            <WellnessTracker />
+
             <Card className="glass-card">
               <CardHeader>
                   <CardTitle className="text-sm font-medium uppercase text-muted-foreground flex items-center gap-2">
@@ -1232,3 +1235,4 @@ export default function WorkHoursTracker() {
     
 
     
+
