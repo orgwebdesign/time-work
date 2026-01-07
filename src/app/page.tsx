@@ -467,7 +467,10 @@ export default function WorkHoursTracker() {
   };
 
   const handleOpenEditModal = (field: 'worked' | 'pause' | 'required' | 'start') => {
-    if (status !== 'stopped') return;
+    if (status !== 'stopped') {
+        alert("Please stop the timer before making manual edits.");
+        return;
+    }
     setEditingField(field);
     if (field === 'required') {
         const hours = Math.floor(requiredHours);
@@ -497,25 +500,19 @@ export default function WorkHoursTracker() {
     }
     setIsEditModalOpen(false);
     setEditingField(null);
+    // saveData() is called via useEffect on state change
   };
 
   const handleOpenHistoryEditModal = (log: DailyLog) => {
+    if (status !== 'stopped' && log.date === getTodayKey()) {
+        alert("Please stop the timer before editing today's log.");
+        return;
+    }
     setEditingLog(log);
     setEditHistoryWorked(secondsToTime(log.workedSeconds));
     setEditHistoryPause(secondsToTime(log.pauseSeconds));
     setEditHistoryStart(log.startTime ? format(new Date(log.startTime), 'HH:mm') : '');
     setIsHistoryEditModalOpen(true);
-  };
-  
-  const handleOpenTodayEditModal = () => {
-      const todayLog: DailyLog = {
-          date: getTodayKey(),
-          workedSeconds,
-          pauseSeconds,
-          startTime: dayStartTime?.toISOString(),
-          requiredHours,
-      };
-      handleOpenHistoryEditModal(todayLog);
   };
 
   const handleSaveHistoryEdit = () => {
@@ -548,7 +545,16 @@ export default function WorkHoursTracker() {
     }
     try {
       localStorage.removeItem(`worklog-${logToDelete.date}`);
-      setHistory(prevHistory => prevHistory.filter(log => log.date !== logToDelete.date));
+      
+      const todayKey = getTodayKey();
+      if (logToDelete.date === todayKey) {
+          setWorkedSeconds(0);
+          setPauseSeconds(0);
+          setDayStartTime(null);
+          setRequiredHours(getDefaultRequiredHours(new Date()));
+      }
+
+      loadAllLogs();
     } catch (e) {
       console.error("Failed to delete log", e);
       alert("An error occurred while deleting the log.");
@@ -633,29 +639,22 @@ export default function WorkHoursTracker() {
         }
 
         const isToday = isSameDay(logDate, now);
-
-        if (isToday) {
-            thisMonthTotal += currentWorkedSeconds;
-        } else {
-            thisMonthTotal += log.workedSeconds;
-        }
+        const worked = isToday ? currentWorkedSeconds : log.workedSeconds;
         
-        if (!isToday) {
-           monthBalance += (log.workedSeconds - required);
-        }
-
-        if(logDate >= startOfWeekDate && logDate <= now && !isToday) {
-            weekBalance += (log.workedSeconds - required);
+        thisMonthTotal += worked;
+        monthBalance += (worked - required);
+        
+        if(logDate >= startOfWeekDate && logDate <= now) {
+            weekBalance += (worked - required);
         }
       }
     });
     
-    weekBalance += balanceSecondsToday;
-
     return { monthBalance, weekBalance, thisMonthTotal };
-  }, [history, holidays, balanceSecondsToday, currentWorkedSeconds]);
+  }, [history, holidays, currentWorkedSeconds, requiredHours]);
   
-  const monthTotalBalance = monthBalance + balanceSecondsToday;
+  const monthTotalBalance = monthBalance;
+  const carryOverBalance = monthBalance - balanceSecondsToday;
 
   // Recovery Mode Alert Logic
   useEffect(() => {
@@ -819,22 +818,33 @@ export default function WorkHoursTracker() {
                               dailyRequired = log.requiredHours !== undefined ? log.requiredHours * 3600 : getDefaultRequiredHours(logDate) * 3600;
                           }
 
-                          const balance = log.workedSeconds - dailyRequired;
+                          const isToday = isSameDay(logDate, getTodayKey());
+                          const effectiveWorkedSeconds = isToday ? currentWorkedSeconds : log.workedSeconds;
+                          const effectivePauseSeconds = isToday ? pauseSeconds : log.pauseSeconds;
+                          const balance = effectiveWorkedSeconds - dailyRequired;
+                          
+                          const logForModal = {
+                              ...log,
+                              workedSeconds: effectiveWorkedSeconds,
+                              pauseSeconds: effectivePauseSeconds,
+                              startTime: isToday ? dayStartTime?.toISOString() : log.startTime
+                          };
+
                           return (
                               <TableRow key={log.date} className={cn("border-border/50 hover:bg-muted/30", (isHoliday || isWeekendDay) && "bg-primary/10")}>
                                   <TableCell>
                                       <span>{format(parse(log.date, 'yyyy-MM-dd', new Date()), 'EEE, MMM d')}</span>
                                       {(isHoliday || isWeekendDay) && <span className="ml-2 text-xs text-primary font-semibold">(Off)</span>}
                                   </TableCell>
-                                  <TableCell className="text-center">{log.startTime ? format(new Date(log.startTime), 'p') : '--:--'}</TableCell>
-                                  <TableCell className="text-right">{formatSeconds(log.workedSeconds)}</TableCell>
-                                  <TableCell className="text-right">{formatSeconds(log.pauseSeconds)}</TableCell>
+                                  <TableCell className="text-center">{logForModal.startTime ? format(new Date(logForModal.startTime), 'p') : '--:--'}</TableCell>
+                                  <TableCell className="text-right">{formatSeconds(effectiveWorkedSeconds)}</TableCell>
+                                  <TableCell className="text-right">{formatSeconds(effectivePauseSeconds)}</TableCell>
                                   <TableCell className={cn("text-right font-medium", balance < 0 ? 'text-destructive' : 'text-green-500')}>
                                       {formatSeconds(balance, true)}
                                   </TableCell>
                                   <TableCell className="text-right">
                                     <div className="flex justify-end gap-1">
-                                      <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground" onClick={() => handleOpenHistoryEditModal(log)}>
+                                      <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground" onClick={() => handleOpenHistoryEditModal(logForModal)}>
                                           <Pencil className="h-4 w-4" />
                                       </Button>
                                       <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive/70 hover:text-destructive" onClick={() => handleDeleteLog(log)}>
@@ -995,8 +1005,8 @@ export default function WorkHoursTracker() {
                 </div>
                  <div className="space-y-1">
                     <p className="text-sm text-muted-foreground">Carryover (Until Yesterday)</p>
-                    <p className={cn("text-xl font-bold", monthBalance < 0 ? 'text-destructive' : 'text-green-500')}>
-                        {formatSeconds(monthBalance, true)}
+                    <p className={cn("text-xl font-bold", carryOverBalance < 0 ? 'text-destructive' : 'text-green-500')}>
+                        {formatSeconds(carryOverBalance, true)}
                     </p>
                 </div>
               </CardContent>
@@ -1081,7 +1091,7 @@ export default function WorkHoursTracker() {
                         <Input
                             id="edit-history-worked"
                             value={editHistoryWorked}
-                            onChange={(e) => setEditHistoryWorked(e.target.value)}
+                            onChange={(e) => setEditHistoryWorked(e.g.target.value)}
                             className="col-span-3"
                             placeholder="HH:MM"
                         />
@@ -1136,3 +1146,5 @@ export default function WorkHoursTracker() {
     </div>
   );
 }
+
+    
