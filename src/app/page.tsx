@@ -782,6 +782,31 @@ export default function WorkHoursTracker() {
     }
   }
 
+  const timerControls = (
+    <div className="flex items-center gap-2">
+      {status === 'stopped' && (
+        <Button onClick={handleStart} className="bg-green-500/20 hover:bg-green-500/30 text-green-500 border border-green-500/30">
+          <Play className="mr-2" /> Start Day
+        </Button>
+      )}
+      {status === 'running' && (
+        <Button onClick={handlePause} variant="outline" className="bg-amber-500/20 hover:bg-amber-500/30 text-amber-500 border-amber-500/30">
+          <Pause className="mr-2" /> Take a Break
+        </Button>
+      )}
+      {status === 'on_break' && (
+        <Button onClick={handleResume} className="bg-blue-500/20 hover:bg-blue-500/30 text-blue-500 border-blue-500/30">
+          <Coffee className="mr-2" /> Resume Work
+        </Button>
+      )}
+      {(status === 'running' || status === 'on_break') && (
+        <Button onClick={handleStop} variant="destructive">
+          <Square className="mr-2" /> End Day
+        </Button>
+      )}
+    </div>
+  );
+
   return (
     <div
       className="min-h-screen bg-background text-foreground p-4 sm:p-6 md:p-8 font-body transition-colors duration-1000"
@@ -796,7 +821,7 @@ export default function WorkHoursTracker() {
         <div className="lg:col-span-2 space-y-8">
           
           {/* Header */}
-          <WeatherDisplay weather={weather} time={currentTime} />
+          <WeatherDisplay weather={weather} time={currentTime} timerControls={timerControls} />
           
           {/* Main Dashboard Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -863,20 +888,6 @@ export default function WorkHoursTracker() {
                   <HistoryIcon className="w-6 h-6 text-muted-foreground" />
                   Daily History ({format(currentMonth, 'MMMM yyyy')})
               </CardTitle>
-               <div className="flex items-center gap-2">
-                    {status === 'stopped' && (
-                        <Button onClick={handleStart} className="bg-green-500/20 hover:bg-green-500/30 text-green-500 border border-green-500/30"><Play className="mr-2" /> Start Day</Button>
-                    )}
-                    {status === 'running' && (
-                        <Button onClick={handlePause} variant={'outline'} className="bg-amber-500/20 hover:bg-amber-500/30 text-amber-500 border-amber-500/30"><Pause className="mr-2" /> Take a Break</Button>
-                    )}
-                    {status === 'on_break' && (
-                        <Button onClick={handleResume} className="bg-blue-500/20 hover:bg-blue-500/30 text-blue-500 border-blue-500/30"><Coffee className="mr-2" /> Resume Work</Button>
-                    )}
-                    {(status === 'running' || status === 'on_break') && (
-                        <Button onClick={handleStop} variant={'destructive'}><Square className="mr-2" /> End Day</Button>
-                    )}
-                </div>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="max-h-96 overflow-y-auto">
