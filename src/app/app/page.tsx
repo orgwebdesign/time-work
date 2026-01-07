@@ -26,9 +26,6 @@ export default function Home() {
   const [isCelebrating, setIsCelebrating] = useState(false);
   const [celebrationStyle, setCelebrationStyle] = useState<React.CSSProperties>({});
   
-  const [weather, setWeather] = useState<Weather | null>(null);
-  const [currentTime, setCurrentTime] = useState<Date | null>(null);
-
   const router = useRouter();
 
   const initialLists: List[] = useMemo(() => [
@@ -61,9 +58,6 @@ export default function Home() {
 
   useEffect(() => {
     setIsClient(true);
-    setCurrentTime(new Date());
-
-    const timerId = setInterval(() => setCurrentTime(new Date()), 1000);
 
     try {
       const storedUser = localStorage.getItem('taskmaster-currentUser');
@@ -122,7 +116,6 @@ export default function Home() {
       setTasks(initialTasks);
       setSelectedListId(initialLists[0]?.id || null);
     }
-    return () => clearInterval(timerId);
   }, [initialLists, initialTasks, router]);
 
   useEffect(() => {
@@ -145,55 +138,6 @@ export default function Home() {
     }
   }, [lists, selectedListId, isClient]);
   
-  useEffect(() => {
-    const fetchWeather = () => {
-      const now = new Date();
-      const hour = now.getHours();
-      const minute = now.getMinutes();
-
-      const isDay = hour >= 6 && hour < 19;
-      
-      let condition: Weather['condition'];
-      let icon: React.ElementType;
-      let temperature: number;
-
-      // Simulate changing weather conditions
-      const conditionSeed = minute % 4;
-
-      if (isDay) {
-          if (conditionSeed === 0) {
-              condition = 'Sunny'; icon = Sun; temperature = 28;
-          } else if (conditionSeed === 1) {
-              condition = 'Partly Cloudy'; icon = CloudSun; temperature = 24;
-          } else if (conditionSeed === 2) {
-              condition = 'Cloudy'; icon = Cloud; temperature = 22;
-          } else {
-              condition = 'Rainy'; icon = CloudRain; temperature = 19;
-          }
-      } else { // Night
-           if (conditionSeed === 0) {
-              condition = 'Clear'; icon = Moon; temperature = 18;
-          } else if (conditionSeed === 1 || conditionSeed === 2) {
-              condition = 'Partly Cloudy'; icon = Cloud; temperature = 16;
-          } else {
-              condition = 'Rainy'; icon = CloudRain; temperature = 14;
-          }
-      }
-
-      setWeather({
-          location: "Marrakech, Morocco",
-          temperature,
-          condition,
-          icon,
-          isDay,
-      });
-    };
-
-    fetchWeather();
-    const intervalId = setInterval(fetchWeather, 60000); // Update weather every minute
-
-    return () => clearInterval(intervalId);
-  }, []);
 
   useEffect(() => {
     let intervalId: NodeJS.Timeout | undefined;
@@ -343,10 +287,7 @@ export default function Home() {
             </div>
           </header>
 
-          <section className="mb-6">
-            <WeatherDisplay weather={weather} time={currentTime} />
-          </section>
-
+          
           {activeList ? (
             <TaskListView
               key={activeList.id}

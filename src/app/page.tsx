@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
-import { User, BarChart, Calendar as CalendarIconLucid, CheckCircle, Clock, Coffee, Hourglass, Pause, Play, Square, Target, History, Pencil, PlayCircle, AlarmClock, Award, MoreHorizontal, History as HistoryIcon, Star, CalendarCheck, Utensils, Trash2, BrainCircuit, CupSoda, TimerReset, ListCollapse } from 'lucide-react';
+import { User, BarChart, Calendar as CalendarIconLucid, CheckCircle, Clock, Coffee, Hourglass, Pause, Play, Square, Target, History, Pencil, PlayCircle, AlarmClock, Award, MoreHorizontal, History as HistoryIcon, Star, CalendarCheck, Utensils, Trash2, BrainCircuit, CupSoda, TimerReset, ListCollapse, Sun, Cloud, CloudRain, Moon, CloudSun } from 'lucide-react';
 import { add, format, differenceInSeconds, startOfMonth, eachDayOfInterval, formatISO, parse, getDay, startOfWeek, endOfWeek, startOfDay, endOfDay, isSameDay, isSameMonth, lastDayOfMonth, isWeekend, isAfter, differenceInMilliseconds } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Calendar } from '@/components/ui/calendar';
@@ -36,8 +36,9 @@ import Link from 'next/link';
 import { DailyDua } from '@/components/daily-dua';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { getTaskAlarm } from '@/lib/actions';
-import type { ActivityEvent } from '@/lib/types';
+import type { ActivityEvent, Weather } from '@/lib/types';
 import WellnessTracker from '@/components/wellness-tracker';
+import WeatherDisplay from '@/components/weather-display';
 
 
 type TimerStatus = 'stopped' | 'running' | 'on_break';
@@ -117,6 +118,7 @@ export default function WorkHoursTracker() {
   const [breakStartTime, setBreakStartTime] = useState<Date | null>(null);
   const [requiredHours, setRequiredHours] = useState(getDefaultRequiredHours(new Date()));
   const [currentTime, setCurrentTime] = useState<Date | null>(null);
+  const [weather, setWeather] = useState<Weather | null>(null);
 
   // Goal Met Dialog State
   const [isGoalMetDialogOpen, setIsGoalMetDialogOpen] = useState(false);
@@ -353,16 +355,61 @@ export default function WorkHoursTracker() {
   
   // The main timer loop
   useEffect(() => {
-    let intervalId: NodeJS.Timeout | undefined;
+    const fetchWeather = () => {
+      const now = new Date();
+      const hour = now.getHours();
+      const minute = now.getMinutes();
 
-    const updateTimer = () => {
-      setCurrentTime(new Date());
+      const isDay = hour >= 6 && hour < 19;
+      
+      let condition: Weather['condition'];
+      let icon: React.ElementType;
+      let temperature: number;
+
+      // Simulate changing weather conditions
+      const conditionSeed = minute % 4;
+
+      if (isDay) {
+          if (conditionSeed === 0) {
+              condition = 'Sunny'; icon = Sun; temperature = 28;
+          } else if (conditionSeed === 1) {
+              condition = 'Partly Cloudy'; icon = CloudSun; temperature = 24;
+          } else if (conditionSeed === 2) {
+              condition = 'Cloudy'; icon = Cloud; temperature = 22;
+          } else {
+              condition = 'Rainy'; icon = CloudRain; temperature = 19;
+          }
+      } else { // Night
+           if (conditionSeed === 0) {
+              condition = 'Clear'; icon = Moon; temperature = 18;
+          } else if (conditionSeed === 1 || conditionSeed === 2) {
+              condition = 'Partly Cloudy'; icon = Cloud; temperature = 16;
+          } else {
+              condition = 'Rainy'; icon = CloudRain; temperature = 14;
+          }
+      }
+
+      setWeather({
+          location: "Marrakech, Morocco",
+          temperature,
+          condition,
+          icon,
+          isDay,
+      });
     };
-    
-    updateTimer(); // Initial call to set time immediately
-    intervalId = setInterval(updateTimer, 1000);
 
-    return () => clearInterval(intervalId);
+    fetchWeather();
+    const weatherIntervalId = setInterval(fetchWeather, 60000); // Update weather every minute
+
+
+    const timerIntervalId = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+
+    return () => {
+        clearInterval(weatherIntervalId);
+        clearInterval(timerIntervalId);
+    };
   }, []);
   
   const currentWorkedSeconds = useMemo(() => {
@@ -749,35 +796,7 @@ export default function WorkHoursTracker() {
         <div className="lg:col-span-2 space-y-8">
           
           {/* Header */}
-          <Card className="glass-card">
-              <CardContent className="p-6 flex flex-wrap items-center justify-between gap-4">
-                  <div className='flex items-center gap-4'>
-                    <div className='flex items-baseline gap-2'>
-                        <p className="text-xl sm:text-2xl font-semibold">
-                        TIME NOW:
-                        </p>
-                        <p className="text-2xl sm:text-3xl font-bold tracking-tighter">
-                        {currentTime ? format(currentTime, 'p') : '--:--'}
-                        </p>
-                    </div>
-                    <ThemeToggle />
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {status === 'stopped' && (
-                        <Button onClick={handleStart} className="bg-green-500/20 hover:bg-green-500/30 text-green-500 border border-green-500/30"><Play className="mr-2" /> Start Day</Button>
-                    )}
-                    {status === 'running' && (
-                        <Button onClick={handlePause} variant={'outline'} className="bg-amber-500/20 hover:bg-amber-500/30 text-amber-500 border-amber-500/30"><Pause className="mr-2" /> Take a Break</Button>
-                    )}
-                    {status === 'on_break' && (
-                        <Button onClick={handleResume} className="bg-blue-500/20 hover:bg-blue-500/30 text-blue-500 border-blue-500/30"><Coffee className="mr-2" /> Resume Work</Button>
-                    )}
-                    {(status === 'running' || status === 'on_break') && (
-                        <Button onClick={handleStop} variant={'destructive'}><Square className="mr-2" /> End Day</Button>
-                    )}
-                  </div>
-              </CardContent>
-          </Card>
+          <WeatherDisplay weather={weather} time={currentTime} />
           
           {/* Main Dashboard Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -839,11 +858,25 @@ export default function WorkHoursTracker() {
 
           {/* Daily History */}
            <Card className="glass-card">
-            <CardHeader>
+            <CardHeader className="flex flex-wrap items-center justify-between gap-y-2 gap-x-4">
               <CardTitle className="flex items-center gap-3">
                   <HistoryIcon className="w-6 h-6 text-muted-foreground" />
                   Daily History ({format(currentMonth, 'MMMM yyyy')})
               </CardTitle>
+               <div className="flex items-center gap-2">
+                    {status === 'stopped' && (
+                        <Button onClick={handleStart} className="bg-green-500/20 hover:bg-green-500/30 text-green-500 border border-green-500/30"><Play className="mr-2" /> Start Day</Button>
+                    )}
+                    {status === 'running' && (
+                        <Button onClick={handlePause} variant={'outline'} className="bg-amber-500/20 hover:bg-amber-500/30 text-amber-500 border-amber-500/30"><Pause className="mr-2" /> Take a Break</Button>
+                    )}
+                    {status === 'on_break' && (
+                        <Button onClick={handleResume} className="bg-blue-500/20 hover:bg-blue-500/30 text-blue-500 border-blue-500/30"><Coffee className="mr-2" /> Resume Work</Button>
+                    )}
+                    {(status === 'running' || status === 'on_break') && (
+                        <Button onClick={handleStop} variant={'destructive'}><Square className="mr-2" /> End Day</Button>
+                    )}
+                </div>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="max-h-96 overflow-y-auto">
@@ -1231,10 +1264,3 @@ export default function WorkHoursTracker() {
     </div>
   );
 }
-
-    
-
-    
-
-
-
