@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
@@ -8,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { User, BarChart, Calendar as CalendarIconLucid, CheckCircle, Clock, Coffee, Hourglass, Pause, Play, Square, Target, History, Pencil, PlayCircle, AlarmClock, Award, MoreHorizontal, History as HistoryIcon, Star, CalendarCheck, Utensils, Trash2, BrainCircuit, CupSoda, TimerReset } from 'lucide-react';
-import { add, format, differenceInSeconds, startOfMonth, eachDayOfInterval, formatISO, parse, getDay, startOfWeek, endOfWeek, startOfDay, endOfDay, isSameDay, isSameMonth, lastDayOfMonth, isWeekend, isAfter } from 'date-fns';
+import { add, format, differenceInSeconds, startOfMonth, eachDayOfInterval, formatISO, parse, getDay, startOfWeek, endOfWeek, startOfDay, endOfDay, isSameDay, isSameMonth, lastDayOfMonth, isWeekend, isAfter, differenceInMilliseconds } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Calendar } from '@/components/ui/calendar';
 import {
@@ -561,6 +562,23 @@ export default function WorkHoursTracker() {
     }
   };
 
+  const handleHistoryStartTimeChange = (newStartTimeString: string) => {
+    if (!editingLog || !editingLog.startTime) return;
+
+    setEditHistoryStart(newStartTimeString);
+
+    const oldStartDate = parseTimeStringToDate(format(new Date(editingLog.startTime), 'HH:mm'), new Date(editingLog.date));
+    const newStartDate = parseTimeStringToDate(newStartTimeString, new Date(editingLog.date));
+    
+    const diffMs = differenceInMilliseconds(oldStartDate, newStartDate);
+    const diffSeconds = Math.round(diffMs / 1000);
+
+    const originalWorkedSeconds = editingLog.workedSeconds;
+    const newWorkedSeconds = Math.max(0, originalWorkedSeconds + diffSeconds);
+
+    setEditHistoryWorked(secondsToTime(newWorkedSeconds));
+  };
+
 
   const handleDayClick = (day: Date) => {
     if (isWeekend(day)) return; // Prevent clicking on weekends
@@ -1079,7 +1097,7 @@ export default function WorkHoursTracker() {
                         <Input
                             id="edit-history-start"
                             value={editHistoryStart}
-                            onChange={(e) => setEditHistoryStart(e.target.value)}
+                            onChange={(e) => handleHistoryStartTimeChange(e.target.value)}
                             className="col-span-3"
                             placeholder="HH:MM"
                         />
@@ -1091,7 +1109,7 @@ export default function WorkHoursTracker() {
                         <Input
                             id="edit-history-worked"
                             value={editHistoryWorked}
-                            onChange={(e) => setEditHistoryWorked(e.g.target.value)}
+                            onChange={(e) => setEditHistoryWorked(e.target.value)}
                             className="col-span-3"
                             placeholder="HH:MM"
                         />
@@ -1146,5 +1164,7 @@ export default function WorkHoursTracker() {
     </div>
   );
 }
+
+    
 
     
