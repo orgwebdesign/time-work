@@ -56,7 +56,7 @@ export default function SignupPage() {
       localStorage.setItem('taskmaster-users', JSON.stringify(users));
       localStorage.setItem('taskmaster-currentUser', JSON.stringify(newUser));
 
-      router.push('/app');
+      router.push('/');
     } catch (error) {
       console.error('Failed to create account:', error);
       alert('An error occurred while creating your account. Please try again.');

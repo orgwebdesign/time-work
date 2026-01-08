@@ -6,10 +6,9 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
-import { User, BarChart, Calendar as CalendarIconLucid, CheckCircle, Clock, Coffee, Hourglass, Pause, Play, Square, Target, History, Pencil, PlayCircle, AlarmClock, Award, MoreHorizontal, History as HistoryIcon, Star, CalendarCheck, Utensils, Trash2, BrainCircuit, CupSoda, TimerReset, ListCollapse, Sun, Cloud, CloudRain, Moon, CloudSun } from 'lucide-react';
-import { add, format, differenceInSeconds, startOfMonth, eachDayOfInterval, formatISO, parse, getDay, startOfWeek, endOfWeek, startOfDay, endOfDay, isSameDay, isSameMonth, lastDayOfMonth, isWeekend, isAfter, differenceInMilliseconds } from 'date-fns';
+import { User, BarChart, Calendar as CalendarIconLucid, Award, History as HistoryIcon, Trash2, Pencil, Play, Pause, Coffee, Square, Clock, ListCollapse, BrainCircuit, CupSoda, TimerReset, AlarmClock, Sun, Cloud, CloudRain, Moon, CloudSun } from 'lucide-react';
+import { add, format, differenceInSeconds, startOfMonth, isSameDay, isSameMonth, lastDayOfMonth, isWeekend, parse, parseISO, differenceInMilliseconds, startOfWeek } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Calendar } from '@/components/ui/calendar';
 import {
@@ -34,7 +33,6 @@ import {
 import { ProgressRing } from '@/components/progress-ring';
 import Link from 'next/link';
 import { DailyDua } from '@/components/daily-dua';
-import { ThemeToggle } from '@/components/theme-toggle';
 import { getTaskAlarm } from '@/lib/actions';
 import type { ActivityEvent, Weather } from '@/lib/types';
 import WellnessTracker from '@/components/wellness-tracker';
@@ -103,7 +101,7 @@ const parseTimeStringToDate = (timeString: string, baseDate: Date = new Date()):
 };
 
 const getDefaultRequiredHours = (date: Date): number => {
-  const dayOfWeek = getDay(date); // Sunday is 0, Monday is 1, etc.
+  const dayOfWeek = date.getDay(); // Sunday is 0, Monday is 1, etc.
   if (dayOfWeek === 5) { // Friday
     return 7.5;
   }
@@ -337,20 +335,10 @@ export default function WorkHoursTracker() {
     if (!isClient) return;
     const todayKey = getTodayKey();
     
-    let currentWorked = workedSeconds;
-    if (status === 'running' && sessionStartTime) {
-      currentWorked = workedSeconds; // This is now updated by the timer effect, don't add diff here
-    }
-
-    let currentPause = pauseSeconds;
-    if (status === 'on_break' && breakStartTime) {
-      currentPause = pauseSeconds; // Also updated by timer effect
-    }
-
     const log: DailyLog = { 
         date: todayKey, 
-        workedSeconds: currentWorked, 
-        pauseSeconds: currentPause,
+        workedSeconds: workedSeconds, 
+        pauseSeconds: pauseSeconds,
         startTime: dayStartTime?.toISOString(),
         requiredHours,
     };
@@ -392,9 +380,9 @@ export default function WorkHoursTracker() {
   useEffect(() => {
     const timerIntervalId = setInterval(() => {
       setCurrentTime(new Date());
-      if (status === 'running' && sessionStartTime) {
+      if (status === 'running') {
           setWorkedSeconds(prev => prev + 1);
-      } else if (status === 'on_break' && breakStartTime) {
+      } else if (status === 'on_break') {
           setPauseSeconds(prev => prev + 1);
       }
     }, 1000);
@@ -402,7 +390,7 @@ export default function WorkHoursTracker() {
     return () => {
         clearInterval(timerIntervalId);
     };
-  }, [status, sessionStartTime, breakStartTime]);
+  }, [status]);
 
   // Final save when stopping the timer or when critical states change while stopped
   useEffect(() => {
@@ -679,7 +667,7 @@ export default function WorkHoursTracker() {
 
     setEditHistoryStart(newStartTimeString);
 
-    const oldStartDate = parseTimeStringToDate(format(new Date(editingLog.startTime), 'HH:mm'), new Date(editingLog.date));
+    const oldStartDate = parseTimeStringToDate(format(parseISO(editingLog.startTime), 'HH:mm'), new Date(editingLog.date));
     const newStartDate = parseTimeStringToDate(newStartTimeString, new Date(editingLog.date));
     
     const diffMs = differenceInMilliseconds(oldStartDate, newStartDate);
@@ -738,25 +726,20 @@ export default function WorkHoursTracker() {
   
   const estimatedLeaveTime = useMemo(() => {
     if (!dayStartTime) return null;
-    let currentTotalBreak = pauseSeconds;
-    if (status === 'on_break' && breakStartTime) {
-        currentTotalBreak += differenceInSeconds(new Date(), breakStartTime);
-    }
-    const totalSecondsNeeded = requiredSecondsToday + currentTotalBreak;
+    const totalSecondsNeeded = requiredSecondsToday + pauseSeconds;
     return add(dayStartTime, { seconds: totalSecondsNeeded });
-  }, [dayStartTime, pauseSeconds, requiredSecondsToday, status, breakStartTime, currentTime]);
+  }, [dayStartTime, pauseSeconds, requiredSecondsToday, currentTime]);
 
 
-  const { monthBalance, weekBalance, thisMonthTotal } = useMemo(() => {
+  const { monthBalance, weekBalance } = useMemo(() => {
     const now = new Date();
     const startOfMonthDate = startOfMonth(now);
     const startOfWeekDate = startOfWeek(now, { weekStartsOn: 1 }); // Monday
     let monthBalance = 0;
     let weekBalance = 0;
-    let thisMonthTotal = 0;
 
     history.forEach(log => {
-      const logDate = new Date(log.date);
+      const logDate = parseISO(log.date);
       const isThisMonth = isSameMonth(logDate, now);
 
       if(isThisMonth) {
@@ -768,10 +751,8 @@ export default function WorkHoursTracker() {
             required = (log.requiredHours !== undefined ? log.requiredHours : getDefaultRequiredHours(logDate)) * 3600;
         }
 
-        const isToday = isSameDay(logDate, now);
-        const worked = isToday ? currentWorkedSeconds : log.workedSeconds;
+        const worked = log.workedSeconds;
         
-        thisMonthTotal += worked;
         monthBalance += (worked - required);
         
         if(logDate >= startOfWeekDate && logDate <= now) {
@@ -780,8 +761,8 @@ export default function WorkHoursTracker() {
       }
     });
     
-    return { monthBalance, weekBalance, thisMonthTotal };
-  }, [history, holidays, currentWorkedSeconds, requiredHours]);
+    return { monthBalance, weekBalance };
+  }, [history, holidays]);
   
   const monthTotalBalance = monthBalance;
   const carryOverBalance = monthBalance - balanceSecondsToday;
@@ -944,8 +925,8 @@ export default function WorkHoursTracker() {
                   </TableHeader>
                   <TableBody>
                       {currentMonthHistory.length > 0 ? currentMonthHistory.map(log => {
-                          const logDate = new Date(log.date);
-                          const isHoliday = holidays.some(h => isSameDay(logDate, h));
+                          const logDate = parseISO(log.date);
+                          const isHoliday = holidays.some(h => isSameDay(h, logDate));
                           const isWeekendDay = isWeekend(logDate);
                           let dailyRequired;
                           
@@ -955,16 +936,10 @@ export default function WorkHoursTracker() {
                               dailyRequired = log.requiredHours !== undefined ? log.requiredHours * 3600 : getDefaultRequiredHours(logDate) * 3600;
                           }
 
-                          const isToday = isSameDay(logDate, getTodayKey());
-                          const effectiveWorkedSeconds = isToday ? currentWorkedSeconds : log.workedSeconds;
-                          const effectivePauseSeconds = isToday ? pauseSeconds : log.pauseSeconds;
-                          const balance = effectiveWorkedSeconds - dailyRequired;
+                          const balance = log.workedSeconds - dailyRequired;
                           
                           const logForModal = {
                               ...log,
-                              workedSeconds: effectiveWorkedSeconds,
-                              pauseSeconds: effectivePauseSeconds,
-                              startTime: isToday ? dayStartTime?.toISOString() : log.startTime
                           };
 
                           return (
@@ -973,9 +948,9 @@ export default function WorkHoursTracker() {
                                       <span>{format(parse(log.date, 'yyyy-MM-dd', new Date()), 'EEE, MMM d')}</span>
                                       {(isHoliday || isWeekendDay) && <span className="ml-2 text-xs text-primary font-semibold">(Off)</span>}
                                   </TableCell>
-                                  <TableCell className="text-center">{logForModal.startTime ? format(new Date(logForModal.startTime), 'p') : '--:--'}</TableCell>
-                                  <TableCell className="text-right">{formatSeconds(effectiveWorkedSeconds)}</TableCell>
-                                  <TableCell className="text-right">{formatSeconds(effectivePauseSeconds)}</TableCell>
+                                  <TableCell className="text-center">{log.startTime ? format(parseISO(log.startTime), 'p') : '--:--'}</TableCell>
+                                  <TableCell className="text-right">{formatSeconds(log.workedSeconds)}</TableCell>
+                                  <TableCell className="text-right">{formatSeconds(log.pauseSeconds)}</TableCell>
                                   <TableCell className={cn("text-right font-medium", balance < 0 ? 'text-destructive' : 'text-green-500')}>
                                       {formatSeconds(balance, true)}
                                   </TableCell>
@@ -1115,7 +1090,6 @@ export default function WorkHoursTracker() {
             <Card className="glass-card">
               <CardHeader>
                 <CardTitle className="text-sm font-medium uppercase text-muted-foreground flex items-center gap-2">
-                  <CalendarCheck />
                   Holidays & Days Off
                 </CardTitle>
               </CardHeader>
@@ -1188,13 +1162,13 @@ export default function WorkHoursTracker() {
                 <CardContent className="p-2">
                     <div className="flex items-center gap-2">
                         <Button asChild variant="ghost" size="icon" className="rounded-full h-12 w-12 bg-primary text-primary-foreground shadow-lg">
-                           <a href="/app"><User className="w-6 h-6"/></a>
+                           <Link href="/"><User className="w-6 h-6"/></Link>
                         </Button>
                         <Button asChild variant="ghost" size="icon" className="rounded-full h-12 w-12">
-                           <a href="/app"><CalendarIconLucid className="w-6 h-6"/></a>
+                           <Link href="/"><CalendarIconLucid className="w-6 h-6"/></Link>
                         </Button>
                          <Button asChild variant="ghost" size="icon" className="rounded-full h-12 w-12">
-                           <a href="/app"><BarChart className="w-6 h-6"/></a>
+                           <Link href="/"><BarChart className="w-6 h-6"/></Link>
                         </Button>
                     </div>
                 </CardContent>
@@ -1315,7 +1289,3 @@ export default function WorkHoursTracker() {
     </div>
   );
 }
-
-
-
-    

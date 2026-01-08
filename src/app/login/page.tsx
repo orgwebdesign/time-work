@@ -63,11 +63,7 @@ export default function LoginPage() {
 
       if (user && user.password === password) {
         localStorage.setItem('taskmaster-currentUser', JSON.stringify(user));
-        if (user.email === 'admin@example.com') {
-          router.push('/admin');
-        } else {
-          router.push('/app');
-        }
+        router.push('/');
       } else {
         alert('Login failed. Invalid email or password.');
       }

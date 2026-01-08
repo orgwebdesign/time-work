@@ -1,18 +1,3 @@
-export interface Task {
-  id: string;
-  listId: string;
-  text: string;
-  completed: boolean;
-  createdAt: string;
-  dueDate?: string; // Storing as ISO string for localStorage compatibility
-  alarmEnabled?: boolean;
-}
-
-export interface List {
-  id: string;
-  name: string;
-}
-
 export interface Weather {
   location: string;
   temperature: number;
@@ -30,16 +15,6 @@ export interface User {
   loginCount?: number;
   lastLogin?: string;
   adminNotes?: string;
-}
-
-export interface Report {
-  id: string;
-  userId: string;
-  userFullName: string;
-  userEmail: string;
-  subject: string;
-  description: string;
-  createdAt: string;
 }
 
 export interface ActivityEvent {
