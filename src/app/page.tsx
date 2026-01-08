@@ -1,7 +1,7 @@
 
-
 'use client';
 
+import AppLayout from './app-layout';
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -112,7 +112,7 @@ const getDefaultRequiredHours = (date: Date): number => {
 };
 
 
-export default function WorkHoursTracker() {
+function WorkHoursTrackerPage() {
   const [isClient, setIsClient] = useState(false);
   
   // Time tracking state
@@ -1287,5 +1287,14 @@ export default function WorkHoursTracker() {
 
       </div>
     </div>
+  );
+}
+
+
+export default function WorkHoursTracker() {
+  return (
+    <AppLayout>
+      <WorkHoursTrackerPage />
+    </AppLayout>
   );
 }
