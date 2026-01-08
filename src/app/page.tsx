@@ -30,7 +30,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { ProgressRing } from '@/components/progress-ring';
 import Link from 'next/link';
 import { DailyDua } from '@/components/daily-dua';
 import { getTaskAlarm } from '@/lib/actions';
@@ -893,8 +892,6 @@ function WorkHoursTrackerPage() {
       return history.filter(log => isSameMonth(new Date(log.date), currentMonth));
   }, [history, currentMonth]);
 
-  const dailyProgress = requiredSecondsToday > 0 ? Math.min((currentWorkedSeconds / requiredSecondsToday) * 100, 100) : 0;
-  
   const daysRemainingInMonth = differenceInSeconds(lastDayOfMonth(new Date()), new Date()) / (60 * 60 * 24);
 
   if (!isClient) {
@@ -938,6 +935,18 @@ function WorkHoursTrackerPage() {
   
   const { h, m, s } = formatSeconds(currentWorkedSeconds);
 
+  const timerColorClass = useMemo(() => {
+    const secondsRemaining = requiredSecondsToday - currentWorkedSeconds;
+    if (requiredSecondsToday > 0 && currentWorkedSeconds >= requiredSecondsToday) {
+      return 'bg-destructive/80 text-destructive-foreground'; // Red
+    }
+    if (requiredSecondsToday > 0 && secondsRemaining <= 30 * 60) {
+      return 'bg-amber-500/80 text-amber-900'; // Amber/Orange
+    }
+    return 'bg-primary/80 text-primary-foreground'; // Default blue
+  }, [currentWorkedSeconds, requiredSecondsToday]);
+
+
   return (
     <div
       className="min-h-screen bg-background text-foreground p-4 sm:p-6 md:p-8 font-body transition-colors duration-1000"
@@ -967,19 +976,20 @@ function WorkHoursTrackerPage() {
             </Card>
 
             <Card className="glass-card lg:col-span-2 row-span-2 flex flex-col items-center justify-center p-6">
-                <ProgressRing 
-                    value={dailyProgress} 
-                    strokeWidth={4} 
-                    className="h-32 w-32 sm:h-48 sm:w-48"
-                    hours={h}
-                    minutes={m}
-                    seconds={s}
-                />
-              <div className="mt-4 flex items-center justify-center gap-1">
-                <p className="text-sm text-muted-foreground">Worked Today</p>
-                <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground/70 hover:text-foreground disabled:text-muted-foreground/40" onClick={() => handleOpenEditModal('worked')} disabled={status !== 'stopped'}><Pencil className="h-3 w-3" /></Button>
-              </div>
-              {(holidays.some(h => isSameDay(h, new Date())) || isWeekend(new Date())) && <p className="text-primary font-semibold mt-2 text-sm">🇫🇷 JOUR FÉRIÉ / WEEK-END</p>}
+                <div className={cn("flex items-baseline justify-center w-full max-w-sm rounded-lg p-4 transition-colors duration-500", timerColorClass)}>
+                    <span className="text-4xl sm:text-6xl font-bold tracking-tighter">{h}</span>
+                    <span className="text-xl sm:text-2xl font-medium text-white/80 mr-2">h</span>
+                    <span className="text-4xl sm:text-6xl font-bold tracking-tighter">{m}</span>
+                    <span className="text-xl sm:text-2xl font-medium text-white/80 mr-2">m</span>
+                    <span className="text-4xl sm:text-6xl font-bold tracking-tighter w-[3.5rem] sm:w-[5.5rem]">{s}</span>
+                    <span className="text-xl sm:text-2xl font-medium text-white/80">s</span>
+                </div>
+
+                <div className="mt-4 flex items-center justify-center gap-1">
+                    <p className="text-sm text-muted-foreground">Worked Today</p>
+                    <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground/70 hover:text-foreground disabled:text-muted-foreground/40" onClick={() => handleOpenEditModal('worked')} disabled={status !== 'stopped'}><Pencil className="h-3 w-3" /></Button>
+                </div>
+                {(holidays.some(h => isSameDay(h, new Date())) || isWeekend(new Date())) && <p className="text-primary font-semibold mt-2 text-sm">🇫🇷 JOUR FÉRIÉ / WEEK-END</p>}
             </Card>
 
              <Card className="glass-card">
@@ -1421,5 +1431,3 @@ export default function WorkHoursTracker() {
     </AppLayout>
   );
 }
-
-    
