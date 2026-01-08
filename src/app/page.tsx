@@ -894,10 +894,6 @@ function WorkHoursTrackerPage() {
 
   const daysRemainingInMonth = differenceInSeconds(lastDayOfMonth(new Date()), new Date()) / (60 * 60 * 24);
 
-  if (!isClient) {
-    return <div className="min-h-screen bg-background" />;
-  }
-
   const getActivityIcon = (action: ActivityEvent['action']) => {
     switch(action) {
       case 'Start Day': return <Play className="h-4 w-4 text-green-500" />;
@@ -946,6 +942,9 @@ function WorkHoursTrackerPage() {
     return 'bg-primary/80 text-primary-foreground'; // Default blue
   }, [currentWorkedSeconds, requiredSecondsToday]);
 
+  if (!isClient) {
+    return <div className="min-h-screen bg-background" />;
+  }
 
   return (
     <div
