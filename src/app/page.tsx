@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { User, BarChart, Calendar as CalendarIconLucid, Award, History as HistoryIcon, Trash2, Pencil, Play, Pause, Coffee, Square, Clock, ListCollapse, BrainCircuit, CupSoda, TimerReset, AlarmClock, Sun, Cloud, CloudRain, Moon, CloudSun } from 'lucide-react';
-import { add, format, differenceInSeconds, startOfMonth, isSameDay, isSameMonth, lastDayOfMonth, isWeekend, parse, parseISO, differenceInMilliseconds, startOfWeek } from 'date-fns';
+import { add, format, differenceInSeconds, startOfMonth, isSameDay, isSameMonth, lastDayOfMonth, isWeekend, parse, parseISO, differenceInMilliseconds, startOfWeek, set } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Calendar } from '@/components/ui/calendar';
 import {
@@ -37,6 +37,7 @@ import { getTaskAlarm } from '@/lib/actions';
 import type { ActivityEvent, Weather } from '@/lib/types';
 import WellnessTracker from '@/components/wellness-tracker';
 import WeatherDisplay from '@/components/weather-display';
+import { QuickTimeSelector } from '@/components/quick-time-selector';
 
 
 type TimerStatus = 'stopped' | 'running' | 'on_break';
@@ -164,6 +165,12 @@ function WorkHoursTrackerPage() {
 
   // Mood Widget State
   const [showRecoveryAlert, setShowRecoveryAlert] = useState(false);
+
+  // Activity Log Edit State
+  const [isActivityEditOpen, setIsActivityEditOpen] = useState(false);
+  const [editingActivity, setEditingActivity] = useState<ActivityEvent | null>(null);
+  const [editingActivityTime, setEditingActivityTime] = useState('');
+  const [editingActivityIndex, setEditingActivityIndex] = useState<number | null>(null);
 
 
   useEffect(() => {
@@ -516,7 +523,7 @@ function WorkHoursTrackerPage() {
         action,
         timestamp: new Date().toISOString(),
     };
-    setActivityLog(prev => [newActivity, ...prev]);
+    setActivityLog(prev => [...prev.filter(a => a.action !== action), newActivity].sort((a,b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()));
   };
 
   const handleStart = () => {
@@ -524,10 +531,10 @@ function WorkHoursTrackerPage() {
     setSessionStartTime(now);
     if (!dayStartTime) {
       setDayStartTime(now);
+      addActivity('Start Day');
     }
     setStatus('running');
     setBreakStartTime(null);
-    addActivity('Start Day');
   };
   
   const handlePause = () => {
@@ -551,10 +558,10 @@ function WorkHoursTrackerPage() {
   const handleStop = () => {
     if (status === 'stopped') return;
     
+    addActivity('End Day');
     setStatus('stopped');
     setSessionStartTime(null);
     setBreakStartTime(null);
-    addActivity('End Day');
     saveData(); // Final save on stop
   };
 
@@ -721,6 +728,96 @@ function WorkHoursTrackerPage() {
     loadAllLogs(); // Reload history to reflect change
   };
   
+  const recalculateDurationsFromLog = useCallback((log: ActivityEvent[]) => {
+    let totalWork = 0;
+    let totalPause = 0;
+    let lastWorkStart: Date | null = null;
+    let lastBreakStart: Date | null = null;
+    
+    const sortedLog = [...log].sort((a,b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+
+    sortedLog.forEach(event => {
+      const eventTime = new Date(event.timestamp);
+      
+      switch(event.action) {
+        case 'Start Day':
+        case 'Resume Work':
+          if (lastBreakStart) {
+            totalPause += differenceInSeconds(eventTime, lastBreakStart);
+            lastBreakStart = null;
+          }
+          lastWorkStart = eventTime;
+          break;
+        case 'Take a Break':
+          if (lastWorkStart) {
+            totalWork += differenceInSeconds(eventTime, lastWorkStart);
+            lastWorkStart = null;
+          }
+          lastBreakStart = eventTime;
+          break;
+        case 'End Day':
+          if (lastWorkStart) {
+            totalWork += differenceInSeconds(eventTime, lastWorkStart);
+            lastWorkStart = null;
+          }
+          if (lastBreakStart) {
+            // This assumes ending the day from a break should not count the break time till the end.
+            lastBreakStart = null;
+          }
+          break;
+      }
+    });
+
+    return { workedSeconds: totalWork, pauseSeconds: totalPause };
+  }, []);
+
+  const handleOpenActivityEdit = (activity: ActivityEvent, index: number) => {
+    if (status !== 'stopped') {
+      alert("Please stop the timer before editing activities.");
+      return;
+    }
+    setEditingActivity(activity);
+    setEditingActivityIndex(index);
+    setEditingActivityTime(format(new Date(activity.timestamp), 'HH:mm'));
+    setIsActivityEditOpen(true);
+  };
+
+  const handleSaveActivityEdit = () => {
+    if (editingActivityIndex === null) return;
+    
+    const baseDate = new Date(activityLog[editingActivityIndex].timestamp);
+    const newTimestamp = set(baseDate, {
+      hours: parseInt(editingActivityTime.split(':')[0]),
+      minutes: parseInt(editingActivityTime.split(':')[1]),
+      seconds: 0,
+      milliseconds: 0,
+    }).toISOString();
+
+    const updatedActivityLog = [...activityLog];
+    updatedActivityLog[editingActivityIndex] = {
+      ...updatedActivityLog[editingActivityIndex],
+      timestamp: newTimestamp,
+    };
+    
+    // Sort log again in case the time change affects order
+    const sortedLog = updatedActivityLog.sort((a,b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+    
+    setActivityLog(sortedLog);
+
+    // Recalculate totals
+    const { workedSeconds, pauseSeconds } = recalculateDurationsFromLog(sortedLog);
+    setWorkedSeconds(workedSeconds);
+    setPauseSeconds(pauseSeconds);
+    
+    // Update day start time if the first event was edited
+    const startDayEvent = sortedLog.find(a => a.action === 'Start Day');
+    setDayStartTime(startDayEvent ? new Date(startDayEvent.timestamp) : null);
+
+    setIsActivityEditOpen(false);
+    setEditingActivity(null);
+    setEditingActivityIndex(null);
+  };
+
   
   const balanceSecondsToday = useMemo(() => currentWorkedSeconds - requiredSecondsToday, [currentWorkedSeconds, requiredSecondsToday]);
   
@@ -990,12 +1087,23 @@ function WorkHoursTrackerPage() {
                   {activityLog.length > 0 ? (
                     <div className="space-y-4">
                       {activityLog.map((activity, index) => (
-                        <div key={index} className="flex items-center gap-4">
-                          {getActivityIcon(activity.action)}
-                          <div>
-                            <p className="font-medium">{activity.action}</p>
-                            <p className="text-sm text-muted-foreground">{format(new Date(activity.timestamp), 'p')}</p>
+                        <div key={index} className="flex items-center justify-between gap-4">
+                          <div className="flex items-center gap-4">
+                            {getActivityIcon(activity.action)}
+                            <div>
+                              <p className="font-medium">{activity.action}</p>
+                              <p className="text-sm text-muted-foreground">{format(new Date(activity.timestamp), 'p')}</p>
+                            </div>
                           </div>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-7 w-7 text-muted-foreground hover:text-foreground disabled:text-muted-foreground/40"
+                            onClick={() => handleOpenActivityEdit(activity, index)}
+                            disabled={status !== 'stopped'}
+                          >
+                              <Pencil className="h-4 w-4" />
+                          </Button>
                         </div>
                       ))}
                     </div>
@@ -1267,6 +1375,26 @@ function WorkHoursTrackerPage() {
             </DialogContent>
         </Dialog>
 
+        <Dialog open={isActivityEditOpen} onOpenChange={setIsActivityEditOpen}>
+          <DialogContent>
+              <DialogHeader>
+                  <DialogTitle>Edit Activity Time</DialogTitle>
+                  <DialogDescription>
+                      Update the time for: "{editingActivity?.action}". This will recalculate all durations for today.
+                  </DialogDescription>
+              </DialogHeader>
+              <div className="py-4">
+                <QuickTimeSelector value={editingActivityTime} onChange={setEditingActivityTime} />
+              </div>
+              <DialogFooter>
+                  <DialogClose asChild>
+                      <Button type="button" variant="secondary" onClick={() => setIsActivityEditOpen(false)}>Cancel</Button>
+                  </DialogClose>
+                  <Button type="button" onClick={handleSaveActivityEdit}>Save Changes</Button>
+              </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
       </div>
     </div>
   );
@@ -1280,3 +1408,5 @@ export default function WorkHoursTracker() {
     </AppLayout>
   );
 }
+
+    
