@@ -53,6 +53,13 @@ interface DailyLog {
   requiredHours?: number; // Store the required hours for this specific day
 }
 
+interface TimerState {
+    status: TimerStatus;
+    sessionStartTime: string | null;
+    breakStartTime: string | null;
+}
+
+
 // --- Helper Functions ---
 const formatSeconds = (seconds: number, showSign = false): string => {
   if (isNaN(seconds)) seconds = 0;
@@ -230,37 +237,60 @@ export default function WorkHoursTracker() {
     let todaysRequiredHours = getDefaultRequiredHours(new Date());
 
     try {
-        const storedHolidays = localStorage.getItem('work-holidays');
-        if (storedHolidays) {
-            setHolidays(JSON.parse(storedHolidays).map((d: string) => new Date(d)));
-        }
+      const storedHolidays = localStorage.getItem('work-holidays');
+      if (storedHolidays) {
+        setHolidays(JSON.parse(storedHolidays).map((d: string) => new Date(d)));
+      }
 
-        const storedLog = localStorage.getItem(`worklog-${todayKey}`);
-        
-        if (storedLog) {
-          const data: DailyLog = JSON.parse(storedLog);
-          setWorkedSeconds(data.workedSeconds || 0);
-          setPauseSeconds(data.pauseSeconds || 0);
-          if (data.startTime) {
-            setDayStartTime(new Date(data.startTime));
-          }
-          if (typeof data.requiredHours === 'number') {
-            todaysRequiredHours = data.requiredHours;
-          }
+      const storedLog = localStorage.getItem(`worklog-${todayKey}`);
+      let currentWorked = 0;
+      let currentPause = 0;
+
+      if (storedLog) {
+        const data: DailyLog = JSON.parse(storedLog);
+        currentWorked = data.workedSeconds || 0;
+        currentPause = data.pauseSeconds || 0;
+        if (data.startTime) {
+          setDayStartTime(new Date(data.startTime));
         }
-        
-        const storedGoalMet = localStorage.getItem(`goalMet-${todayKey}`);
-        if (storedGoalMet === 'true') {
-            setGoalMetToday(true);
+        if (typeof data.requiredHours === 'number') {
+          todaysRequiredHours = data.requiredHours;
         }
-        
-        const storedActivityLog = localStorage.getItem(`activitylog-${todayKey}`);
-        if (storedActivityLog) {
-            setActivityLog(JSON.parse(storedActivityLog));
+      }
+
+      // Restore timer state
+      const storedTimerState = localStorage.getItem(`timerState-${todayKey}`);
+      if (storedTimerState) {
+        const timerState: TimerState = JSON.parse(storedTimerState);
+        const now = new Date();
+
+        if (timerState.status === 'running' && timerState.sessionStartTime) {
+          const elapsed = differenceInSeconds(now, new Date(timerState.sessionStartTime));
+          currentWorked += elapsed;
+          setSessionStartTime(now); // Restart session from now
+        } else if (timerState.status === 'on_break' && timerState.breakStartTime) {
+          const elapsed = differenceInSeconds(now, new Date(timerState.breakStartTime));
+          currentPause += elapsed;
+          setBreakStartTime(now); // Restart break from now
         }
+        setStatus(timerState.status);
+      }
+      
+      setWorkedSeconds(currentWorked);
+      setPauseSeconds(currentPause);
+
+      const storedGoalMet = localStorage.getItem(`goalMet-${todayKey}`);
+      if (storedGoalMet === 'true') {
+        setGoalMetToday(true);
+      }
+
+      const storedActivityLog = localStorage.getItem(`activitylog-${todayKey}`);
+      if (storedActivityLog) {
+        setActivityLog(JSON.parse(storedActivityLog));
+      }
 
     } catch (e) {
-        console.error("Failed to parse today's log from localStorage", e);
+      console.error("Failed to parse today's log from localStorage", e);
     }
     setRequiredHours(todaysRequiredHours);
 
@@ -315,9 +345,16 @@ export default function WorkHoursTracker() {
         requiredHours,
     };
     
+    const timerState: TimerState = {
+        status,
+        sessionStartTime: sessionStartTime?.toISOString() || null,
+        breakStartTime: breakStartTime?.toISOString() || null,
+    };
+
     try {
         localStorage.setItem(`worklog-${todayKey}`, JSON.stringify(log));
         localStorage.setItem(`activitylog-${todayKey}`, JSON.stringify(activityLog));
+        localStorage.setItem(`timerState-${todayKey}`, JSON.stringify(timerState));
         
         // Update history in state as well for reactivity
         setHistory(prevHistory => {
@@ -345,12 +382,10 @@ export default function WorkHoursTracker() {
   useEffect(() => {
     if (!isClient) return;
     
-    // Save only when the timer is stopped. Autosave handles active states.
-    if (status === 'stopped') {
-      saveData();
-    }
+    // Save data whenever a critical state changes
+    saveData();
     
-  }, [workedSeconds, pauseSeconds, dayStartTime, requiredHours, isClient, status, saveData, activityLog]);
+  }, [workedSeconds, pauseSeconds, dayStartTime, requiredHours, isClient, status, activityLog, sessionStartTime, breakStartTime, saveData]);
 
   
   // The main timer loop
@@ -613,6 +648,7 @@ export default function WorkHoursTracker() {
     }
     try {
       localStorage.removeItem(`worklog-${logToDelete.date}`);
+      localStorage.removeItem(`timerState-${logToDelete.date}`);
       
       const todayKey = getTodayKey();
       if (logToDelete.date === todayKey) {
@@ -620,6 +656,9 @@ export default function WorkHoursTracker() {
           setPauseSeconds(0);
           setDayStartTime(null);
           setRequiredHours(getDefaultRequiredHours(new Date()));
+          setStatus('stopped');
+          setSessionStartTime(null);
+          setBreakStartTime(null);
       }
       
       if(logToDelete.date === getTodayKey()){
@@ -1275,3 +1314,4 @@ export default function WorkHoursTracker() {
     </div>
   );
 }
+
