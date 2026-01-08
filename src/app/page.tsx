@@ -60,14 +60,25 @@ interface TimerState {
 
 
 // --- Helper Functions ---
-const formatSeconds = (seconds: number, showSign = false): string => {
+const formatSeconds = (seconds: number, showSign = false): {h: string, m: string, s: string, sign: string} => {
   if (isNaN(seconds)) seconds = 0;
   const sign = seconds < 0 ? '-' : (showSign ? '+' : '');
   const absSeconds = Math.abs(seconds);
   const h = Math.floor(absSeconds / 3600);
   const m = Math.floor((absSeconds % 3600) / 60);
-  return `${sign}${h.toString().padStart(2, '0')}h ${m.toString().padStart(2, '0')}m`;
+  const s = Math.floor(absSeconds % 60);
+  return {
+    h: h.toString().padStart(2, '0'),
+    m: m.toString().padStart(2, '0'),
+    s: s.toString().padStart(2, '0'),
+    sign: sign,
+  };
 };
+
+const formatSecondsToString = (seconds: number, showSign = false): string => {
+    const { h, m, sign } = formatSeconds(seconds, showSign);
+    return `${sign}${h}h ${m}m`;
+}
 
 const formatPomodoroTime = (seconds: number): string => {
     if (isNaN(seconds)) seconds = 0;
@@ -478,7 +489,7 @@ function WorkHoursTrackerPage() {
         localStorage.setItem(`goalMet-${todayKey}`, 'true');
 
         try {
-            const alarmData = await getTaskAlarm(`Goal Met: ${formatSeconds(requiredSecondsToday)}`);
+            const alarmData = await getTaskAlarm(`Goal Met: ${formatSecondsToString(requiredSecondsToday)}`);
             if(alarmData) {
                 setGoalMetMessage(alarmData.message);
                 if (audioRef.current) {
@@ -924,6 +935,8 @@ function WorkHoursTrackerPage() {
       )}
     </div>
   );
+  
+  const { h, m, s } = formatSeconds(currentWorkedSeconds);
 
   return (
     <div
@@ -954,14 +967,14 @@ function WorkHoursTrackerPage() {
             </Card>
 
             <Card className="glass-card lg:col-span-2 row-span-2 flex flex-col items-center justify-center p-6">
-              <div className="relative">
-                <ProgressRing value={dailyProgress} strokeWidth={4} className="h-32 w-32 sm:h-48 sm:w-48" />
-                <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                    <div className="flex items-center justify-center gap-1">
-                      <span className="text-2xl sm:text-4xl font-bold tracking-tighter">{formatSeconds(currentWorkedSeconds)}</span>
-                    </div>
-                </div>
-              </div>
+                <ProgressRing 
+                    value={dailyProgress} 
+                    strokeWidth={4} 
+                    className="h-32 w-32 sm:h-48 sm:w-48"
+                    hours={h}
+                    minutes={m}
+                    seconds={s}
+                />
               <div className="mt-4 flex items-center justify-center gap-1">
                 <p className="text-sm text-muted-foreground">Worked Today</p>
                 <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground/70 hover:text-foreground disabled:text-muted-foreground/40" onClick={() => handleOpenEditModal('worked')} disabled={status !== 'stopped'}><Pencil className="h-3 w-3" /></Button>
@@ -984,7 +997,7 @@ function WorkHoursTrackerPage() {
                 <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground disabled:text-muted-foreground/40 disabled:hover:text-muted-foreground/40" onClick={() => handleOpenEditModal('pause')} disabled={status !== 'stopped'}><Pencil className="h-4 w-4" /></Button>
               </CardHeader>
               <CardContent>
-                <p className="text-2xl sm:text-3xl font-bold">{formatSeconds(pauseSeconds)}</p>
+                <p className="text-2xl sm:text-3xl font-bold">{formatSecondsToString(pauseSeconds)}</p>
               </CardContent>
             </Card>
             
@@ -994,7 +1007,7 @@ function WorkHoursTrackerPage() {
                     <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground disabled:text-muted-foreground/40 disabled:hover:text-muted-foreground/40" onClick={() => handleOpenEditModal('required')} disabled={status !== 'stopped'}><Pencil className="h-4 w-4" /></Button>
                 </CardHeader>
                 <CardContent>
-                    <p className="text-2xl sm:text-3xl font-bold">{formatSeconds(requiredSecondsToday)}</p>
+                    <p className="text-2xl sm:text-3xl font-bold">{formatSecondsToString(requiredSecondsToday)}</p>
                 </CardContent>
             </Card>
           </div>
@@ -1046,10 +1059,10 @@ function WorkHoursTrackerPage() {
                                       {(isHoliday || isWeekendDay) && <span className="ml-2 text-xs text-primary font-semibold">(Off)</span>}
                                   </TableCell>
                                   <TableCell className="text-center">{log.startTime ? format(parseISO(log.startTime), 'p') : '--:--'}</TableCell>
-                                  <TableCell className="text-right">{formatSeconds(log.workedSeconds)}</TableCell>
-                                  <TableCell className="text-right">{formatSeconds(log.pauseSeconds)}</TableCell>
+                                  <TableCell className="text-right">{formatSecondsToString(log.workedSeconds)}</TableCell>
+                                  <TableCell className="text-right">{formatSecondsToString(log.pauseSeconds)}</TableCell>
                                   <TableCell className={cn("text-right font-medium", balance < 0 ? 'text-destructive' : 'text-green-500')}>
-                                      {formatSeconds(balance, true)}
+                                      {formatSecondsToString(balance, true)}
                                   </TableCell>
                                   <TableCell className="text-right">
                                     <div className="flex justify-end gap-1">
@@ -1132,14 +1145,14 @@ function WorkHoursTrackerPage() {
                   <div>
                     <span className="text-5xl">🌟</span>
                     <p className="mt-2 text-lg font-semibold text-green-500">
-                      Great job! You have {formatSeconds(monthTotalBalance, true)} extra this month.
+                      Great job! You have {formatSecondsToString(monthTotalBalance, true)} extra this month.
                     </p>
                   </div>
                 ) : (
                   <div>
                     <span className="text-5xl">😟</span>
                     <p className="mt-2 text-lg font-semibold text-destructive">
-                      You're behind by {formatSeconds(monthTotalBalance, true)}. Let's catch up!
+                      You're behind by {formatSecondsToString(monthTotalBalance, true)}. Let's catch up!
                     </p>
                   </div>
                 )}
@@ -1245,19 +1258,19 @@ function WorkHoursTrackerPage() {
                 <div className="space-y-1">
                     <p className="text-sm text-muted-foreground">Balance (This Week)</p>
                     <p className={cn("text-2xl sm:text-3xl font-bold", weekBalance < 0 ? 'text-destructive' : 'text-green-500')}>
-                        {formatSeconds(weekBalance, true)}
+                        {formatSecondsToString(weekBalance, true)}
                     </p>
                 </div>
                 <div className="space-y-1">
                     <p className="text-sm text-muted-foreground">Balance (This Month)</p>
                     <p className={cn("text-2xl sm:text-3xl font-bold", monthTotalBalance < 0 ? 'text-destructive' : 'text-green-500')}>
-                        {formatSeconds(monthTotalBalance, true)}
+                        {formatSecondsToString(monthTotalBalance, true)}
                     </p>
                 </div>
                  <div className="space-y-1">
                     <p className="text-sm text-muted-foreground">Carryover (Until Yesterday)</p>
                     <p className={cn("text-xl font-bold", carryOverBalance < 0 ? 'text-destructive' : 'text-green-500')}>
-                        {formatSeconds(carryOverBalance, true)}
+                        {formatSecondsToString(carryOverBalance, true)}
                     </p>
                 </div>
               </CardContent>
@@ -1364,7 +1377,7 @@ function WorkHoursTrackerPage() {
                 <div className="py-4 text-center space-y-4">
                     <div>
                         <p className="text-sm text-muted-foreground">Total break time today:</p>
-                        <p className="font-bold text-2xl text-primary">{formatSeconds(pauseSeconds)}</p>
+                        <p className="font-bold text-2xl text-primary">{formatSecondsToString(pauseSeconds)}</p>
                     </div>
                 </div>
                 <DialogFooter>

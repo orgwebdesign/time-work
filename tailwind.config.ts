@@ -116,6 +116,11 @@ export default {
             '0%': { opacity: '0', transform: 'translateX(-10px)' },
             '100%': { opacity: '1', transform: 'translateX(0)' },
         },
+        'slide-up-second': {
+            '0%': { transform: 'translateY(100%)', opacity: '0' },
+            '10%, 90%': { transform: 'translateY(0)', opacity: '1' },
+            '100%': { transform: 'translateY(-100%)', opacity: '0' },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
@@ -125,6 +130,7 @@ export default {
         'gradient-pan': 'gradient-pan 20s ease infinite',
         'gentle-float': 'gentle-float 3s ease-in-out infinite',
         'fade-in-slide-right': 'fade-in-slide-right 0.8s ease-out forwards',
+        'slide-up-second': 'slide-up-second 1s ease-in-out forwards',
       },
     },
   },
