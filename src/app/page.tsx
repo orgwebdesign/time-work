@@ -80,6 +80,7 @@ const formatPomodoroTime = (seconds: number): string => {
 const getTodayKey = () => format(new Date(), 'yyyy-MM-dd');
 
 const parseTimeToSeconds = (time: string): number => {
+    if (!time || !/^\d{1,2}:\d{2}$/.test(time)) return 0;
     const parts = time.split(':');
     const hours = parseInt(parts[0], 10) || 0;
     const minutes = parseInt(parts[1], 10) || 0;
@@ -245,13 +246,15 @@ export default function WorkHoursTracker() {
       const storedLog = localStorage.getItem(`worklog-${todayKey}`);
       let currentWorked = 0;
       let currentPause = 0;
+      let loadedDayStartTime = null;
 
       if (storedLog) {
         const data: DailyLog = JSON.parse(storedLog);
         currentWorked = data.workedSeconds || 0;
         currentPause = data.pauseSeconds || 0;
         if (data.startTime) {
-          setDayStartTime(new Date(data.startTime));
+          loadedDayStartTime = new Date(data.startTime);
+          setDayStartTime(loadedDayStartTime);
         }
         if (typeof data.requiredHours === 'number') {
           todaysRequiredHours = data.requiredHours;
@@ -261,19 +264,26 @@ export default function WorkHoursTracker() {
       // Restore timer state
       const storedTimerState = localStorage.getItem(`timerState-${todayKey}`);
       if (storedTimerState) {
-        const timerState: TimerState = JSON.parse(storedTimerState);
-        const now = new Date();
+          const timerState: TimerState = JSON.parse(storedTimerState);
+          const now = new Date();
+          let restoredStatus = timerState.status;
 
-        if (timerState.status === 'running' && timerState.sessionStartTime) {
-          const elapsed = differenceInSeconds(now, new Date(timerState.sessionStartTime));
-          currentWorked += elapsed;
-          setSessionStartTime(now); // Restart session from now
-        } else if (timerState.status === 'on_break' && timerState.breakStartTime) {
-          const elapsed = differenceInSeconds(now, new Date(timerState.breakStartTime));
-          currentPause += elapsed;
-          setBreakStartTime(now); // Restart break from now
-        }
-        setStatus(timerState.status);
+          // If app was closed while timer was running, calculate elapsed time
+          if (restoredStatus === 'running' && timerState.sessionStartTime) {
+              const elapsed = differenceInSeconds(now, new Date(timerState.sessionStartTime));
+              currentWorked += elapsed;
+              setSessionStartTime(now); 
+          } else if (restoredStatus === 'on_break' && timerState.breakStartTime) {
+              const elapsed = differenceInSeconds(now, new Date(timerState.breakStartTime));
+              currentPause += elapsed;
+              setBreakStartTime(now);
+          } else {
+             // If status was running but no session start time, something is off. Reset.
+             if (restoredStatus !== 'stopped') {
+                 restoredStatus = 'stopped';
+             }
+          }
+          setStatus(restoredStatus);
       }
       
       setWorkedSeconds(currentWorked);
@@ -329,12 +339,12 @@ export default function WorkHoursTracker() {
     
     let currentWorked = workedSeconds;
     if (status === 'running' && sessionStartTime) {
-      currentWorked = workedSeconds + differenceInSeconds(new Date(), sessionStartTime);
+      currentWorked = workedSeconds; // This is now updated by the timer effect, don't add diff here
     }
 
     let currentPause = pauseSeconds;
     if (status === 'on_break' && breakStartTime) {
-      currentPause = pauseSeconds + differenceInSeconds(new Date(), breakStartTime);
+      currentPause = pauseSeconds; // Also updated by timer effect
     }
 
     const log: DailyLog = { 
@@ -369,14 +379,30 @@ export default function WorkHoursTracker() {
 
   // Autosave every 10 seconds while timer is active
   useEffect(() => {
-    if (status === 'stopped') return;
+    if (status === 'stopped' || !isClient) return;
 
     const intervalId = setInterval(() => {
       saveData();
     }, 10000); // 10 seconds
 
     return () => clearInterval(intervalId);
-  }, [status, saveData]);
+  }, [status, saveData, isClient]);
+  
+  // The main timer loop that updates seconds state
+  useEffect(() => {
+    const timerIntervalId = setInterval(() => {
+      setCurrentTime(new Date());
+      if (status === 'running' && sessionStartTime) {
+          setWorkedSeconds(prev => prev + 1);
+      } else if (status === 'on_break' && breakStartTime) {
+          setPauseSeconds(prev => prev + 1);
+      }
+    }, 1000);
+
+    return () => {
+        clearInterval(timerIntervalId);
+    };
+  }, [status, sessionStartTime, breakStartTime]);
 
   // Final save when stopping the timer or when critical states change while stopped
   useEffect(() => {
@@ -385,10 +411,10 @@ export default function WorkHoursTracker() {
     // Save data whenever a critical state changes
     saveData();
     
-  }, [workedSeconds, pauseSeconds, dayStartTime, requiredHours, isClient, status, activityLog, sessionStartTime, breakStartTime, saveData]);
+  }, [requiredHours, isClient, status, activityLog, saveData, dayStartTime]);
 
   
-  // The main timer loop
+  // The secondary effects loop for weather etc.
   useEffect(() => {
     const fetchWeather = () => {
       const now = new Date();
@@ -436,23 +462,12 @@ export default function WorkHoursTracker() {
     fetchWeather();
     const weatherIntervalId = setInterval(fetchWeather, 60000); // Update weather every minute
 
-
-    const timerIntervalId = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 1000);
-
     return () => {
         clearInterval(weatherIntervalId);
-        clearInterval(timerIntervalId);
     };
   }, []);
   
-  const currentWorkedSeconds = useMemo(() => {
-      if (status === 'running' && sessionStartTime) {
-          return workedSeconds + differenceInSeconds(new Date(), sessionStartTime);
-      }
-      return workedSeconds;
-  }, [workedSeconds, sessionStartTime, status, currentTime]);
+  const currentWorkedSeconds = workedSeconds;
 
 
   const requiredSecondsToday = requiredHours * 3600;
@@ -523,50 +538,36 @@ export default function WorkHoursTracker() {
       setDayStartTime(now);
     }
     setStatus('running');
+    setBreakStartTime(null);
     addActivity('Start Day');
   };
   
   const handlePause = () => {
-    if (status !== 'running' || !sessionStartTime) return;
+    if (status !== 'running') return;
     const now = new Date();
-    const elapsed = differenceInSeconds(now, sessionStartTime);
-    setWorkedSeconds(prev => prev + elapsed);
     setBreakStartTime(now);
-    setSessionStartTime(null);
     setStatus('on_break');
+    setSessionStartTime(null);
     addActivity('Take a Break');
   };
 
   const handleResume = () => {
-    if (status !== 'on_break' || !breakStartTime) return;
+    if (status !== 'on_break') return;
     const now = new Date();
-    const breakDuration = differenceInSeconds(now, breakStartTime);
-    setPauseSeconds(prev => prev + breakDuration);
     setSessionStartTime(now);
-    setBreakStartTime(null);
     setStatus('running');
+    setBreakStartTime(null);
     addActivity('Resume Work');
   };
 
   const handleStop = () => {
     if (status === 'stopped') return;
-
-    let finalWorkedSeconds = workedSeconds;
-    if (status === 'running' && sessionStartTime) {
-      finalWorkedSeconds += differenceInSeconds(new Date(), sessionStartTime);
-    }
-    let finalPauseSeconds = pauseSeconds;
-    if (status === 'on_break' && breakStartTime) {
-        finalPauseSeconds += differenceInSeconds(new Date(), breakStartTime);
-    }
-
-    setWorkedSeconds(finalWorkedSeconds);
-    setPauseSeconds(finalPauseSeconds);
     
     setStatus('stopped');
     setSessionStartTime(null);
     setBreakStartTime(null);
     addActivity('End Day');
+    saveData(); // Final save on stop
   };
 
   const handleOpenEditModal = (field: 'worked' | 'pause' | 'required' | 'start') => {
@@ -1315,3 +1316,6 @@ export default function WorkHoursTracker() {
   );
 }
 
+
+
+    
