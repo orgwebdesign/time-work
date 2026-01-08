@@ -1,12 +1,12 @@
 "use client"
 
-import { TopNavbar } from "@/components/top-navbar"
+import { BottomNavbar } from "@/components/bottom-navbar"
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
-      <TopNavbar />
-      <main className="pt-20">{children}</main>
+      <main>{children}</main>
+      <BottomNavbar />
     </>
   )
 }
