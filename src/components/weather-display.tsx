@@ -54,9 +54,9 @@ export default function WeatherDisplay({ weather, time, timerControls }: Weather
               <p className="text-muted-foreground">{weather.location}</p>
             </div>
             <div className="flex items-center gap-4">
-              <p className="text-3xl sm:text-4xl font-bold tracking-tighter">{weather.temperature}°C</p>
+              <p className="text-3xl sm:text-4xl font-bold tracking-tighter animate-fade-in-slide-right">{weather.temperature}°C</p>
               <div className="text-center">
-                <WeatherIcon className="size-8 sm:size-10 text-foreground" />
+                <WeatherIcon className="size-8 sm:size-10 text-foreground animate-gentle-float" />
                 <p className="text-xs text-muted-foreground">{weather.condition}</p>
               </div>
             </div>

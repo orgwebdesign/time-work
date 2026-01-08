@@ -1,3 +1,4 @@
+
 import type {Config} from 'tailwindcss';
 
 export default {
@@ -107,6 +108,14 @@ export default {
           '50%': { backgroundPosition: '100% 50%' },
           '100%': { backgroundPosition: '0% 50%' },
         },
+        'gentle-float': {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-4px)' },
+        },
+        'fade-in-slide-right': {
+            '0%': { opacity: '0', transform: 'translateX(-10px)' },
+            '100%': { opacity: '1', transform: 'translateX(0)' },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
@@ -114,6 +123,8 @@ export default {
         'alarm-flash': 'alarm-flash 1.5s ease-in-out',
         'spin-slow': 'spin-slow 20s linear infinite',
         'gradient-pan': 'gradient-pan 20s ease infinite',
+        'gentle-float': 'gentle-float 3s ease-in-out infinite',
+        'fade-in-slide-right': 'fade-in-slide-right 0.8s ease-out forwards',
       },
     },
   },
