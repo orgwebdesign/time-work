@@ -1157,24 +1157,6 @@ function WorkHoursTrackerPage() {
         </div>
 
 
-        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50">
-            <Card className="glass-card">
-                <CardContent className="p-2">
-                    <div className="flex items-center gap-2">
-                        <Button asChild variant="ghost" size="icon" className="rounded-full h-12 w-12 bg-primary text-primary-foreground shadow-lg">
-                           <Link href="/"><User className="w-6 h-6"/></Link>
-                        </Button>
-                        <Button asChild variant="ghost" size="icon" className="rounded-full h-12 w-12">
-                           <Link href="/"><CalendarIconLucid className="w-6 h-6"/></Link>
-                        </Button>
-                         <Button asChild variant="ghost" size="icon" className="rounded-full h-12 w-12">
-                           <Link href="/"><BarChart className="w-6 h-6"/></Link>
-                        </Button>
-                    </div>
-                </CardContent>
-            </Card>
-        </div>
-
         <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
             <DialogContent>
                 <DialogHeader>
