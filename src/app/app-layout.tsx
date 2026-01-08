@@ -6,7 +6,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
       <TopNavbar />
-      <main>{children}</main>
+      <main className="pt-20">{children}</main>
     </>
   )
 }
