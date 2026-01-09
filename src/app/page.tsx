@@ -598,14 +598,21 @@ function WorkHoursTrackerPage() {
   const handleSaveEdit = () => {
     const newSeconds = parseTimeToSeconds(editTimeValue);
     if (editingField === 'worked') {
-        setWorkedSeconds(newSeconds);
+      setWorkedSeconds(newSeconds);
     } else if (editingField === 'pause') {
-        setPauseSeconds(newSeconds);
+      setPauseSeconds(newSeconds);
     } else if (editingField === 'required') {
-        const hours = newSeconds / 3600;
-        setRequiredHours(hours);
+      const hours = newSeconds / 3600;
+      setRequiredHours(hours);
     } else if (editingField === 'start') {
-        setDayStartTime(parseTimeStringToDate(editTimeValue, dayStartTime || new Date()));
+      const now = new Date();
+      const newStartTime = parseTimeStringToDate(editTimeValue, dayStartTime || now);
+      const newWorkedSeconds = differenceInSeconds(now, newStartTime);
+      
+      setDayStartTime(newStartTime);
+      // Recalculate worked seconds from new start time until now, assuming no break.
+      setWorkedSeconds(newWorkedSeconds > 0 ? newWorkedSeconds : 0);
+      setPauseSeconds(0); // Reset pause time as we are creating a new continuous work block
     }
     setIsEditModalOpen(false);
     setEditingField(null);
@@ -930,17 +937,7 @@ function WorkHoursTrackerPage() {
   );
   
   const { h, m, s } = formatSeconds(currentWorkedSeconds);
-
-  const timerColorClass = useMemo(() => {
-    const secondsRemaining = requiredSecondsToday - currentWorkedSeconds;
-    if (requiredSecondsToday > 0 && currentWorkedSeconds >= requiredSecondsToday) {
-      return 'bg-destructive/80 text-destructive-foreground'; // Red
-    }
-    if (requiredSecondsToday > 0 && secondsRemaining <= 30 * 60) {
-      return 'bg-amber-500/80 text-amber-900'; // Amber/Orange
-    }
-    return 'bg-primary/80 text-primary-foreground'; // Default blue
-  }, [currentWorkedSeconds, requiredSecondsToday]);
+  const isGoalMet = requiredSecondsToday > 0 && currentWorkedSeconds >= requiredSecondsToday;
 
   if (!isClient) {
     return <div className="min-h-screen bg-background" />;
@@ -975,13 +972,19 @@ function WorkHoursTrackerPage() {
             </Card>
 
             <Card className="glass-card lg:col-span-2 row-span-2 flex flex-col items-center justify-center p-6">
-                <div className={cn("flex items-baseline justify-center w-full max-w-sm rounded-lg p-4 transition-colors duration-500", timerColorClass)}>
-                    <span className="text-4xl sm:text-6xl font-bold tracking-tighter">{h}</span>
-                    <span className="text-xl sm:text-2xl font-medium text-white/80 mr-2">h</span>
-                    <span className="text-4xl sm:text-6xl font-bold tracking-tighter">{m}</span>
-                    <span className="text-xl sm:text-2xl font-medium text-white/80 mr-2">m</span>
-                    <span className="text-4xl sm:text-6xl font-bold tracking-tighter w-[3.5rem] sm:w-[5.5rem]">{s}</span>
-                    <span className="text-xl sm:text-2xl font-medium text-white/80">s</span>
+                <div className={cn(
+                    "relative w-full max-w-sm rounded-lg p-1",
+                    isGoalMet ? "bg-gradient-to-r from-purple-500 via-pink-500 to-red-500 animate-border-spin" : "bg-border/30"
+                  )}>
+                  <div className="bg-card rounded-md p-4">
+                    <div className="flex items-baseline justify-center">
+                        <span className="text-4xl sm:text-6xl font-bold tracking-tighter">{h}</span>
+                        <span className="text-2xl sm:text-4xl font-medium text-muted-foreground mx-1">:</span>
+                        <span className="text-4xl sm:text-6xl font-bold tracking-tighter">{m}</span>
+                        <span className="text-2xl sm:text-4xl font-medium text-muted-foreground mx-1">:</span>
+                        <span className="text-4xl sm:text-6xl font-bold tracking-tighter w-[3.5rem] sm:w-[5.5rem]">{s}</span>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="mt-4 flex items-center justify-center gap-1">
@@ -1430,3 +1433,5 @@ export default function WorkHoursTracker() {
     </AppLayout>
   );
 }
+
+    
