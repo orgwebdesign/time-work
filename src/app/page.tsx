@@ -597,23 +597,32 @@ function WorkHoursTrackerPage() {
   
   const handleSaveEdit = () => {
     const newSeconds = parseTimeToSeconds(editTimeValue);
+    const now = new Date();
+    
     if (editingField === 'worked') {
       setWorkedSeconds(newSeconds);
     } else if (editingField === 'pause') {
-      setPauseSeconds(newSeconds);
+      const newPauseSeconds = newSeconds;
+      setPauseSeconds(newPauseSeconds);
+      // Recalculate worked seconds based on new pause time
+      if (dayStartTime) {
+        const totalElapsed = differenceInSeconds(now, dayStartTime);
+        const newWorkedSeconds = totalElapsed - newPauseSeconds;
+        setWorkedSeconds(newWorkedSeconds > 0 ? newWorkedSeconds : 0);
+      }
     } else if (editingField === 'required') {
       const hours = newSeconds / 3600;
       setRequiredHours(hours);
     } else if (editingField === 'start') {
-      const now = new Date();
       const newStartTime = parseTimeStringToDate(editTimeValue, dayStartTime || now);
-      const newWorkedSeconds = differenceInSeconds(now, newStartTime);
-      
       setDayStartTime(newStartTime);
-      // Recalculate worked seconds from new start time until now, assuming no break.
+      
+      // Recalculate worked seconds from new start time until now, accounting for existing pause.
+      const totalElapsed = differenceInSeconds(now, newStartTime);
+      const newWorkedSeconds = totalElapsed - pauseSeconds;
       setWorkedSeconds(newWorkedSeconds > 0 ? newWorkedSeconds : 0);
-      setPauseSeconds(0); // Reset pause time as we are creating a new continuous work block
     }
+
     setIsEditModalOpen(false);
     setEditingField(null);
     // saveData() is called via useEffect on state change
@@ -1433,5 +1442,7 @@ export default function WorkHoursTracker() {
     </AppLayout>
   );
 }
+
+    
 
     
