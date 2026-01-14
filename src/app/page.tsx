@@ -1242,8 +1242,8 @@ function WorkHoursTrackerPage() {
                 </CardHeader>
                 <CardContent>
                      <div className="h-60 w-full">
-                        <ResponsiveContainer>
-                             <ChartContainer config={{ hours: { label: 'Hours', color: 'hsl(var(--primary))' } }}>
+                        <ChartContainer config={{ hours: { label: 'Hours', color: 'hsl(var(--primary))' } }}>
+                            <ResponsiveContainer>
                                 <BarChart data={weeklyChartData} margin={{ top: 20, right: 20, left: -20, bottom: 5 }}>
                                     <CartesianGrid vertical={false} strokeDasharray="3 3" />
                                     <XAxis dataKey="name" tickLine={false} axisLine={false} tickMargin={8} />
@@ -1251,8 +1251,8 @@ function WorkHoursTrackerPage() {
                                     <ChartTooltip content={<ChartTooltipContent />} />
                                     <Bar dataKey="hours" fill="var(--color-hours)" radius={4} />
                                 </BarChart>
-                            </ChartContainer>
-                        </ResponsiveContainer>
+                            </ResponsiveContainer>
+                        </ChartContainer>
                     </div>
                     <div className="mt-4 flex justify-around text-center">
                         <div>
