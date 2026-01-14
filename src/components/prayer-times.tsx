@@ -152,10 +152,10 @@ export default function PrayerTimes({ onTakeSalatBreak, isHidden }: PrayerTimesP
       setNextPrayerCountdown(countdownSeconds);
       setNextPrayerName(nextPrayer.name);
 
-      if (countdownSeconds <= 0 && countdownSeconds > -1) {
+      if (countdownSeconds <= 0 && countdownSeconds > -3) { // Window of 3s
           setActivePrayer(nextPrayer.name);
           if(activePrayerTimer) clearTimeout(activePrayerTimer);
-          const timer = setTimeout(() => setActivePrayer(null), 5 * 60 * 1000); // 5 minutes
+          const timer = setTimeout(() => setActivePrayer(null), 5 * 60 * 1000); // Active for 5 minutes
           setActivePrayerTimer(timer);
       }
 
@@ -201,26 +201,28 @@ export default function PrayerTimes({ onTakeSalatBreak, isHidden }: PrayerTimesP
         )}
       </CardHeader>
       <CardContent>
+        {activePrayer && (
+             <div className="mb-4">
+                <Button onClick={onTakeSalatBreak} className="w-full relative overflow-hidden bg-gradient-to-r from-primary via-accent to-primary-foreground text-primary-foreground animate-gradient-pan shadow-lg">
+                    <span className="absolute inset-0 bg-black/20"></span>
+                    <span className="relative z-10">✨ Time for {activePrayer} - Take a Break</span>
+                </Button>
+            </div>
+        )}
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 text-center">
           {prayerTimes.map(prayer => {
             const Icon = prayerIcons[prayer.name];
-            const isActive = activePrayer === prayer.name;
             return (
               <div
                 key={prayer.name}
                 className={cn(
                   "p-4 rounded-lg border border-transparent transition-all flex flex-col items-center justify-center gap-2",
-                  isActive && "animate-alarm-flash border-primary bg-primary/10"
+                  activePrayer === prayer.name && "bg-primary/10 border-primary"
                 )}
               >
                 <Icon className="mx-auto h-8 w-8 text-muted-foreground" />
                 <p className="font-semibold">{prayer.name}</p>
                 <p className="text-lg font-bold text-primary">{prayer.time}</p>
-                {isActive && (
-                    <Button onClick={onTakeSalatBreak} size="sm" className="mt-2 text-xs">
-                        <Hand className="mr-2 h-4 w-4" /> Take Salat Break
-                    </Button>
-                )}
               </div>
             );
           })}

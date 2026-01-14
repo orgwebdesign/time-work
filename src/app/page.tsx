@@ -197,6 +197,7 @@ function WorkHoursTrackerPage() {
   const [isFocusMode, setIsFocusMode] = useState(false);
   const [isSalatBreak, setIsSalatBreak] = useState(false);
   const [salatBreakSecondsLeft, setSalatBreakSecondsLeft] = useState(15 * 60);
+  const [salatBreakFinished, setSalatBreakFinished] = useState(false);
   const [randomQuote, setRandomQuote] = useState('');
 
   const loadAllLogs = useCallback(() => {
@@ -956,21 +957,25 @@ function WorkHoursTrackerPage() {
             handlePause();
         }
         setIsSalatBreak(true);
+        setSalatBreakFinished(false);
         setSalatBreakSecondsLeft(15 * 60);
     };
 
     useEffect(() => {
-        if(isSalatBreak) {
+        if(isSalatBreak && !salatBreakFinished) {
             const interval = setInterval(() => {
                 setSalatBreakSecondsLeft(prev => {
                     if (prev <= 1) {
                         clearInterval(interval);
-                        setIsSalatBreak(false);
-                        // Optional: auto-resume work
-                        if (status === 'on_break') {
-                            // Can't auto-resume without user interaction due to browser policies on audio/etc
-                            alert("Salat break finished. Time to resume work!");
-                        }
+                        setSalatBreakFinished(true);
+                        
+                        getTaskAlarm('Salat break finished').then(alarmData => {
+                            if (alarmData && audioRef.current) {
+                                audioRef.current.src = alarmData.audioDataUri;
+                                audioRef.current.play().catch(e => console.error("Audio playback failed:", e));
+                            }
+                        });
+
                         return 0;
                     }
                     return prev - 1;
@@ -978,7 +983,7 @@ function WorkHoursTrackerPage() {
             }, 1000);
             return () => clearInterval(interval);
         }
-    }, [isSalatBreak, status]);
+    }, [isSalatBreak, salatBreakFinished]);
     
     const weeklyChartData = useMemo(() => {
         const today = new Date();
@@ -1080,10 +1085,14 @@ function WorkHoursTrackerPage() {
                 timerControls={timerControls}
                 isFocusMode={isFocusMode}
              >
+              {isFocusMode ? (
+                  <Button onClick={() => toggleFocusMode(false)} variant="ghost" className="text-muted-foreground hover:text-foreground">Exit Focus</Button>
+              ) : (
                 <div className="flex items-center gap-2">
                     <Label htmlFor="focus-mode-switch" className="text-sm font-medium text-muted-foreground">Focus Mode</Label>
                     <Switch id="focus-mode-switch" checked={isFocusMode} onCheckedChange={toggleFocusMode} />
                 </div>
+              )}
              </WeatherDisplay>
          </div>
 
@@ -1587,23 +1596,37 @@ function WorkHoursTrackerPage() {
                         Salat Break
                     </DialogTitle>
                     <DialogDescription className="pt-4 text-center text-lg text-foreground/90">
-                        Break time. Re-center and come back refreshed.
+                        Time to pray and hydrate 💧
                     </DialogDescription>
                 </DialogHeader>
                 <div className="py-4 text-center space-y-4">
-                    <p className="text-6xl font-bold tracking-tighter font-mono">
-                        {formatPomodoroTime(salatBreakSecondsLeft)}
-                    </p>
-                    <Alert className="text-left bg-blue-500/10 border-blue-500/30">
-                        <Droplet className="h-4 w-4 text-blue-500" />
-                        <AlertTitle>Reminder</AlertTitle>
-                        <AlertDescription>
-                            Don't forget to drink some water!
-                        </AlertDescription>
-                    </Alert>
+                    {salatBreakFinished ? (
+                         <div className="flex flex-col items-center gap-4">
+                            <p className="font-semibold text-primary">Break finished. Time to get back to it!</p>
+                             <Button onClick={() => {
+                                 setIsSalatBreak(false);
+                                 handleResume();
+                             }}>
+                                Resume Work
+                            </Button>
+                         </div>
+                    ) : (
+                        <>
+                         <p className="text-6xl font-bold tracking-tighter font-mono">
+                            {formatPomodoroTime(salatBreakSecondsLeft)}
+                        </p>
+                        <Alert className="text-left bg-blue-500/10 border-blue-500/30">
+                            <Droplet className="h-4 w-4 text-blue-500" />
+                            <AlertTitle>Reminder</AlertTitle>
+                            <AlertDescription>
+                                Don't forget to drink some water!
+                            </AlertDescription>
+                        </Alert>
+                        </>
+                    )}
                 </div>
                 <DialogFooter>
-                    <Button type="button" className="w-full" onClick={() => setIsSalatBreak(false)}>End Break Early</Button>
+                    <Button type="button" variant="ghost" className="w-full" onClick={() => setIsSalatBreak(false)}>End Break Early</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
@@ -1627,7 +1650,7 @@ function WorkHoursTrackerPage() {
               </DialogFooter>
           </DialogContent>
         </Dialog>
-
+        <audio ref={audioRef} />
       </div>
     </div>
   );

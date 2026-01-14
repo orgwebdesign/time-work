@@ -4,7 +4,7 @@
  *
  * - generateTaskAlarm - A function that handles the alarm generation process.
  * - GenerateTaskAlarmInput - The input type for the generateTaskAlarm function.
- * - GenerateTaskAlarmOutput - The return type for the generateTaskAlarm function.
+ * - GenerateTaskAlarmOutput - The return type for the generateTaskalarm function.
  */
 
 import {ai} from '@/ai/genkit';
@@ -69,6 +69,8 @@ const generateTaskAlarmFlow = ai.defineFlow(
       
     const audioPrompt = taskDescription.startsWith('Goal Met:')
        ? `A pleasant, short, rewarding sound for completing a daily goal.`
+       : taskDescription.startsWith('Salat break finished')
+       ? `A subtle, pleasant notification sound to signal the end of a break.`
        : `Time is up for your task: ${taskDescription}. You can do this!`;
 
 
