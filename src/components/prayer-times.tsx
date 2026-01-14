@@ -45,8 +45,9 @@ export default function PrayerTimes() {
 
   useEffect(() => {
     async function fetchPrayerTimes() {
+      setLoading(true);
       try {
-        const response = await fetch('http://api.aladhan.com/v1/timingsByCity?city=Marrakech&country=Morocco&method=3');
+        const response = await fetch('https://api.aladhan.com/v1/timingsByCity?city=Marrakech&country=Morocco&method=3');
         if (!response.ok) {
           throw new Error('Failed to fetch prayer times, using fallback.');
         }
@@ -69,6 +70,17 @@ export default function PrayerTimes() {
       }
     }
     fetchPrayerTimes();
+    
+    // Refetch every day at midnight
+    const intervalId = setInterval(() => {
+        const now = new Date();
+        if (now.getHours() === 0 && now.getMinutes() === 0) {
+            fetchPrayerTimes();
+        }
+    }, 60000); // Check every minute
+
+    return () => clearInterval(intervalId);
+
   }, []);
 
   useEffect(() => {

@@ -375,7 +375,7 @@ function WorkHoursTrackerPage() {
         // Update history in state as well for reactivity
         setHistory(prevHistory => {
             const otherDays = prevHistory.filter(h => h.date !== todayKey);
-            return [log, ...otherDays].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+            return [log, ...otherDays].sort((a, b) => new Date(b.date).getTime() - new Date(b.date).getTime());
         });
     } catch(e) {
         console.error("Failed to save log to localStorage", e);
@@ -987,7 +987,7 @@ function WorkHoursTrackerPage() {
                     isGoalMet ? "bg-gradient-to-r from-purple-500 via-pink-500 to-red-500 animate-border-spin" : "bg-border/30"
                   )}>
                   <div className="bg-card rounded-md p-4">
-                    <div className="flex items-baseline justify-center">
+                    <div className="flex items-baseline justify-center font-mono">
                         <span className="text-4xl sm:text-6xl font-bold tracking-tighter">{h}</span>
                         <span className="text-2xl sm:text-4xl font-medium text-muted-foreground mx-1">:</span>
                         <span className="text-4xl sm:text-6xl font-bold tracking-tighter">{m}</span>
