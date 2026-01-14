@@ -1446,9 +1446,3 @@ export default function WorkHoursTracker() {
     </AppLayout>
   );
 }
-
-    
-
-    
-
-    

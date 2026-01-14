@@ -29,10 +29,18 @@ const prayerIcons: { [key: string]: React.ElementType } = {
   Isha: Sparkles,
 };
 
+// Fallback data in case the API fails
+const fallbackPrayerTimes: PrayerTime[] = [
+    { name: 'Fajr', time: '05:30' },
+    { name: 'Dhuhr', time: '13:30' },
+    { name: 'Asr', time: '17:00' },
+    { name: 'Maghrib', time: '19:45' },
+    { name: 'Isha', time: '21:00' },
+];
+
 export default function PrayerTimes() {
   const [prayerTimes, setPrayerTimes] = useState<PrayerTime[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [activePrayer, setActivePrayer] = useState<string | null>(null);
 
   useEffect(() => {
@@ -40,7 +48,7 @@ export default function PrayerTimes() {
       try {
         const response = await fetch('http://api.aladhan.com/v1/timingsByCity?city=Marrakech&country=Morocco&method=2');
         if (!response.ok) {
-          throw new Error('Failed to fetch prayer times');
+          throw new Error('Failed to fetch prayer times, using fallback.');
         }
         const data = await response.json();
         const timings = data.data.timings;
@@ -54,7 +62,8 @@ export default function PrayerTimes() {
         
         setPrayerTimes(formattedTimes);
       } catch (err: any) {
-        setError(err.message);
+        console.warn(err.message);
+        setPrayerTimes(fallbackPrayerTimes); // Set fallback data on error
       } finally {
         setLoading(false);
       }
@@ -67,17 +76,50 @@ export default function PrayerTimes() {
 
     const intervalId = setInterval(() => {
       const now = new Date();
-      let currentActivePrayer = null;
+      let currentActivePrayer: string | null = null;
+      let nextPrayerTime: Date | null = null;
 
-      prayerTimes.forEach(prayer => {
-        const prayerTime = parse(prayer.time, 'HH:mm', new Date());
-        const diff = differenceInSeconds(now, prayerTime);
-        
-        // If the prayer time is within the last 5 minutes
-        if (diff >= 0 && diff < 300) { // 5 minutes * 60 seconds
-          currentActivePrayer = prayer.name;
-        }
+      // Find the next upcoming prayer
+      for (const prayer of prayerTimes) {
+          const prayerTime = parse(prayer.time, 'HH:mm', now);
+          if (prayerTime > now) {
+              nextPrayerTime = prayerTime;
+              break;
+          }
+      }
+      
+      // If no upcoming prayer today, the next one is Fajr tomorrow
+      if (!nextPrayerTime) {
+          const fajrTomorrow = parse(prayerTimes[0].time, 'HH:mm', new Date(now.getTime() + 24 * 60 * 60 * 1000));
+          nextPrayerTime = fajrTomorrow;
+      }
+      
+      // Determine the current prayer based on the time since the last prayer
+      let lastPrayerTime: Date | null = null;
+      let lastPrayerName: string | null = null;
+
+      [...prayerTimes].reverse().forEach(p => {
+          const pTime = parse(p.time, 'HH:mm', now);
+          if (pTime <= now && !lastPrayerTime) {
+              lastPrayerTime = pTime;
+              lastPrayerName = p.name;
+          }
       });
+      
+      // If it's before Fajr
+      if (!lastPrayerTime) {
+          const ishaYesterday = parse(prayerTimes[4].time, 'HH:mm', new Date(now.getTime() - 24 * 60 * 60 * 1000));
+          lastPrayerTime = ishaYesterday;
+          lastPrayerName = prayerTimes[4].name;
+      }
+
+      if (lastPrayerTime && lastPrayerName) {
+        const diff = differenceInSeconds(now, lastPrayerTime);
+        // Activate glow for 5 minutes after prayer time starts
+        if (diff >= 0 && diff < 300) { // 5 minutes * 60 seconds
+          currentActivePrayer = lastPrayerName;
+        }
+      }
 
       setActivePrayer(currentActivePrayer);
     }, 1000); // Check every second
@@ -100,26 +142,13 @@ export default function PrayerTimes() {
     );
   }
 
-  if (error) {
-    return (
-        <Card className="glass-card">
-            <CardHeader>
-            <CardTitle>Prayer Times</CardTitle>
-            </CardHeader>
-            <CardContent>
-            <p className="text-destructive text-center">{error}</p>
-            </CardContent>
-        </Card>
-    );
-  }
-
   return (
     <Card className="glass-card">
       <CardHeader>
         <CardTitle>Prayer Times - Marrakech</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-center">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 text-center">
           {prayerTimes.map(prayer => {
             const Icon = prayerIcons[prayer.name];
             const isActive = activePrayer === prayer.name;
@@ -128,7 +157,7 @@ export default function PrayerTimes() {
                 key={prayer.name}
                 className={cn(
                   "p-4 rounded-lg border border-transparent transition-all",
-                  isActive && "animate-alarm-flash border-primary"
+                  isActive && "animate-alarm-flash border-primary bg-primary/10"
                 )}
               >
                 <Icon className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
@@ -142,5 +171,3 @@ export default function PrayerTimes() {
     </Card>
   );
 }
-
-    
