@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Sunrise, Sun, Sunset, Moon, Sparkles } from 'lucide-react';
+import { Sunrise, Sun, Sunset, Moon, Sparkles, MapPin } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { differenceInSeconds, parse } from 'date-fns';
 
@@ -42,12 +42,33 @@ export default function PrayerTimes() {
   const [prayerTimes, setPrayerTimes] = useState<PrayerTime[]>([]);
   const [loading, setLoading] = useState(true);
   const [activePrayer, setActivePrayer] = useState<string | null>(null);
+  const [locationName, setLocationName] = useState('Marrakech, Morocco');
+  const [isLocationEnabled, setIsLocationEnabled] = useState(false);
 
   useEffect(() => {
-    async function fetchPrayerTimes() {
+    async function fetchPrayerTimesByCity() {
+      await fetchPrayerTimes('https://api.aladhan.com/v1/timingsByCity?city=Marrakech&country=Morocco&method=3');
+      setLocationName('Marrakech, Morocco');
+      setIsLocationEnabled(false);
+    }
+    
+    async function fetchPrayerTimesByCoords(lat: number, lon: number) {
+      await fetchPrayerTimes(`https://api.aladhan.com/v1/timings?latitude=${lat}&longitude=${lon}&method=3`);
+      try {
+        const response = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`);
+        const data = await response.json();
+        setLocationName(data.city || 'Your Location');
+        setIsLocationEnabled(true);
+      } catch {
+        setLocationName('Your Location');
+        setIsLocationEnabled(true);
+      }
+    }
+
+    async function fetchPrayerTimes(url: string) {
       setLoading(true);
       try {
-        const response = await fetch('https://api.aladhan.com/v1/timingsByCity?city=Marrakech&country=Morocco&method=3');
+        const response = await fetch(url);
         if (!response.ok) {
           throw new Error('Failed to fetch prayer times, using fallback.');
         }
@@ -57,30 +78,34 @@ export default function PrayerTimes() {
         const formattedTimes = relevantPrayers
           .map(name => ({
             name,
-            time: timings[name].split(' ')[0], // "05:48 (CET)" -> "05:48"
+            time: timings[name].split(' ')[0],
           }))
           .sort((a, b) => prayerOrder[a.name] - prayerOrder[b.name]);
         
         setPrayerTimes(formattedTimes);
       } catch (err: any) {
         console.warn(err.message);
-        setPrayerTimes(fallbackPrayerTimes); // Set fallback data on error
+        setPrayerTimes(fallbackPrayerTimes);
       } finally {
         setLoading(false);
       }
     }
-    fetchPrayerTimes();
-    
-    // Refetch every day at midnight
-    const intervalId = setInterval(() => {
-        const now = new Date();
-        if (now.getHours() === 0 && now.getMinutes() === 0) {
-            fetchPrayerTimes();
+
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          fetchPrayerTimesByCoords(position.coords.latitude, position.coords.longitude);
+        },
+        () => {
+          // User denied or error occurred, fetch for default city
+          fetchPrayerTimesByCity();
         }
-    }, 60000); // Check every minute
-
-    return () => clearInterval(intervalId);
-
+      );
+    } else {
+      // Geolocation not supported
+      fetchPrayerTimesByCity();
+    }
+    
   }, []);
 
   useEffect(() => {
@@ -89,24 +114,7 @@ export default function PrayerTimes() {
     const intervalId = setInterval(() => {
       const now = new Date();
       let currentActivePrayer: string | null = null;
-      let nextPrayerTime: Date | null = null;
-
-      // Find the next upcoming prayer
-      for (const prayer of prayerTimes) {
-          const prayerTime = parse(prayer.time, 'HH:mm', now);
-          if (prayerTime > now) {
-              nextPrayerTime = prayerTime;
-              break;
-          }
-      }
       
-      // If no upcoming prayer today, the next one is Fajr tomorrow
-      if (!nextPrayerTime) {
-          const fajrTomorrow = parse(prayerTimes[0].time, 'HH:mm', new Date(now.getTime() + 24 * 60 * 60 * 1000));
-          nextPrayerTime = fajrTomorrow;
-      }
-      
-      // Determine the current prayer based on the time since the last prayer
       let lastPrayerTime: Date | null = null;
       let lastPrayerName: string | null = null;
 
@@ -118,7 +126,6 @@ export default function PrayerTimes() {
           }
       });
       
-      // If it's before Fajr
       if (!lastPrayerTime) {
           const ishaYesterday = parse(prayerTimes[4].time, 'HH:mm', new Date(now.getTime() - 24 * 60 * 60 * 1000));
           lastPrayerTime = ishaYesterday;
@@ -127,7 +134,6 @@ export default function PrayerTimes() {
 
       if (lastPrayerTime && lastPrayerName) {
         const diff = differenceInSeconds(now, lastPrayerTime);
-        // Activate glow for 5 minutes after prayer time starts
         if (diff >= 0 && diff < 300) { // 5 minutes * 60 seconds
           currentActivePrayer = lastPrayerName;
         }
@@ -143,7 +149,9 @@ export default function PrayerTimes() {
     return (
       <Card className="glass-card">
         <CardHeader>
-          <CardTitle>Prayer Times</CardTitle>
+           <CardTitle className="flex items-center gap-2">
+            Prayer Times - <Skeleton className="h-5 w-32" />
+          </CardTitle>
         </CardHeader>
         <CardContent className="grid grid-cols-2 md:grid-cols-5 gap-4">
           {Array(5).fill(0).map((_, i) => (
@@ -157,7 +165,10 @@ export default function PrayerTimes() {
   return (
     <Card className="glass-card">
       <CardHeader>
-        <CardTitle>Prayer Times - Marrakech</CardTitle>
+        <CardTitle className="flex items-center gap-2">
+            <MapPin className={cn("w-5 h-5 text-muted-foreground", isLocationEnabled && "text-blue-500")} />
+            Prayer Times - {locationName}
+        </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 text-center">
