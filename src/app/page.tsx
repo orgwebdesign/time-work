@@ -7,8 +7,8 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
-import { User, BarChart, Calendar as CalendarIconLucid, Award, History as HistoryIcon, Trash2, Pencil, Play, Pause, Coffee, Square, Clock, ListCollapse, BrainCircuit, CupSoda, TimerReset, AlarmClock, Sun, Cloud, CloudRain, Moon, CloudSun } from 'lucide-react';
-import { add, format, differenceInSeconds, startOfMonth, isSameDay, isSameMonth, lastDayOfMonth, isWeekend, parse, parseISO, differenceInMilliseconds, startOfWeek, set } from 'date-fns';
+import { User, BarChart, Calendar as CalendarIconLucid, Award, History as HistoryIcon, Trash2, Pencil, Play, Pause, Coffee, Square, Clock, ListCollapse, BrainCircuit, CupSoda, TimerReset, AlarmClock, Sun, Cloud, CloudRain, Moon, CloudSun, Eye, Zap, Droplet } from 'lucide-react';
+import { add, format, differenceInSeconds, startOfMonth, isSameDay, isSameMonth, lastDayOfMonth, isWeekend, parse, parseISO, differenceInMilliseconds, startOfWeek, set, eachDayOfInterval, endOfWeek, subWeeks, endOfDay } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Calendar } from '@/components/ui/calendar';
 import {
@@ -38,6 +38,9 @@ import WellnessTracker from '@/components/wellness-tracker';
 import WeatherDisplay from '@/components/weather-display';
 import { QuickTimeSelector } from '@/components/quick-time-selector';
 import PrayerTimes from '@/components/prayer-times';
+import { Switch } from '@/components/ui/switch';
+import { Bar, CartesianGrid, XAxis, YAxis, ResponsiveContainer } from 'recharts';
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 
 
 type TimerStatus = 'stopped' | 'running' | 'on_break';
@@ -123,6 +126,13 @@ const getDefaultRequiredHours = (date: Date): number => {
   return 8.5; // Monday - Thursday
 };
 
+const motivationalQuotes = [
+  "The secret of getting ahead is getting started.",
+  "The only way to do great work is to love what you do.",
+  "Don’t watch the clock; do what it does. Keep going.",
+  "Success is not final, failure is not fatal: it is the courage to continue that counts.",
+  "Believe you can and you're halfway there."
+];
 
 function WorkHoursTrackerPage() {
   const [isClient, setIsClient] = useState(false);
@@ -183,56 +193,11 @@ function WorkHoursTrackerPage() {
   const [editingActivityTime, setEditingActivityTime] = useState('');
   const [editingActivityIndex, setEditingActivityIndex] = useState<number | null>(null);
 
-
-  useEffect(() => {
-    if (pomodoroStatus === 'working' || pomodoroStatus === 'break_time') {
-      const interval = setInterval(() => {
-        setPomodoroSecondsLeft(prev => {
-          if (prev <= 1) {
-            clearInterval(interval);
-            setPomodoroStatus('stopped');
-            // Optionally, play a sound or show a notification
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-      setPomodoroIntervalId(interval);
-    } else {
-      if (pomodoroIntervalId) {
-        clearInterval(pomodoroIntervalId);
-        setPomodoroIntervalId(null);
-      }
-    }
-    return () => {
-      if (pomodoroIntervalId) clearInterval(pomodoroIntervalId);
-    };
-  }, [pomodoroStatus]);
-
-  const handleStartPomodoro = () => {
-    setPomodoroStatus('working');
-    setPomodoroSecondsLeft(25 * 60);
-  };
-  
-  const handleStartBreak = () => {
-    setPomodoroStatus('break_time');
-    setPomodoroSecondsLeft(5 * 60);
-  };
-
-  const handlePauseResumePomodoro = () => {
-    if (pomodoroStatus === 'working' || pomodoroStatus === 'break_time') {
-      setPrePauseStatus(pomodoroStatus);
-      setPomodoroStatus('paused');
-    } else if (pomodoroStatus === 'paused') {
-        setPomodoroStatus(prePauseStatus);
-    }
-  };
-
-  const handleResetPomodoro = () => {
-    setPomodoroStatus('stopped');
-    setPomodoroSecondsLeft(25 * 60);
-  };
-
+  // New Features State
+  const [isFocusMode, setIsFocusMode] = useState(false);
+  const [isSalatBreak, setIsSalatBreak] = useState(false);
+  const [salatBreakSecondsLeft, setSalatBreakSecondsLeft] = useState(15 * 60);
+  const [randomQuote, setRandomQuote] = useState('');
 
   const loadAllLogs = useCallback(() => {
     try {
@@ -247,9 +212,15 @@ function WorkHoursTrackerPage() {
     }
   }, []);
 
-  // Load data from localStorage on mount
   useEffect(() => {
     setIsClient(true);
+    const focusMode = localStorage.getItem('focusMode') === 'true';
+    setIsFocusMode(focusMode);
+    
+    if(focusMode) {
+       setRandomQuote(motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)]);
+    }
+
     const todayKey = getTodayKey();
     let todaysRequiredHours = getDefaultRequiredHours(new Date());
 
@@ -375,12 +346,62 @@ function WorkHoursTrackerPage() {
         // Update history in state as well for reactivity
         setHistory(prevHistory => {
             const otherDays = prevHistory.filter(h => h.date !== todayKey);
-            return [log, ...otherDays].sort((a, b) => new Date(b.date).getTime() - new Date(b.date).getTime());
+            return [log, ...otherDays].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
         });
     } catch(e) {
         console.error("Failed to save log to localStorage", e);
     }
   }, [isClient, workedSeconds, pauseSeconds, dayStartTime, requiredHours, status, sessionStartTime, breakStartTime, activityLog]);
+
+
+  useEffect(() => {
+    if (pomodoroStatus === 'working' || pomodoroStatus === 'break_time') {
+      const interval = setInterval(() => {
+        setPomodoroSecondsLeft(prev => {
+          if (prev <= 1) {
+            clearInterval(interval);
+            setPomodoroStatus('stopped');
+            // Optionally, play a sound or show a notification
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      setPomodoroIntervalId(interval);
+    } else {
+      if (pomodoroIntervalId) {
+        clearInterval(pomodoroIntervalId);
+        setPomodoroIntervalId(null);
+      }
+    }
+    return () => {
+      if (pomodoroIntervalId) clearInterval(pomodoroIntervalId);
+    };
+  }, [pomodoroStatus]);
+
+  const handleStartPomodoro = () => {
+    setPomodoroStatus('working');
+    setPomodoroSecondsLeft(25 * 60);
+  };
+  
+  const handleStartBreak = () => {
+    setPomodoroStatus('break_time');
+    setPomodoroSecondsLeft(5 * 60);
+  };
+
+  const handlePauseResumePomodoro = () => {
+    if (pomodoroStatus === 'working' || pomodoroStatus === 'break_time') {
+      setPrePauseStatus(pomodoroStatus);
+      setPomodoroStatus('paused');
+    } else if (pomodoroStatus === 'paused') {
+        setPomodoroStatus(prePauseStatus);
+    }
+  };
+
+  const handleResetPomodoro = () => {
+    setPomodoroStatus('stopped');
+    setPomodoroSecondsLeft(25 * 60);
+  };
 
 
   // Autosave every 10 seconds while timer is active
@@ -921,6 +942,90 @@ function WorkHoursTrackerPage() {
     }
   }
 
+    const toggleFocusMode = (checked: boolean) => {
+        setIsFocusMode(checked);
+        localStorage.setItem('focusMode', String(checked));
+        if(checked) {
+             setRandomQuote(motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)]);
+        }
+    };
+    
+    const handleTakeSalatBreak = () => {
+        if (status === 'running') {
+            handlePause();
+        }
+        setIsSalatBreak(true);
+        setSalatBreakSecondsLeft(15 * 60);
+    };
+
+    useEffect(() => {
+        if(isSalatBreak) {
+            const interval = setInterval(() => {
+                setSalatBreakSecondsLeft(prev => {
+                    if (prev <= 1) {
+                        clearInterval(interval);
+                        setIsSalatBreak(false);
+                        // Optional: auto-resume work
+                        if (status === 'on_break') {
+                            // Can't auto-resume without user interaction due to browser policies on audio/etc
+                            alert("Salat break finished. Time to resume work!");
+                        }
+                        return 0;
+                    }
+                    return prev - 1;
+                });
+            }, 1000);
+            return () => clearInterval(interval);
+        }
+    }, [isSalatBreak, status]);
+    
+    const weeklyChartData = useMemo(() => {
+        const today = new Date();
+        const startOfThisWeek = startOfWeek(today, { weekStartsOn: 1 });
+        const endOfThisWeek = endOfWeek(today, { weekStartsOn: 1 });
+        const daysInWeek = eachDayOfInterval({ start: startOfThisWeek, end: endOfThisWeek });
+
+        return daysInWeek.map(day => {
+            const log = history.find(l => isSameDay(parseISO(l.date), day));
+            return {
+                name: format(day, 'EEE'),
+                hours: log ? log.workedSeconds / 3600 : 0,
+            };
+        });
+    }, [history]);
+    
+    const weeklyProductivity = useMemo(() => {
+        const today = new Date();
+        const startOfThisWeek = startOfWeek(today, { weekStartsOn: 1 });
+        const startOfLastWeek = startOfWeek(subWeeks(today, 1), { weekStartsOn: 1 });
+        const endOfLastWeek = endOfDay(endOfWeek(subWeeks(today, 1), { weekStartsOn: 1 }));
+
+        const thisWeekTotal = history
+            .filter(log => {
+                const logDate = parseISO(log.date);
+                return logDate >= startOfThisWeek && logDate <= today;
+            })
+            .reduce((acc, log) => acc + log.workedSeconds, 0);
+
+        const lastWeekTotal = history
+            .filter(log => {
+                const logDate = parseISO(log.date);
+                return logDate >= startOfLastWeek && logDate <= endOfLastWeek;
+            })
+            .reduce((acc, log) => acc + log.workedSeconds, 0);
+
+        const activeDaysThisWeek = history.filter(log => parseISO(log.date) >= startOfThisWeek).length || 1;
+        const averageDailyHours = (thisWeekTotal / 3600) / activeDaysThisWeek;
+        
+        const productivityChange = lastWeekTotal > 0 ? ((thisWeekTotal - lastWeekTotal) / lastWeekTotal) * 100 : 0;
+
+        return {
+            averageDailyHours,
+            productivityChange
+        };
+    }, [history]);
+
+
   const timerControls = (
     <div className="flex items-center gap-2">
       {status === 'stopped' && (
@@ -955,353 +1060,413 @@ function WorkHoursTrackerPage() {
 
   return (
     <div
-      className="min-h-screen bg-background text-foreground p-4 sm:p-6 md:p-8 font-body transition-colors duration-1000"
+      className={cn(
+        "min-h-screen text-foreground p-4 sm:p-6 md:p-8 font-body transition-colors duration-1000",
+        isFocusMode ? "bg-gradient-to-br from-gray-900 to-teal-900" : "bg-background"
+      )}
       style={celebrationStyle}
       onClick={() => {
         if (isCelebrating) setIsCelebrating(false);
       }}
     >
-      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className={cn("max-w-7xl mx-auto", isFocusMode && "flex flex-col h-[90vh] items-center justify-center")}>
         
-        {/* Left Column */}
-        <div className="lg:col-span-2 space-y-8">
-          
-          {/* Header */}
-          <WeatherDisplay weather={weather} time={currentTime} timerControls={timerControls} />
-          
-          {/* Main Dashboard Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <Card className="glass-card">
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="text-sm font-medium uppercase text-muted-foreground">Start Time</CardTitle>
-                 <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground disabled:text-muted-foreground/40 disabled:hover:text-muted-foreground/40" onClick={() => handleOpenEditModal('start')} disabled={status !== 'stopped'}><Pencil className="h-4 w-4" /></Button>
-              </CardHeader>
-              <CardContent>
-                <p className="text-2xl sm:text-3xl font-bold">{dayStartTime ? format(dayStartTime, 'p') : '--:--'}</p>
-              </CardContent>
-            </Card>
-
-            <Card className="glass-card lg:col-span-2 row-span-2 flex flex-col items-center justify-center p-6">
-                <div className={cn(
-                    "relative w-full max-w-sm rounded-lg p-1",
-                    isGoalMet ? "bg-gradient-to-r from-purple-500 via-pink-500 to-red-500 animate-border-spin" : "bg-border/30"
-                  )}>
-                  <div className="bg-card rounded-md p-4">
-                    <div className="flex items-baseline justify-center font-mono">
-                        <span className="text-4xl sm:text-6xl font-bold tracking-tighter">{h}</span>
-                        <span className="text-2xl sm:text-4xl font-medium text-muted-foreground mx-1">:</span>
-                        <span className="text-4xl sm:text-6xl font-bold tracking-tighter">{m}</span>
-                        <span className="text-2xl sm:text-4xl font-medium text-muted-foreground mx-1">:</span>
-                        <span className="text-4xl sm:text-6xl font-bold tracking-tighter w-[3.5rem] sm:w-[5.5rem]">{s}</span>
-                    </div>
-                  </div>
+        {/* Header */}
+         <div className={cn("mb-8", isFocusMode && "w-full max-w-2xl")}>
+             <WeatherDisplay 
+                weather={weather} 
+                time={currentTime} 
+                timerControls={timerControls}
+                isFocusMode={isFocusMode}
+             >
+                <div className="flex items-center gap-2">
+                    <Label htmlFor="focus-mode-switch" className="text-sm font-medium text-muted-foreground">Focus Mode</Label>
+                    <Switch id="focus-mode-switch" checked={isFocusMode} onCheckedChange={toggleFocusMode} />
                 </div>
+             </WeatherDisplay>
+         </div>
 
-                <div className="mt-4 flex items-center justify-center gap-1">
-                    <p className="text-sm text-muted-foreground">Worked Today</p>
-                    <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground/70 hover:text-foreground disabled:text-muted-foreground/40" onClick={() => handleOpenEditModal('worked')} disabled={status !== 'stopped'}><Pencil className="h-3 w-3" /></Button>
-                </div>
-                {(holidays.some(h => isSameDay(h, new Date())) || isWeekend(new Date())) && <p className="text-primary font-semibold mt-2 text-sm">🇫🇷 JOUR FÉRIÉ / WEEK-END</p>}
-            </Card>
-
-             <Card className="glass-card">
-                <CardHeader>
-                    <CardTitle className="text-sm font-medium uppercase text-muted-foreground">Est. Leave Time</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <p className="text-2xl sm:text-3xl font-bold text-primary">{estimatedLeaveTime ? format(estimatedLeaveTime, 'p') : '--:--'}</p>
-                </CardContent>
-            </Card>
-
-            <Card className="glass-card">
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="text-sm font-medium uppercase text-muted-foreground">Pause</CardTitle>
-                <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground disabled:text-muted-foreground/40 disabled:hover:text-muted-foreground/40" onClick={() => handleOpenEditModal('pause')} disabled={status !== 'stopped'}><Pencil className="h-4 w-4" /></Button>
-              </CardHeader>
-              <CardContent>
-                <p className="text-2xl sm:text-3xl font-bold">{formatSecondsToString(pauseSeconds)}</p>
-              </CardContent>
-            </Card>
+        <div className={cn("grid grid-cols-1 lg:grid-cols-3 gap-8", isFocusMode && "w-full max-w-4xl")}>
+          <div className={cn("lg:col-span-2 space-y-8", isFocusMode && "col-span-3 space-y-4")}>
             
-            <Card className="glass-card">
+            {/* Main Dashboard Cards */}
+            <div className={cn("grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6", isFocusMode && "hidden")}>
+              <Card className="glass-card">
                 <CardHeader className="flex flex-row items-center justify-between">
-                    <CardTitle className="text-sm font-medium uppercase text-muted-foreground">Daily Goal</CardTitle>
-                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground disabled:text-muted-foreground/40 disabled:hover:text-muted-foreground/40" onClick={() => handleOpenEditModal('required')} disabled={status !== 'stopped'}><Pencil className="h-4 w-4" /></Button>
+                  <CardTitle className="text-sm font-medium uppercase text-muted-foreground">Start Time</CardTitle>
+                   <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground disabled:text-muted-foreground/40 disabled:hover:text-muted-foreground/40" onClick={() => handleOpenEditModal('start')} disabled={status !== 'stopped'}><Pencil className="h-4 w-4" /></Button>
                 </CardHeader>
                 <CardContent>
-                    <p className="text-2xl sm:text-3xl font-bold">{formatSecondsToString(requiredSecondsToday)}</p>
+                  <p className="text-2xl sm:text-3xl font-bold">{dayStartTime ? format(dayStartTime, 'p') : '--:--'}</p>
                 </CardContent>
-            </Card>
-          </div>
+              </Card>
 
-          {/* Prayer Times */}
-          <PrayerTimes />
-
-          {/* Daily History */}
-           <Card className="glass-card">
-            <CardHeader className="flex flex-wrap items-center justify-between gap-y-2 gap-x-4">
-              <CardTitle className="flex items-center gap-3">
-                  <HistoryIcon className="w-6 h-6 text-muted-foreground" />
-                  Daily History ({format(currentMonth, 'MMMM yyyy')})
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="max-h-96 overflow-y-auto">
-               <Table>
-                  <TableHeader className="sticky top-0 bg-card/80 backdrop-blur-sm">
-                      <TableRow className="border-border/50 hover:bg-transparent">
-                          <TableHead className="text-muted-foreground">Date</TableHead>
-                          <TableHead className="text-muted-foreground text-center">Start</TableHead>
-                          <TableHead className="text-muted-foreground text-right">Worked</TableHead>
-                          <TableHead className="text-muted-foreground text-right">Pause</TableHead>
-                          <TableHead className="text-muted-foreground text-right">Balance</TableHead>
-                          <TableHead className="text-muted-foreground text-right">Actions</TableHead>
-                      </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                      {currentMonthHistory.length > 0 ? currentMonthHistory.map(log => {
-                          const logDate = parseISO(log.date);
-                          const isHoliday = holidays.some(h => isSameDay(h, logDate));
-                          const isWeekendDay = isWeekend(logDate);
-                          let dailyRequired;
-                          
-                          if (isHoliday || isWeekendDay) {
-                              dailyRequired = 0;
-                          } else {
-                              dailyRequired = log.requiredHours !== undefined ? log.requiredHours * 3600 : getDefaultRequiredHours(logDate) * 3600;
-                          }
-
-                          const balance = log.workedSeconds - dailyRequired;
-                          
-                          const logForModal = {
-                              ...log,
-                          };
-
-                          return (
-                              <TableRow key={log.date} className={cn("border-border/50 hover:bg-muted/30", (isHoliday || isWeekendDay) && "bg-primary/10")}>
-                                  <TableCell>
-                                      <span>{format(parse(log.date, 'yyyy-MM-dd', new Date()), 'EEE, MMM d')}</span>
-                                      {(isHoliday || isWeekendDay) && <span className="ml-2 text-xs text-primary font-semibold">(Off)</span>}
-                                  </TableCell>
-                                  <TableCell className="text-center">{log.startTime ? format(parseISO(log.startTime), 'p') : '--:--'}</TableCell>
-                                  <TableCell className="text-right">{formatSecondsToString(log.workedSeconds)}</TableCell>
-                                  <TableCell className="text-right">{formatSecondsToString(log.pauseSeconds)}</TableCell>
-                                  <TableCell className={cn("text-right font-medium", balance < 0 ? 'text-destructive' : 'text-green-500')}>
-                                      {formatSecondsToString(balance, true)}
-                                  </TableCell>
-                                  <TableCell className="text-right">
-                                    <div className="flex justify-end gap-1">
-                                      <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground" onClick={() => handleOpenHistoryEditModal(logForModal)}>
-                                          <Pencil className="h-4 w-4" />
-                                      </Button>
-                                      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive/70 hover:text-destructive" onClick={() => handleDeleteLog(log)}>
-                                          <Trash2 className="h-4 w-4" />
-                                      </Button>
-                                    </div>
-                                  </TableCell>
-                              </TableRow>
-                          )
-                      }) : (
-                          <TableRow className="border-border/50 hover:bg-transparent">
-                              <TableCell colSpan={6} className="text-center text-muted-foreground py-8">No history for this month yet.</TableCell>
-                          </TableRow>
-                      )}
-                  </TableBody>
-               </Table>
-              </div>
-            </CardContent>
-          </Card>
-          
-           {/* Activity Log */}
-           <Card className="glass-card">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-3">
-                    <ListCollapse className="w-6 h-6 text-muted-foreground" />
-                    Today's Activity Log
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="max-h-60 overflow-y-auto pr-2">
-                  {activityLog.length > 0 ? (
-                    <div className="space-y-4">
-                      {activityLog.map((activity, index) => (
-                        <div key={index} className="flex items-center justify-between gap-4">
-                          <div className="flex items-center gap-4">
-                            {getActivityIcon(activity.action)}
-                            <div>
-                              <p className="font-medium">{activity.action}</p>
-                              <p className="text-sm text-muted-foreground">{format(new Date(activity.timestamp), 'p')}</p>
-                            </div>
-                          </div>
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="h-7 w-7 text-muted-foreground hover:text-foreground disabled:text-muted-foreground/40"
-                            onClick={() => handleOpenActivityEdit(activity, index)}
-                            disabled={status !== 'stopped'}
-                          >
-                              <Pencil className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      ))}
+              <Card className="glass-card lg:col-span-2 row-span-2 flex flex-col items-center justify-center p-6">
+                  <div className={cn(
+                      "relative w-full max-w-sm rounded-lg p-1",
+                      isGoalMet ? "bg-gradient-to-r from-purple-500 via-pink-500 to-red-500 animate-border-spin" : "bg-border/30"
+                    )}>
+                    <div className="bg-card rounded-md p-4">
+                      <div className="flex items-baseline justify-center font-mono">
+                          <span className="text-4xl sm:text-6xl font-bold tracking-tighter">{h}</span>
+                          <span className="text-2xl sm:text-4xl font-medium text-muted-foreground mx-1">:</span>
+                          <span className="text-4xl sm:text-6xl font-bold tracking-tighter">{m}</span>
+                          <span className="text-2xl sm:text-4xl font-medium text-muted-foreground mx-1">:</span>
+                          <span className="text-4xl sm:text-6xl font-bold tracking-tighter w-[3.5rem] sm:w-[5.5rem]">{s}</span>
+                      </div>
                     </div>
-                  ) : (
-                    <p className="text-center text-muted-foreground py-4">No activity recorded for today yet. Press "Start Day" to begin.</p>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-
-        </div>
-
-        {/* Right Column */}
-        <div className="space-y-8">
-            <Card className={cn(
-                "glass-card transition-all",
-                monthTotalBalance >= 0 ? "shadow-green-500/20" : "shadow-destructive/20"
-            )}>
-              <CardHeader>
-                <CardTitle className="text-sm font-medium uppercase text-muted-foreground flex items-center gap-2">
-                  Monthly Mood
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="text-center">
-                {monthTotalBalance >= 0 ? (
-                  <div>
-                    <span className="text-5xl">🌟</span>
-                    <p className="mt-2 text-lg font-semibold text-green-500">
-                      Great job! You have {formatSecondsToString(monthTotalBalance, true)} extra this month.
-                    </p>
                   </div>
-                ) : (
-                  <div>
-                    <span className="text-5xl">😟</span>
-                    <p className="mt-2 text-lg font-semibold text-destructive">
-                      You're behind by {formatSecondsToString(monthTotalBalance, true)}. Let's catch up!
-                    </p>
+
+                  <div className="mt-4 flex items-center justify-center gap-1">
+                      <p className="text-sm text-muted-foreground">Worked Today</p>
+                      <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground/70 hover:text-foreground disabled:text-muted-foreground/40" onClick={() => handleOpenEditModal('worked')} disabled={status !== 'stopped'}><Pencil className="h-3 w-3" /></Button>
                   </div>
-                )}
-                {showRecoveryAlert && (
-                  <Alert variant="destructive" className="mt-4 text-left animate-pulse">
-                    <AlarmClock className="h-4 w-4" />
-                    <AlertTitle>Recovery Mode</AlertTitle>
-                    <AlertDescription>
-                      Only {Math.ceil(daysRemainingInMonth)} days left to balance your hours!
-                    </AlertDescription>
-                  </Alert>
-                )}
-              </CardContent>
-            </Card>
+                  {(holidays.some(h => isSameDay(h, new Date())) || isWeekend(new Date())) && <p className="text-primary font-semibold mt-2 text-sm">🇫🇷 JOUR FÉRIÉ / WEEK-END</p>}
+              </Card>
 
-            <WellnessTracker />
+               <Card className="glass-card">
+                  <CardHeader>
+                      <CardTitle className="text-sm font-medium uppercase text-muted-foreground">Est. Leave Time</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                      <p className="text-2xl sm:text-3xl font-bold text-primary">{estimatedLeaveTime ? format(estimatedLeaveTime, 'p') : '--:--'}</p>
+                  </CardContent>
+              </Card>
 
-            <Card className="glass-card">
-              <CardHeader>
-                  <CardTitle className="text-sm font-medium uppercase text-muted-foreground flex items-center gap-2">
-                      <BrainCircuit />
-                      Pomodoro Timer
-                  </CardTitle>
-              </CardHeader>
-              <CardContent className="flex flex-col items-center justify-center space-y-4">
-                  <p className="text-6xl font-bold tracking-tighter font-mono">
-                      {formatPomodoroTime(pomodoroSecondsLeft)}
-                  </p>
-                  <div className="text-sm font-medium uppercase text-muted-foreground">
-                    {pomodoroStatus === 'working' && 'Work Session'}
-                    {pomodoroStatus === 'break_time' && 'Break Time'}
-                    {pomodoroStatus === 'paused' && 'Paused'}
-                    {pomodoroStatus === 'stopped' && 'Ready?'}
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 w-full">
-                       {(pomodoroStatus === 'paused' || pomodoroStatus === 'stopped') ? (
-                           <Button onClick={handlePauseResumePomodoro} disabled={pomodoroStatus === 'stopped'}><Play className="mr-2" />Resume</Button>
-                       ) : (
-                           <Button onClick={handlePauseResumePomodoro} variant="outline" disabled={pomodoroStatus === 'stopped'}><Pause className="mr-2" />Pause</Button>
-                       )}
-                      
-                      {(pomodoroStatus === 'stopped' || pomodoroStatus === 'paused') ? (
-                          <Button onClick={handleStartPomodoro}><BrainCircuit className="mr-2" />Start Work</Button>
-                      ) : (
-                          <Button onClick={handleResetPomodoro} variant="destructive"><TimerReset className="mr-2" />Reset</Button>
-                      )}
-                  </div>
-                   <div className="grid grid-cols-1 gap-2 w-full pt-2">
-                     <Button onClick={handleStartBreak} disabled={pomodoroStatus === 'break_time' || pomodoroStatus === 'working'} variant="secondary"><CupSoda className="mr-2" />Start Break</Button>
-                   </div>
-              </CardContent>
-            </Card>
-
-            <DailyDua />
-
-            <Card className="glass-card">
-              <CardHeader>
-                <CardTitle className="text-sm font-medium uppercase text-muted-foreground flex items-center gap-2">
-                  Holidays & Days Off
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="flex justify-center">
-                    <Calendar
-                        mode="multiple"
-                        selected={holidays}
-                        onSelect={(days) => {
-                            if (days) {
-                                // Logic to handle adding/removing multiple days if needed
-                                // For simplicity, we assume single day clicks are the primary interaction
-                            }
-                        }}
-                        onDayClick={handleDayClick}
-                        locale={fr}
-                        month={currentMonth}
-                        onMonthChange={setCurrentMonth}
-                        className="p-0"
-                        classNames={{
-                          head_cell: "w-10 text-muted-foreground rounded-md text-[0.8rem]",
-                          cell: "h-10 w-10 text-center rounded-full text-sm p-0 relative [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-full last:[&:has([aria-selected])]:rounded-r-full focus-within:relative focus-within:z-20",
-                          day: "h-10 w-10 p-0 font-normal rounded-full aria-selected:opacity-100",
-                          day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
-                          day_today: "bg-accent text-accent-foreground rounded-full",
-                          day_outside: "text-muted-foreground opacity-50",
-                          day_disabled: "text-muted-foreground opacity-30",
-                        }}
-                        modifiers={{
-                           weekend: isWeekend
-                        }}
-                        modifiersClassNames={{
-                           weekend: "text-muted-foreground font-light opacity-70"
-                        }}
-                        disabled={isWeekend}
-                    />
+              <Card className="glass-card">
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <CardTitle className="text-sm font-medium uppercase text-muted-foreground">Pause</CardTitle>
+                  <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground disabled:text-muted-foreground/40 disabled:hover:text-muted-foreground/40" onClick={() => handleOpenEditModal('pause')} disabled={status !== 'stopped'}><Pencil className="h-4 w-4" /></Button>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-2xl sm:text-3xl font-bold">{formatSecondsToString(pauseSeconds)}</p>
                 </CardContent>
-            </Card>
+              </Card>
+              
+              <Card className="glass-card">
+                  <CardHeader className="flex flex-row items-center justify-between">
+                      <CardTitle className="text-sm font-medium uppercase text-muted-foreground">Daily Goal</CardTitle>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground disabled:text-muted-foreground/40 disabled:hover:text-muted-foreground/40" onClick={() => handleOpenEditModal('required')} disabled={status !== 'stopped'}><Pencil className="h-4 w-4" /></Button>
+                  </CardHeader>
+                  <CardContent>
+                      <p className="text-2xl sm:text-3xl font-bold">{formatSecondsToString(requiredSecondsToday)}</p>
+                  </CardContent>
+              </Card>
+            </div>
 
-            <Card className="glass-card">
-              <CardHeader className="flex flex-row items-center justify-between">
-                 <CardTitle className="text-sm font-medium uppercase text-muted-foreground">Cumulative Summaries</CardTitle>
-                 <BarChart className="w-5 h-5 text-muted-foreground" />
+            {/* Prayer Times */}
+            <PrayerTimes onTakeSalatBreak={handleTakeSalatBreak} isHidden={isFocusMode} />
+
+            {/* Daily History */}
+             <Card className={cn("glass-card", isFocusMode && "hidden")}>
+              <CardHeader className="flex flex-wrap items-center justify-between gap-y-2 gap-x-4">
+                <CardTitle className="flex items-center gap-3">
+                    <HistoryIcon className="w-6 h-6 text-muted-foreground" />
+                    Daily History ({format(currentMonth, 'MMMM yyyy')})
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="space-y-1">
-                    <p className="text-sm text-muted-foreground">Balance (This Week)</p>
-                    <p className={cn("text-2xl sm:text-3xl font-bold", weekBalance < 0 ? 'text-destructive' : 'text-green-500')}>
-                        {formatSecondsToString(weekBalance, true)}
-                    </p>
-                </div>
-                <div className="space-y-1">
-                    <p className="text-sm text-muted-foreground">Balance (This Month)</p>
-                    <p className={cn("text-2xl sm:text-3xl font-bold", monthTotalBalance < 0 ? 'text-destructive' : 'text-green-500')}>
-                        {formatSecondsToString(monthTotalBalance, true)}
-                    </p>
-                </div>
-                 <div className="space-y-1">
-                    <p className="text-sm text-muted-foreground">Carryover (Until Yesterday)</p>
-                    <p className={cn("text-xl font-bold", carryOverBalance < 0 ? 'text-destructive' : 'text-green-500')}>
-                        {formatSecondsToString(carryOverBalance, true)}
-                    </p>
+                <div className="max-h-96 overflow-y-auto">
+                 <Table>
+                    <TableHeader className="sticky top-0 bg-card/80 backdrop-blur-sm">
+                        <TableRow className="border-border/50 hover:bg-transparent">
+                            <TableHead className="text-muted-foreground">Date</TableHead>
+                            <TableHead className="text-muted-foreground text-center">Start</TableHead>
+                            <TableHead className="text-muted-foreground text-right">Worked</TableHead>
+                            <TableHead className="text-muted-foreground text-right">Pause</TableHead>
+                            <TableHead className="text-muted-foreground text-right">Balance</TableHead>
+                            <TableHead className="text-muted-foreground text-right">Actions</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {currentMonthHistory.length > 0 ? currentMonthHistory.map(log => {
+                            const logDate = parseISO(log.date);
+                            const isHoliday = holidays.some(h => isSameDay(h, logDate));
+                            const isWeekendDay = isWeekend(logDate);
+                            let dailyRequired;
+                            
+                            if (isHoliday || isWeekendDay) {
+                                dailyRequired = 0;
+                            } else {
+                                dailyRequired = log.requiredHours !== undefined ? log.requiredHours * 3600 : getDefaultRequiredHours(logDate) * 3600;
+                            }
+
+                            const balance = log.workedSeconds - dailyRequired;
+                            
+                            const logForModal = {
+                                ...log,
+                            };
+
+                            return (
+                                <TableRow key={log.date} className={cn("border-border/50 hover:bg-muted/30", (isHoliday || isWeekendDay) && "bg-primary/10")}>
+                                    <TableCell>
+                                        <span>{format(parse(log.date, 'yyyy-MM-dd', new Date()), 'EEE, MMM d')}</span>
+                                        {(isHoliday || isWeekendDay) && <span className="ml-2 text-xs text-primary font-semibold">(Off)</span>}
+                                    </TableCell>
+                                    <TableCell className="text-center">{log.startTime ? format(parseISO(log.startTime), 'p') : '--:--'}</TableCell>
+                                    <TableCell className="text-right">{formatSecondsToString(log.workedSeconds)}</TableCell>
+                                    <TableCell className="text-right">{formatSecondsToString(log.pauseSeconds)}</TableCell>
+                                    <TableCell className={cn("text-right font-medium", balance < 0 ? 'text-destructive' : 'text-green-500')}>
+                                        {formatSecondsToString(balance, true)}
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                      <div className="flex justify-end gap-1">
+                                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground" onClick={() => handleOpenHistoryEditModal(logForModal)}>
+                                            <Pencil className="h-4 w-4" />
+                                        </Button>
+                                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive/70 hover:text-destructive" onClick={() => handleDeleteLog(log)}>
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                      </div>
+                                    </TableCell>
+                                </TableRow>
+                            )
+                        }) : (
+                            <TableRow className="border-border/50 hover:bg-transparent">
+                                <TableCell colSpan={6} className="text-center text-muted-foreground py-8">No history for this month yet.</TableCell>
+                            </TableRow>
+                        )}
+                    </TableBody>
+                 </Table>
                 </div>
               </CardContent>
             </Card>
+
+            {/* Weekly Insights Chart */}
+             <Card className={cn("glass-card", isFocusMode && "hidden")}>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-3">
+                        <BarChart className="w-6 h-6 text-muted-foreground" />
+                        Weekly Insights
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                     <div className="h-60 w-full">
+                        <ResponsiveContainer>
+                             <ChartContainer config={{ hours: { label: 'Hours', color: 'hsl(var(--primary))' } }}>
+                                <BarChart data={weeklyChartData} margin={{ top: 20, right: 20, left: -20, bottom: 5 }}>
+                                    <CartesianGrid vertical={false} strokeDasharray="3 3" />
+                                    <XAxis dataKey="name" tickLine={false} axisLine={false} tickMargin={8} />
+                                    <YAxis />
+                                    <ChartTooltip content={<ChartTooltipContent />} />
+                                    <Bar dataKey="hours" fill="var(--color-hours)" radius={4} />
+                                </BarChart>
+                            </ChartContainer>
+                        </ResponsiveContainer>
+                    </div>
+                    <div className="mt-4 flex justify-around text-center">
+                        <div>
+                            <p className="text-sm text-muted-foreground">Average Daily Hours</p>
+                            <p className="text-xl font-bold">{weeklyProductivity.averageDailyHours.toFixed(1)}h</p>
+                        </div>
+                        <div>
+                            <p className="text-sm text-muted-foreground">vs. Last Week</p>
+                            <p className={cn(
+                                "text-xl font-bold",
+                                weeklyProductivity.productivityChange >= 0 ? "text-green-500" : "text-destructive"
+                            )}>
+                                {weeklyProductivity.productivityChange.toFixed(0)}%
+                            </p>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+            
+             {/* Activity Log */}
+             <Card className={cn("glass-card", isFocusMode && "hidden")}>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-3">
+                      <ListCollapse className="w-6 h-6 text-muted-foreground" />
+                      Today's Activity Log
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="max-h-60 overflow-y-auto pr-2">
+                    {activityLog.length > 0 ? (
+                      <div className="space-y-4">
+                        {activityLog.map((activity, index) => (
+                          <div key={index} className="flex items-center justify-between gap-4">
+                            <div className="flex items-center gap-4">
+                              {getActivityIcon(activity.action)}
+                              <div>
+                                <p className="font-medium">{activity.action}</p>
+                                <p className="text-sm text-muted-foreground">{format(new Date(activity.timestamp), 'p')}</p>
+                              </div>
+                            </div>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-7 w-7 text-muted-foreground hover:text-foreground disabled:text-muted-foreground/40"
+                              onClick={() => handleOpenActivityEdit(activity, index)}
+                              disabled={status !== 'stopped'}
+                            >
+                                <Pencil className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-center text-muted-foreground py-4">No activity recorded for today yet. Press "Start Day" to begin.</p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+          </div>
+
+          {/* Right Column */}
+          <div className={cn("space-y-8", isFocusMode && "hidden")}>
+              <Card className={cn(
+                  "glass-card transition-all",
+                  monthTotalBalance >= 0 ? "shadow-green-500/20" : "shadow-destructive/20"
+              )}>
+                <CardHeader>
+                  <CardTitle className="text-sm font-medium uppercase text-muted-foreground flex items-center gap-2">
+                    Monthly Mood
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="text-center">
+                  {monthTotalBalance >= 0 ? (
+                    <div>
+                      <span className="text-5xl">🌟</span>
+                      <p className="mt-2 text-lg font-semibold text-green-500">
+                        Great job! You have {formatSecondsToString(monthTotalBalance, true)} extra this month.
+                      </p>
+                    </div>
+                  ) : (
+                    <div>
+                      <span className="text-5xl">😟</span>
+                      <p className="mt-2 text-lg font-semibold text-destructive">
+                        You're behind by {formatSecondsToString(monthTotalBalance, true)}. Let's catch up!
+                      </p>
+                    </div>
+                  )}
+                  {showRecoveryAlert && (
+                    <Alert variant="destructive" className="mt-4 text-left animate-pulse">
+                      <AlarmClock className="h-4 w-4" />
+                      <AlertTitle>Recovery Mode</AlertTitle>
+                      <AlertDescription>
+                        Only {Math.ceil(daysRemainingInMonth)} days left to balance your hours!
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                </CardContent>
+              </Card>
+
+              <WellnessTracker />
+
+              <Card className="glass-card">
+                <CardHeader>
+                    <CardTitle className="text-sm font-medium uppercase text-muted-foreground flex items-center gap-2">
+                        <BrainCircuit />
+                        Pomodoro Timer
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="flex flex-col items-center justify-center space-y-4">
+                    <p className="text-6xl font-bold tracking-tighter font-mono">
+                        {formatPomodoroTime(pomodoroSecondsLeft)}
+                    </p>
+                    <div className="text-sm font-medium uppercase text-muted-foreground">
+                      {pomodoroStatus === 'working' && 'Work Session'}
+                      {pomodoroStatus === 'break_time' && 'Break Time'}
+                      {pomodoroStatus === 'paused' && 'Paused'}
+                      {pomodoroStatus === 'stopped' && 'Ready?'}
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 w-full">
+                         {(pomodoroStatus === 'paused' || pomodoroStatus === 'stopped') ? (
+                             <Button onClick={handlePauseResumePomodoro} disabled={pomodoroStatus === 'stopped'}><Play className="mr-2" />Resume</Button>
+                         ) : (
+                             <Button onClick={handlePauseResumePomodoro} variant="outline" disabled={pomodoroStatus === 'stopped'}><Pause className="mr-2" />Pause</Button>
+                         )}
+                        
+                        {(pomodoroStatus === 'stopped' || pomodoroStatus === 'paused') ? (
+                            <Button onClick={handleStartPomodoro}><BrainCircuit className="mr-2" />Start Work</Button>
+                        ) : (
+                            <Button onClick={handleResetPomodoro} variant="destructive"><TimerReset className="mr-2" />Reset</Button>
+                        )}
+                    </div>
+                     <div className="grid grid-cols-1 gap-2 w-full pt-2">
+                       <Button onClick={handleStartBreak} disabled={pomodoroStatus === 'break_time' || pomodoroStatus === 'working'} variant="secondary"><CupSoda className="mr-2" />Start Break</Button>
+                     </div>
+                </CardContent>
+              </Card>
+
+              <DailyDua />
+
+              <Card className="glass-card">
+                <CardHeader>
+                  <CardTitle className="text-sm font-medium uppercase text-muted-foreground flex items-center gap-2">
+                    Holidays & Days Off
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="flex justify-center">
+                      <Calendar
+                          mode="multiple"
+                          selected={holidays}
+                          onSelect={(days) => {
+                              if (days) {
+                                  // Logic to handle adding/removing multiple days if needed
+                                  // For simplicity, we assume single day clicks are the primary interaction
+                              }
+                          }}
+                          onDayClick={handleDayClick}
+                          locale={fr}
+                          month={currentMonth}
+                          onMonthChange={setCurrentMonth}
+                          className="p-0"
+                          classNames={{
+                            head_cell: "w-10 text-muted-foreground rounded-md text-[0.8rem]",
+                            cell: "h-10 w-10 text-center rounded-full text-sm p-0 relative [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-full last:[&:has([aria-selected])]:rounded-r-full focus-within:relative focus-within:z-20",
+                            day: "h-10 w-10 p-0 font-normal rounded-full aria-selected:opacity-100",
+                            day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
+                            day_today: "bg-accent text-accent-foreground rounded-full",
+                            day_outside: "text-muted-foreground opacity-50",
+                            day_disabled: "text-muted-foreground opacity-30",
+                          }}
+                          modifiers={{
+                             weekend: isWeekend
+                          }}
+                          modifiersClassNames={{
+                             weekend: "text-muted-foreground font-light opacity-70"
+                          }}
+                          disabled={isWeekend}
+                      />
+                  </CardContent>
+              </Card>
+
+              <Card className="glass-card">
+                <CardHeader className="flex flex-row items-center justify-between">
+                   <CardTitle className="text-sm font-medium uppercase text-muted-foreground">Cumulative Summaries</CardTitle>
+                   <BarChart className="w-5 h-5 text-muted-foreground" />
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="space-y-1">
+                      <p className="text-sm text-muted-foreground">Balance (This Week)</p>
+                      <p className={cn("text-2xl sm:text-3xl font-bold", weekBalance < 0 ? 'text-destructive' : 'text-green-500')}>
+                          {formatSecondsToString(weekBalance, true)}
+                      </p>
+                  </div>
+                  <div className="space-y-1">
+                      <p className="text-sm text-muted-foreground">Balance (This Month)</p>
+                      <p className={cn("text-2xl sm:text-3xl font-bold", monthTotalBalance < 0 ? 'text-destructive' : 'text-green-500')}>
+                          {formatSecondsToString(monthTotalBalance, true)}
+                      </p>
+                  </div>
+                   <div className="space-y-1">
+                      <p className="text-sm text-muted-foreground">Carryover (Until Yesterday)</p>
+                      <p className={cn("text-xl font-bold", carryOverBalance < 0 ? 'text-destructive' : 'text-green-500')}>
+                          {formatSecondsToString(carryOverBalance, true)}
+                      </p>
+                  </div>
+                </CardContent>
+              </Card>
+          </div>
         </div>
 
+        {isFocusMode && (
+             <div className="mt-auto text-center text-background/70 italic text-lg p-4">
+                 "{randomQuote}"
+             </div>
+        )}
 
         <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
             <DialogContent>
@@ -1409,6 +1574,35 @@ function WorkHoursTrackerPage() {
                     <DialogClose asChild>
                         <Button type="button" className="w-full">Close</Button>
                     </DialogClose>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+        
+        <Dialog open={isSalatBreak}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2 text-2xl">
+                        <Zap className="text-yellow-400 w-8 h-8" />
+                        Salat Break
+                    </DialogTitle>
+                    <DialogDescription className="pt-4 text-center text-lg text-foreground/90">
+                        Break time. Re-center and come back refreshed.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="py-4 text-center space-y-4">
+                    <p className="text-6xl font-bold tracking-tighter font-mono">
+                        {formatPomodoroTime(salatBreakSecondsLeft)}
+                    </p>
+                    <Alert className="text-left bg-blue-500/10 border-blue-500/30">
+                        <Droplet className="h-4 w-4 text-blue-500" />
+                        <AlertTitle>Reminder</AlertTitle>
+                        <AlertDescription>
+                            Don't forget to drink some water!
+                        </AlertDescription>
+                    </Alert>
+                </div>
+                <DialogFooter>
+                    <Button type="button" className="w-full" onClick={() => setIsSalatBreak(false)}>End Break Early</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>

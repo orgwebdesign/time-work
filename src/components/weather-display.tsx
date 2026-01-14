@@ -4,14 +4,17 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from './ui/skeleton';
 import type { Weather } from '@/lib/types';
+import { ReactNode } from 'react';
 
 interface WeatherDisplayProps {
   weather: Weather | null;
   time: Date | null;
   timerControls: React.ReactNode;
+  children?: ReactNode;
+  isFocusMode?: boolean;
 }
 
-export default function WeatherDisplay({ weather, time, timerControls }: WeatherDisplayProps) {
+export default function WeatherDisplay({ weather, time, timerControls, children, isFocusMode }: WeatherDisplayProps) {
   
   if (!time || !weather) {
       return (
@@ -53,16 +56,18 @@ export default function WeatherDisplay({ weather, time, timerControls }: Weather
               </p>
               <p className="text-muted-foreground">{weather.location}</p>
             </div>
-            <div className="flex items-center gap-4">
-              <p className="text-3xl sm:text-4xl font-bold tracking-tighter animate-fade-in-slide-right">{weather.temperature}°C</p>
-              <div className="text-center">
-                <WeatherIcon className="size-8 sm:size-10 text-foreground animate-gentle-float" />
-                <p className="text-xs text-muted-foreground">{weather.condition}</p>
-              </div>
-            </div>
+            {!isFocusMode && (
+                <div className="flex items-center gap-4">
+                <p className="text-3xl sm:text-4xl font-bold tracking-tighter animate-fade-in-slide-right">{weather.temperature}°C</p>
+                <div className="text-center">
+                    <WeatherIcon className="size-8 sm:size-10 text-foreground animate-gentle-float" />
+                    <p className="text-xs text-muted-foreground">{weather.condition}</p>
+                </div>
+                </div>
+            )}
           </div>
           <div>
-            {timerControls}
+            {isFocusMode ? children : timerControls}
           </div>
         </div>
       </CardContent>

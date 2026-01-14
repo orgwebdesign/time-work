@@ -4,9 +4,10 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Sunrise, Sun, Sunset, Moon, Sparkles, MapPin, Clock } from 'lucide-react';
+import { Sunrise, Sun, Sunset, Moon, Sparkles, MapPin, Clock, Hand } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { differenceInSeconds, parse, addDays } from 'date-fns';
+import { Button } from './ui/button';
 
 interface PrayerTime {
   name: string;
@@ -46,7 +47,12 @@ const formatCountdown = (totalSeconds: number) => {
     return `${hours.toString().padStart(2, '0')}h ${minutes.toString().padStart(2, '0')}m ${seconds.toString().padStart(2, '0')}s`;
 };
 
-export default function PrayerTimes() {
+interface PrayerTimesProps {
+  onTakeSalatBreak: () => void;
+  isHidden?: boolean;
+}
+
+export default function PrayerTimes({ onTakeSalatBreak, isHidden }: PrayerTimesProps) {
   const [prayerTimes, setPrayerTimes] = useState<PrayerTime[]>([]);
   const [loading, setLoading] = useState(true);
   const [activePrayer, setActivePrayer] = useState<string | null>(null);
@@ -54,6 +60,7 @@ export default function PrayerTimes() {
   const [isLocationEnabled, setIsLocationEnabled] = useState(false);
   const [nextPrayerName, setNextPrayerName] = useState<string | null>(null);
   const [nextPrayerCountdown, setNextPrayerCountdown] = useState<number | null>(null);
+  const [activePrayerTimer, setActivePrayerTimer] = useState<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     async function fetchPrayerTimesByCity() {
@@ -124,8 +131,7 @@ export default function PrayerTimes() {
     const intervalId = setInterval(() => {
       const now = new Date();
       
-      // Find the next prayer
-      let nextPrayer = null;
+      let nextPrayer: PrayerTime | null = null;
       for (const p of prayerTimes) {
           const pTime = parse(p.time, 'HH:mm', now);
           if (pTime > now) {
@@ -134,34 +140,35 @@ export default function PrayerTimes() {
           }
       }
       
-      // If no prayer is left for today, the next one is Fajr tomorrow
+      let nextPrayerTimeDate: Date;
       if (!nextPrayer) {
-          nextPrayer = prayerTimes[0]; // Fajr
-          const fajrTimeTomorrow = addDays(parse(nextPrayer.time, 'HH:mm', now), 1);
-          setNextPrayerCountdown(differenceInSeconds(fajrTimeTomorrow, now));
+          nextPrayer = prayerTimes[0];
+          nextPrayerTimeDate = addDays(parse(nextPrayer.time, 'HH:mm', now), 1);
       } else {
-          const nextPrayerTime = parse(nextPrayer.time, 'HH:mm', now);
-          setNextPrayerCountdown(differenceInSeconds(nextPrayerTime, now));
+          nextPrayerTimeDate = parse(nextPrayer.time, 'HH:mm', now);
       }
+      
+      const countdownSeconds = differenceInSeconds(nextPrayerTimeDate, now);
+      setNextPrayerCountdown(countdownSeconds);
       setNextPrayerName(nextPrayer.name);
 
-      // Check for active prayer (within 5 minutes of its time)
-      let currentActivePrayer: string | null = null;
-      prayerTimes.forEach(p => {
-          const pTime = parse(p.time, 'HH:mm', now);
-          const diff = differenceInSeconds(now, pTime);
-          if (diff >= 0 && diff < 300) { // 5 minutes * 60 seconds
-            currentActivePrayer = p.name;
-          }
-      });
-      setActivePrayer(currentActivePrayer);
+      if (countdownSeconds <= 0 && countdownSeconds > -1) {
+          setActivePrayer(nextPrayer.name);
+          if(activePrayerTimer) clearTimeout(activePrayerTimer);
+          const timer = setTimeout(() => setActivePrayer(null), 5 * 60 * 1000); // 5 minutes
+          setActivePrayerTimer(timer);
+      }
 
-    }, 1000); // Check every second
+    }, 1000);
 
-    return () => clearInterval(intervalId);
+    return () => {
+        clearInterval(intervalId);
+        if(activePrayerTimer) clearTimeout(activePrayerTimer);
+    };
   }, [prayerTimes]);
 
-  if (loading) {
+  if (loading || isHidden) {
+    if (isHidden) return null;
     return (
       <Card className="glass-card">
         <CardHeader>
@@ -202,13 +209,18 @@ export default function PrayerTimes() {
               <div
                 key={prayer.name}
                 className={cn(
-                  "p-4 rounded-lg border border-transparent transition-all",
+                  "p-4 rounded-lg border border-transparent transition-all flex flex-col items-center justify-center gap-2",
                   isActive && "animate-alarm-flash border-primary bg-primary/10"
                 )}
               >
-                <Icon className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
+                <Icon className="mx-auto h-8 w-8 text-muted-foreground" />
                 <p className="font-semibold">{prayer.name}</p>
                 <p className="text-lg font-bold text-primary">{prayer.time}</p>
+                {isActive && (
+                    <Button onClick={onTakeSalatBreak} size="sm" className="mt-2 text-xs">
+                        <Hand className="mr-2 h-4 w-4" /> Take Salat Break
+                    </Button>
+                )}
               </div>
             );
           })}
