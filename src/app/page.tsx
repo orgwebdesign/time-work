@@ -7,7 +7,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
-import { User, BarChart, Calendar as CalendarIconLucid, Award, History as HistoryIcon, Trash2, Pencil, Play, Pause, Coffee, Square, Clock, ListCollapse, BrainCircuit, CupSoda, TimerReset, AlarmClock, Sun, Cloud, CloudRain, Moon, CloudSun, Eye, Zap, Droplet } from 'lucide-react';
+import { User, BarChart as BarChartIcon, Calendar as CalendarIconLucid, Award, History as HistoryIcon, Trash2, Pencil, Play, Pause, Coffee, Square, Clock, ListCollapse, BrainCircuit, CupSoda, TimerReset, AlarmClock, Sun, Cloud, CloudRain, Moon, CloudSun, Eye, Zap, Droplet } from 'lucide-react';
 import { add, format, differenceInSeconds, startOfMonth, isSameDay, isSameMonth, lastDayOfMonth, isWeekend, parse, parseISO, differenceInMilliseconds, startOfWeek, set, eachDayOfInterval, endOfWeek, subWeeks, endOfDay } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Calendar } from '@/components/ui/calendar';
@@ -39,7 +39,7 @@ import WeatherDisplay from '@/components/weather-display';
 import { QuickTimeSelector } from '@/components/quick-time-selector';
 import PrayerTimes from '@/components/prayer-times';
 import { Switch } from '@/components/ui/switch';
-import { Bar, CartesianGrid, XAxis, YAxis, ResponsiveContainer } from 'recharts';
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 
 
@@ -214,6 +214,8 @@ function WorkHoursTrackerPage() {
 
   useEffect(() => {
     setIsClient(true);
+    loadAllLogs();
+
     const focusMode = localStorage.getItem('focusMode') === 'true';
     setIsFocusMode(focusMode);
     
@@ -291,7 +293,6 @@ function WorkHoursTrackerPage() {
     }
     setRequiredHours(todaysRequiredHours);
 
-    loadAllLogs();
   }, [loadAllLogs]);
   
   useEffect(() => {
@@ -1236,7 +1237,7 @@ function WorkHoursTrackerPage() {
              <Card className={cn("glass-card", isFocusMode && "hidden")}>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-3">
-                        <BarChart className="w-6 h-6 text-muted-foreground" />
+                        <BarChartIcon className="w-6 h-6 text-muted-foreground" />
                         Weekly Insights
                     </CardTitle>
                 </CardHeader>
@@ -1436,7 +1437,7 @@ function WorkHoursTrackerPage() {
               <Card className="glass-card">
                 <CardHeader className="flex flex-row items-center justify-between">
                    <CardTitle className="text-sm font-medium uppercase text-muted-foreground">Cumulative Summaries</CardTitle>
-                   <BarChart className="w-5 h-5 text-muted-foreground" />
+                   <BarChartIcon className="w-5 h-5 text-muted-foreground" />
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="space-y-1">
