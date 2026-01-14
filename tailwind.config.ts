@@ -95,9 +95,14 @@ export default {
             height: '0',
           },
         },
+        'border-spin': {
+          '100%': {
+            transform: 'rotate(360deg)',
+          },
+        },
         'alarm-flash': {
           '0%, 100%': { backgroundColor: 'hsl(var(--card))' },
-          '50%': { backgroundColor: 'hsl(var(--destructive) / 0.4)' },
+          '50%': { backgroundColor: 'hsl(var(--primary) / 0.2)' },
         },
         'spin-slow': {
           'from': { transform: 'rotate(0deg)' },
@@ -125,7 +130,8 @@ export default {
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
-        'alarm-flash': 'alarm-flash 1.5s ease-in-out',
+        'border-spin': 'border-spin 7s linear infinite',
+        'alarm-flash': 'alarm-flash 1.5s ease-in-out infinite',
         'spin-slow': 'spin-slow 20s linear infinite',
         'gradient-pan': 'gradient-pan 20s ease infinite',
         'gentle-float': 'gentle-float 3s ease-in-out infinite',
@@ -136,3 +142,5 @@ export default {
   },
   plugins: [require('tailwindcss-animate')],
 } satisfies Config;
+
+    

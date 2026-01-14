@@ -37,6 +37,7 @@ import type { ActivityEvent, Weather } from '@/lib/types';
 import WellnessTracker from '@/components/wellness-tracker';
 import WeatherDisplay from '@/components/weather-display';
 import { QuickTimeSelector } from '@/components/quick-time-selector';
+import PrayerTimes from '@/components/prayer-times';
 
 
 type TimerStatus = 'stopped' | 'running' | 'on_break';
@@ -1033,6 +1034,9 @@ function WorkHoursTrackerPage() {
             </Card>
           </div>
 
+          {/* Prayer Times */}
+          <PrayerTimes />
+
           {/* Daily History */}
            <Card className="glass-card">
             <CardHeader className="flex flex-wrap items-center justify-between gap-y-2 gap-x-4">
@@ -1442,6 +1446,8 @@ export default function WorkHoursTracker() {
     </AppLayout>
   );
 }
+
+    
 
     
 
