@@ -46,7 +46,7 @@ export default function PrayerTimes() {
   useEffect(() => {
     async function fetchPrayerTimes() {
       try {
-        const response = await fetch('http://api.aladhan.com/v1/timingsByCity?city=Marrakech&country=Morocco&method=2');
+        const response = await fetch('http://api.aladhan.com/v1/timingsByCity?city=Marrakech&country=Morocco&method=3');
         if (!response.ok) {
           throw new Error('Failed to fetch prayer times, using fallback.');
         }
