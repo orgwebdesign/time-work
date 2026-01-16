@@ -41,6 +41,7 @@ import PrayerTimes from '@/components/prayer-times';
 import { Switch } from '@/components/ui/switch';
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
+import { WaterIntakeTracker } from '@/components/water-intake-tracker';
 
 
 type TimerStatus = 'stopped' | 'running' | 'on_break';
@@ -1166,6 +1167,10 @@ function WorkHoursTrackerPage() {
 
             {/* Prayer Times */}
             <PrayerTimes onTakeSalatBreak={handleTakeSalatBreak} isHidden={isFocusMode} />
+            
+            <div className={cn(isFocusMode && "hidden")}>
+              <WaterIntakeTracker />
+            </div>
 
             {/* Daily History */}
              <Card className={cn("glass-card", isFocusMode && "hidden")}>
