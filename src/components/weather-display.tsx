@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from './ui/skeleton';
 import type { Weather } from '@/lib/types';
 import { ReactNode } from 'react';
+import { format } from 'date-fns';
 
 interface WeatherDisplayProps {
   weather: Weather | null;
@@ -24,6 +25,7 @@ export default function WeatherDisplay({ weather, time, timerControls, children,
                     <div>
                         <Skeleton className="h-10 w-24 mb-1" />
                         <Skeleton className="h-4 w-32" />
+                        <Skeleton className="h-3 w-40 mt-1" />
                     </div>
                     <div className="flex items-center gap-4">
                        <Skeleton className="h-10 w-12" />
@@ -41,6 +43,7 @@ export default function WeatherDisplay({ weather, time, timerControls, children,
   const WeatherIcon = weather.icon;
   const timeString = time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   const timeParts = timeString.split(':');
+  const dateString = format(time, 'EEEE, d MMMM yyyy');
 
 
   return (
@@ -55,6 +58,7 @@ export default function WeatherDisplay({ weather, time, timerControls, children,
                 <span>{timeParts[1]}</span>
               </p>
               <p className="text-muted-foreground">{weather.location}</p>
+              <p className="text-sm text-muted-foreground mt-1">{dateString}</p>
             </div>
             {!isFocusMode && (
                 <div className="flex items-center gap-4">
