@@ -147,7 +147,7 @@ export default {
         'gentle-float': 'gentle-float 3s ease-in-out infinite',
         'fade-in-slide-right': 'fade-in-slide-right 0.8s ease-out forwards',
         'slide-up-second': 'slide-up-second 1s ease-in-out forwards',
-        'neon-pulse': 'neon-pulse 2s ease-in-out infinite',
+        'neon-pulse': 'neon-pulse 5s ease-in-out infinite',
       },
     },
   },
