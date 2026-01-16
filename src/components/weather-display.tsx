@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Card, CardContent } from '@/components/ui/card';
@@ -51,17 +52,17 @@ export default function WeatherDisplay({ weather, time, timerControls, children,
         <div className="flex flex-wrap justify-between items-center gap-4">
           <div className="flex items-center gap-4">
             <div>
-              <p className="text-3xl sm:text-4xl font-bold tracking-tighter flex items-baseline animate-neon-pulse">
+              <p className="text-3xl sm:text-4xl font-bold tracking-tighter flex items-baseline">
                 <span>{timeParts[0]}</span>
                 <span className="relative -top-px mx-px">:</span>
                 <span>{timeParts[1]}</span>
               </p>
               <p className="text-muted-foreground">{weather.location}</p>
-              <p className="text-sm mt-1 animate-neon-pulse">{dateString}</p>
+              <p className="text-sm mt-1">{dateString}</p>
             </div>
             {!isFocusMode && (
                 <div className="flex items-center gap-4">
-                <p className="text-3xl sm:text-4xl font-bold tracking-tighter animate-neon-pulse">{weather.temperature}°C</p>
+                <p className="text-3xl sm:text-4xl font-bold tracking-tighter">{weather.temperature}°C</p>
                 <div className="text-center">
                     <WeatherIcon className="size-8 sm:size-10 text-foreground animate-gentle-float" />
                     <p className="text-xs text-muted-foreground">{weather.condition}</p>
