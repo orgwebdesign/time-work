@@ -895,6 +895,11 @@ function WorkHoursTrackerPage() {
     return add(dayStartTime, { seconds: totalSecondsFromStart });
   }, [dayStartTime, pauseSeconds, requiredSecondsToday, carryOverBalance]);
 
+  const timeToLeaveSeconds = useMemo(() => {
+    if (!estimatedLeaveTime || !currentTime) return null;
+    return differenceInSeconds(estimatedLeaveTime, currentTime);
+  }, [estimatedLeaveTime, currentTime]);
+
   const { monthBalance, weekBalance } = useMemo(() => {
     const today = new Date();
     const startOfWeekDate = startOfWeek(today, { weekStartsOn: 1 });
@@ -1341,25 +1346,60 @@ function WorkHoursTrackerPage() {
               )}>
                 <CardHeader>
                   <CardTitle className="text-sm font-medium uppercase text-muted-foreground flex items-center gap-2">
-                    Monthly Mood
+                    Daily Status
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="text-center">
-                  {monthTotalBalance >= 0 ? (
-                    <div>
-                      <span className="text-5xl">🌟</span>
-                      <p className="mt-2 text-lg font-semibold text-green-500">
-                        Great job! You have {formatSecondsToString(monthTotalBalance, true)} extra this month.
-                      </p>
-                    </div>
-                  ) : (
-                    <div>
-                      <span className="text-5xl">😟</span>
-                      <p className="mt-2 text-lg font-semibold text-destructive">
-                        You're behind by {formatSecondsToString(monthTotalBalance, true)}. Let's catch up!
-                      </p>
-                    </div>
-                  )}
+                  {(() => {
+                      if (timeToLeaveSeconds === null || !dayStartTime || status === 'stopped') {
+                          return (
+                              <div>
+                                  <span className="text-5xl">👋</span>
+                                  <p className="mt-2 text-lg font-semibold text-muted-foreground">
+                                      Start the timer to see your status.
+                                  </p>
+                              </div>
+                          );
+                      }
+
+                      if (timeToLeaveSeconds > 0) {
+                          const hoursLeft = Math.floor(timeToLeaveSeconds / 3600);
+                          const minutesLeft = Math.floor((timeToLeaveSeconds % 3600) / 60);
+
+                          let emoji = '🤔';
+                          if (timeToLeaveSeconds > 2 * 3600) {
+                              emoji = '😟';
+                          } else if (timeToLeaveSeconds <= 30 * 60) {
+                              emoji = '☕';
+                          }
+
+                          let timeLeftText = '';
+                          if (hoursLeft > 0) {
+                              timeLeftText = `${hoursLeft} hour${hoursLeft > 1 ? 's' : ''} and ${minutesLeft} minute${minutesLeft > 1 ? 's' : ''}`;
+                          } else {
+                              timeLeftText = `${minutesLeft} minute${minutesLeft > 1 ? 's' : ''}`;
+                          }
+
+                          return (
+                              <div>
+                                  <span className="text-5xl">{emoji}</span>
+                                  <p className="mt-2 text-lg font-semibold">
+                                      You have {timeLeftText} left to finish today!
+                                  </p>
+                              </div>
+                          );
+                      } else {
+                          const overtimeMinutes = Math.floor(Math.abs(timeToLeaveSeconds) / 60);
+                          return (
+                              <div>
+                                  <span className="text-5xl">🎉</span>
+                                  <p className="mt-2 text-lg font-semibold text-green-500">
+                                      Overtime: You are {overtimeMinutes} minute{overtimeMinutes > 1 ? 's' : ''} past your goal!
+                                  </p>
+                              </div>
+                          );
+                      }
+                  })()}
                   {showRecoveryAlert && (
                     <Alert variant="destructive" className="mt-4 text-left animate-pulse">
                       <AlarmClock className="h-4 w-4" />
