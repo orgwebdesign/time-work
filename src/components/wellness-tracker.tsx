@@ -72,8 +72,10 @@ export default function WellnessTracker() {
     return null; // Or a skeleton loader
   }
 
+  const goalMet = completionPercentage === 100;
+
   return (
-    <Card className="glass-card">
+    <Card className={cn("glass-card", { 'animate-success-glow': goalMet })}>
       <CardHeader>
         <CardTitle className="text-sm font-medium uppercase text-muted-foreground">
           Daily Wellness Score
@@ -83,7 +85,7 @@ export default function WellnessTracker() {
         <div className="flex items-center justify-center gap-8">
             <div className="relative">
                 <ProgressRing value={completionPercentage} strokeWidth={8} className="h-28 w-28" />
-                <div className="absolute inset-0 flex items-center justify-center text-2xl font-bold">
+                <div className={cn("absolute inset-0 flex items-center justify-center text-2xl font-bold", { 'text-green-500': goalMet })}>
                     {`${completionPercentage}%`}
                 </div>
             </div>

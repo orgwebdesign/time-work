@@ -1071,6 +1071,8 @@ function WorkHoursTrackerPage() {
   
   const { h, m, s } = formatSeconds(currentWorkedSeconds);
   const isGoalMet = requiredSecondsToday > 0 && currentWorkedSeconds >= requiredSecondsToday;
+  const isLeaveTimeMet = estimatedLeaveTime && currentTime && currentTime >= estimatedLeaveTime;
+
 
   if (!isClient) {
     return <div className="min-h-screen bg-background" />;
@@ -1113,13 +1115,13 @@ function WorkHoursTrackerPage() {
             
             {/* Main Dashboard Cards */}
             <div className={cn("grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6", isFocusMode && "hidden")}>
-               <Card className="glass-card col-span-2 lg:col-start-2 lg:col-span-2 lg:row-span-2 flex flex-col items-center justify-center p-6">
+               <Card className={cn("glass-card col-span-2 lg:col-span-2 lg:row-span-2 flex flex-col items-center justify-center p-6 lg:col-start-2", { 'animate-success-glow': isGoalMet })}>
                   <div className={cn(
                       "relative w-full max-w-sm rounded-lg p-1",
-                      isGoalMet ? "bg-gradient-to-r from-purple-500 via-pink-500 to-red-500 animate-border-spin" : "bg-border/30"
+                      "bg-border/30"
                     )}>
                     <div className="bg-card rounded-md p-4">
-                      <div className="flex items-baseline justify-center font-mono">
+                      <div className={cn("flex items-baseline justify-center font-mono", { 'text-green-500': isGoalMet })}>
                           <span className="text-4xl sm:text-6xl font-bold tracking-tighter">{h}</span>
                           <span className="text-2xl sm:text-4xl font-medium text-muted-foreground mx-1">:</span>
                           <span className="text-4xl sm:text-6xl font-bold tracking-tighter">{m}</span>
@@ -1146,12 +1148,12 @@ function WorkHoursTrackerPage() {
                 </CardContent>
               </Card>
 
-               <Card className="glass-card lg:col-start-4 lg:row-start-1">
+               <Card className={cn("glass-card lg:col-start-4 lg:row-start-1", { 'animate-success-glow': isLeaveTimeMet })}>
                   <CardHeader className="p-3">
                       <CardTitle className="text-xs font-medium uppercase text-muted-foreground">Est. Leave Time</CardTitle>
                   </CardHeader>
                   <CardContent className="p-3 pt-0">
-                      <p className="text-lg font-bold text-primary">{estimatedLeaveTime ? format(estimatedLeaveTime, 'p') : '--:--'}</p>
+                      <p className={cn("text-lg font-bold text-primary", { 'text-green-500': isLeaveTimeMet })}>{estimatedLeaveTime ? format(estimatedLeaveTime, 'p') : '--:--'}</p>
                   </CardContent>
               </Card>
 
@@ -1165,13 +1167,13 @@ function WorkHoursTrackerPage() {
                 </CardContent>
               </Card>
               
-              <Card className="glass-card lg:col-start-4 lg:row-start-2">
+              <Card className={cn("glass-card lg:col-start-4 lg:row-start-2", { 'animate-success-glow': isGoalMet })}>
                   <CardHeader className="flex flex-row items-center justify-between p-3">
                       <CardTitle className="text-xs font-medium uppercase text-muted-foreground">Daily Goal</CardTitle>
                       <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground disabled:text-muted-foreground/40 disabled:hover:text-muted-foreground/40" onClick={() => handleOpenEditModal('required')} disabled={status !== 'stopped'}><Pencil className="h-4 w-4" /></Button>
                   </CardHeader>
                   <CardContent className="p-3 pt-0">
-                      <p className="text-lg font-bold">{formatSecondsToString(requiredSecondsToday)}</p>
+                      <p className={cn("text-lg font-bold", { 'text-green-500': isGoalMet })}>{formatSecondsToString(requiredSecondsToday)}</p>
                   </CardContent>
               </Card>
             </div>
