@@ -129,11 +129,11 @@ export default {
         'neon-pulse': {
           '0%, 100%': {
             textShadow:
-              '0 0 2px #fff, 0 0 5px #fff, 0 0 10px #ff9800bf, 0 0 15px #ff9800bf',
+              '0 0 2px #fff, 0 0 5px #fff, 0 0 10px #ff980072, 0 0 15px #ff980072',
           },
           '50%': {
             textShadow:
-              '0 0 5px #fff, 0 0 10px #fff, 0 0 20px #ff9800bf, 0 0 30px #ff9800bf',
+              '0 0 5px #fff, 0 0 10px #fff, 0 0 20px #ff980072, 0 0 30px #ff980072',
           },
         },
       },
@@ -147,7 +147,7 @@ export default {
         'gentle-float': 'gentle-float 3s ease-in-out infinite',
         'fade-in-slide-right': 'fade-in-slide-right 0.8s ease-out forwards',
         'slide-up-second': 'slide-up-second 1s ease-in-out forwards',
-        'neon-pulse': 'neon-pulse 5s ease-in-out infinite',
+        'neon-pulse': 'neon-pulse 10s ease-in-out infinite',
       },
     },
   },
