@@ -194,9 +194,16 @@ export default function PrayerTimes({ onTakeSalatBreak, isHidden }: PrayerTimesP
             Prayer Times - {locationName}
         </CardTitle>
         {nextPrayerName && nextPrayerCountdown !== null && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground pt-1">
+            <div className={cn(
+                "flex items-center gap-2 text-sm text-muted-foreground pt-1 transition-colors duration-500",
+                nextPrayerCountdown < 300 && nextPrayerCountdown >= 0 && "text-green-500 font-bold animate-calm-pulse"
+            )}>
                 <Clock className="h-4 w-4" />
-                <span>Next: <strong>{nextPrayerName}</strong> in {formatCountdown(nextPrayerCountdown)}</span>
+                {activePrayer ? (
+                    <span>It is time for <strong>{activePrayer}</strong></span>
+                ) : (
+                    <span>Next: <strong>{nextPrayerName}</strong> in {formatCountdown(nextPrayerCountdown)}</span>
+                )}
             </div>
         )}
       </CardHeader>
