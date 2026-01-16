@@ -1101,18 +1101,18 @@ function WorkHoursTrackerPage() {
           <div className={cn("lg:col-span-2 space-y-8", isFocusMode && "col-span-3 space-y-4")}>
             
             {/* Main Dashboard Cards */}
-            <div className={cn("grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6", isFocusMode && "hidden")}>
+            <div className={cn("grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6", isFocusMode && "hidden")}>
               <Card className="glass-card">
-                <CardHeader className="flex flex-row items-center justify-between">
-                  <CardTitle className="text-sm font-medium uppercase text-muted-foreground">Start Time</CardTitle>
+                <CardHeader className="flex flex-row items-center justify-between p-4">
+                  <CardTitle className="text-xs font-medium uppercase text-muted-foreground">Start Time</CardTitle>
                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground disabled:text-muted-foreground/40 disabled:hover:text-muted-foreground/40" onClick={() => handleOpenEditModal('start')} disabled={status !== 'stopped'}><Pencil className="h-4 w-4" /></Button>
                 </CardHeader>
-                <CardContent>
-                  <p className="text-2xl sm:text-3xl font-bold">{dayStartTime ? format(dayStartTime, 'p') : '--:--'}</p>
+                <CardContent className="p-4 pt-0">
+                  <p className="text-xl sm:text-2xl font-bold">{dayStartTime ? format(dayStartTime, 'p') : '--:--'}</p>
                 </CardContent>
               </Card>
 
-              <Card className="glass-card lg:col-span-2 row-span-2 flex flex-col items-center justify-center p-6">
+              <Card className="glass-card lg:col-span-2 lg:row-span-2 flex flex-col items-center justify-center p-6">
                   <div className={cn(
                       "relative w-full max-w-sm rounded-lg p-1",
                       isGoalMet ? "bg-gradient-to-r from-purple-500 via-pink-500 to-red-500 animate-border-spin" : "bg-border/30"
@@ -1136,31 +1136,31 @@ function WorkHoursTrackerPage() {
               </Card>
 
                <Card className="glass-card">
-                  <CardHeader>
-                      <CardTitle className="text-sm font-medium uppercase text-muted-foreground">Est. Leave Time</CardTitle>
+                  <CardHeader className="p-4">
+                      <CardTitle className="text-xs font-medium uppercase text-muted-foreground">Est. Leave Time</CardTitle>
                   </CardHeader>
-                  <CardContent>
-                      <p className="text-2xl sm:text-3xl font-bold text-primary">{estimatedLeaveTime ? format(estimatedLeaveTime, 'p') : '--:--'}</p>
+                  <CardContent className="p-4 pt-0">
+                      <p className="text-xl sm:text-2xl font-bold text-primary">{estimatedLeaveTime ? format(estimatedLeaveTime, 'p') : '--:--'}</p>
                   </CardContent>
               </Card>
 
               <Card className="glass-card">
-                <CardHeader className="flex flex-row items-center justify-between">
-                  <CardTitle className="text-sm font-medium uppercase text-muted-foreground">Pause</CardTitle>
+                <CardHeader className="flex flex-row items-center justify-between p-4">
+                  <CardTitle className="text-xs font-medium uppercase text-muted-foreground">Pause</CardTitle>
                   <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground disabled:text-muted-foreground/40 disabled:hover:text-muted-foreground/40" onClick={() => handleOpenEditModal('pause')} disabled={status !== 'stopped'}><Pencil className="h-4 w-4" /></Button>
                 </CardHeader>
-                <CardContent>
-                  <p className="text-2xl sm:text-3xl font-bold">{formatSecondsToString(pauseSeconds)}</p>
+                <CardContent className="p-4 pt-0">
+                  <p className="text-xl sm:text-2xl font-bold">{formatSecondsToString(pauseSeconds)}</p>
                 </CardContent>
               </Card>
               
               <Card className="glass-card">
-                  <CardHeader className="flex flex-row items-center justify-between">
-                      <CardTitle className="text-sm font-medium uppercase text-muted-foreground">Daily Goal</CardTitle>
+                  <CardHeader className="flex flex-row items-center justify-between p-4">
+                      <CardTitle className="text-xs font-medium uppercase text-muted-foreground">Daily Goal</CardTitle>
                       <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground disabled:text-muted-foreground/40 disabled:hover:text-muted-foreground/40" onClick={() => handleOpenEditModal('required')} disabled={status !== 'stopped'}><Pencil className="h-4 w-4" /></Button>
                   </CardHeader>
-                  <CardContent>
-                      <p className="text-2xl sm:text-3xl font-bold">{formatSecondsToString(requiredSecondsToday)}</p>
+                  <CardContent className="p-4 pt-0">
+                      <p className="text-xl sm:text-2xl font-bold">{formatSecondsToString(requiredSecondsToday)}</p>
                   </CardContent>
               </Card>
             </div>
@@ -1168,10 +1168,6 @@ function WorkHoursTrackerPage() {
             {/* Prayer Times */}
             <PrayerTimes onTakeSalatBreak={handleTakeSalatBreak} isHidden={isFocusMode} />
             
-            <div className={cn(isFocusMode && "hidden")}>
-              <WaterIntakeTracker />
-            </div>
-
             {/* Daily History */}
              <Card className={cn("glass-card", isFocusMode && "hidden")}>
               <CardHeader className="flex flex-wrap items-center justify-between gap-y-2 gap-x-4">
@@ -1326,6 +1322,9 @@ function WorkHoursTrackerPage() {
                   </div>
                 </CardContent>
               </Card>
+              <div className={cn(isFocusMode && "hidden")}>
+                <WaterIntakeTracker />
+            </div>
           </div>
 
           {/* Right Column */}
@@ -1669,3 +1668,4 @@ export default function WorkHoursTracker() {
     </AppLayout>
   );
 }
+
