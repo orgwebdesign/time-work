@@ -129,11 +129,11 @@ export default {
         'neon-pulse': {
           '0%, 100%': {
             textShadow:
-              '0 0 2px #fff, 0 0 5px #fff, 0 0 10px #ff9800, 0 0 15px #ff9800',
+              '0 0 2px #fff, 0 0 5px #fff, 0 0 10px #ff9800bf, 0 0 15px #ff9800bf',
           },
           '50%': {
             textShadow:
-              '0 0 5px #fff, 0 0 10px #fff, 0 0 20px #ff9800, 0 0 30px #ff9800',
+              '0 0 5px #fff, 0 0 10px #fff, 0 0 20px #ff9800bf, 0 0 30px #ff9800bf',
           },
         },
       },
