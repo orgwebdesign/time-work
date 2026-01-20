@@ -53,6 +53,7 @@ interface DailyLog {
   workedSeconds: number;
   pauseSeconds: number;
   startTime?: string; // ISO string
+  endTime?: string; // ISO string
   requiredHours?: number; // Store the required hours for this specific day
 }
 
@@ -144,6 +145,7 @@ function WorkHoursTrackerPage() {
   const [pauseSeconds, setPauseSeconds] = useState(0);
   const [sessionStartTime, setSessionStartTime] = useState<Date | null>(null);
   const [dayStartTime, setDayStartTime] = useState<Date | null>(null);
+  const [dayEndTime, setDayEndTime] = useState<Date | null>(null);
   const [breakStartTime, setBreakStartTime] = useState<Date | null>(null);
   const [requiredHours, setRequiredHours] = useState(getDefaultRequiredHours(new Date()));
   const [currentTime, setCurrentTime] = useState<Date | null>(null);
@@ -247,6 +249,9 @@ function WorkHoursTrackerPage() {
           loadedDayStartTime = new Date(data.startTime);
           setDayStartTime(loadedDayStartTime);
         }
+        if (data.endTime) {
+          setDayEndTime(new Date(data.endTime));
+        }
         if (typeof data.requiredHours === 'number') {
           todaysRequiredHours = data.requiredHours;
         }
@@ -332,6 +337,7 @@ function WorkHoursTrackerPage() {
         workedSeconds: workedSeconds, 
         pauseSeconds: pauseSeconds,
         startTime: dayStartTime?.toISOString(),
+        endTime: dayEndTime?.toISOString(),
         requiredHours,
     };
     
@@ -354,7 +360,7 @@ function WorkHoursTrackerPage() {
     } catch(e) {
         console.error("Failed to save log to localStorage", e);
     }
-  }, [isClient, workedSeconds, pauseSeconds, dayStartTime, requiredHours, status, sessionStartTime, breakStartTime, activityLog]);
+  }, [isClient, workedSeconds, pauseSeconds, dayStartTime, dayEndTime, requiredHours, status, sessionStartTime, breakStartTime, activityLog]);
 
 
   useEffect(() => {
@@ -441,7 +447,7 @@ function WorkHoursTrackerPage() {
     // Save data whenever a critical state changes
     saveData();
     
-  }, [requiredHours, isClient, status, activityLog, saveData, dayStartTime]);
+  }, [requiredHours, isClient, status, activityLog, saveData, dayStartTime, dayEndTime]);
 
   
   // The secondary effects loop for weather etc.
@@ -564,6 +570,7 @@ function WorkHoursTrackerPage() {
   const handleStart = () => {
     const now = new Date();
     setSessionStartTime(now);
+    setDayEndTime(null);
     if (!dayStartTime) {
       setDayStartTime(now);
       addActivity('Start Day');
@@ -593,11 +600,13 @@ function WorkHoursTrackerPage() {
   const handleStop = () => {
     if (status === 'stopped') return;
     
+    const now = new Date();
+    setDayEndTime(now);
+
     addActivity('End Day');
     setStatus('stopped');
     setSessionStartTime(null);
     setBreakStartTime(null);
-    saveData(); // Final save on stop
   };
 
   const handleOpenEditModal = (field: 'worked' | 'pause' | 'required' | 'start') => {
@@ -702,6 +711,7 @@ function WorkHoursTrackerPage() {
           setWorkedSeconds(0);
           setPauseSeconds(0);
           setDayStartTime(null);
+          setDayEndTime(null);
           setRequiredHours(getDefaultRequiredHours(new Date()));
           setStatus('stopped');
           setSessionStartTime(null);
@@ -1197,6 +1207,7 @@ function WorkHoursTrackerPage() {
                             <TableHead className="text-muted-foreground">Date</TableHead>
                             <TableHead className="text-muted-foreground text-center">Start</TableHead>
                             <TableHead className="text-muted-foreground text-center">Leave Time</TableHead>
+                            <TableHead className="text-muted-foreground text-center">End Time</TableHead>
                             <TableHead className="text-muted-foreground text-right">Worked</TableHead>
                             <TableHead className="text-muted-foreground text-right">Pause</TableHead>
                             <TableHead className="text-muted-foreground text-right">Balance</TableHead>
@@ -1235,6 +1246,8 @@ function WorkHoursTrackerPage() {
                             const logForModal = {
                                 ...log,
                             };
+                            
+                            const actualEndTime = log.endTime ? parseISO(log.endTime) : null;
 
                             return (
                                 <TableRow key={log.date} className={cn("border-border/50 hover:bg-muted/30", (isHoliday || isWeekendDay) && "bg-primary/10")}>
@@ -1246,6 +1259,7 @@ function WorkHoursTrackerPage() {
                                     <TableCell className={cn("text-center font-medium", balance > 0 && "text-green-500 font-bold")}>
                                       {estimatedLeaveTimeForDay ? format(estimatedLeaveTimeForDay, 'p') : '--:--'}
                                     </TableCell>
+                                    <TableCell className="text-center">{actualEndTime ? format(actualEndTime, 'p') : '--:--'}</TableCell>
                                     <TableCell className="text-right">{formatSecondsToString(log.workedSeconds)}</TableCell>
                                     <TableCell className="text-right">{formatSecondsToString(log.pauseSeconds)}</TableCell>
                                     <TableCell className={cn("text-right font-medium", balance < 0 ? 'text-destructive' : 'text-green-500')}>
@@ -1265,7 +1279,7 @@ function WorkHoursTrackerPage() {
                             )
                         }) : (
                             <TableRow className="border-border/50 hover:bg-transparent">
-                                <TableCell colSpan={7} className="text-center text-muted-foreground py-8">No history for this month yet.</TableCell>
+                                <TableCell colSpan={8} className="text-center text-muted-foreground py-8">No history for this month yet.</TableCell>
                             </TableRow>
                         )}
                     </TableBody>
