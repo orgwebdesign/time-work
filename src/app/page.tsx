@@ -1125,7 +1125,7 @@ function WorkHoursTrackerPage() {
             
             {/* Main Dashboard Cards */}
             <div className={cn("grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6", isFocusMode && "hidden")}>
-               <Card className={cn("glass-card col-span-2 lg:col-span-2 lg:row-span-2 flex flex-col items-center justify-center p-6 lg:col-start-2", { 'animate-success-glow': isGoalMet })}>
+               <Card className={cn("glass-card col-span-2 lg:row-span-2 flex flex-col items-center justify-center p-6 lg:col-start-2", { 'animate-success-glow': isGoalMet })}>
                   <div className={cn(
                       "relative w-full max-w-sm rounded-lg p-1",
                       "bg-border/30"
@@ -1188,6 +1188,81 @@ function WorkHoursTrackerPage() {
               </Card>
             </div>
 
+            {/* Daily Status Card (Mobile Only) */}
+            <div className="lg:hidden">
+              <Card className={cn(
+                  "glass-card transition-all",
+                  monthTotalBalance >= 0 ? "shadow-green-500/20" : "shadow-destructive/20"
+              )}>
+                <CardHeader>
+                  <CardTitle className="text-sm font-medium uppercase text-muted-foreground flex items-center gap-2">
+                    Daily Status
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="text-center">
+                  {(() => {
+                      if (timeToLeaveSeconds === null || !dayStartTime || status === 'stopped') {
+                          return (
+                              <div>
+                                  <span className="text-5xl">👋</span>
+                                  <p className="mt-2 text-lg font-semibold text-muted-foreground">
+                                      Start the timer to see your status.
+                                  </p>
+                              </div>
+                          );
+                      }
+
+                      if (timeToLeaveSeconds > 0) {
+                          const hoursLeft = Math.floor(timeToLeaveSeconds / 3600);
+                          const minutesLeft = Math.floor((timeToLeaveSeconds % 3600) / 60);
+
+                          let emoji = '🤔';
+                          if (timeToLeaveSeconds > 2 * 3600) {
+                              emoji = '😟';
+                          } else if (timeToLeaveSeconds <= 30 * 60) {
+                              emoji = '☕';
+                          }
+
+                          let timeLeftText = '';
+                          if (hoursLeft > 0) {
+                              timeLeftText = `${hoursLeft} hour${hoursLeft > 1 ? 's' : ''} and ${minutesLeft} minute${minutesLeft > 1 ? 's' : ''}`;
+                          } else {
+                              timeLeftText = `${minutesLeft} minute${minutesLeft > 1 ? 's' : ''}`;
+                          }
+
+                          return (
+                              <div>
+                                  <span className="text-5xl">{emoji}</span>
+                                  <p className="mt-2 text-lg font-semibold">
+                                      You have {timeLeftText} left to finish today!
+                                  </p>
+                              </div>
+                          );
+                      } else {
+                          const overtimeMinutes = Math.floor(Math.abs(timeToLeaveSeconds) / 60);
+                          return (
+                              <div>
+                                  <span className="text-5xl">🎉</span>
+                                  <p className="mt-2 text-lg font-semibold text-green-500">
+                                      Overtime: You are {overtimeMinutes} minute{overtimeMinutes > 1 ? 's' : ''} past your goal!
+                                  </p>
+                              </div>
+                          );
+                      }
+                  })()}
+                  {showRecoveryAlert && (
+                    <Alert variant="destructive" className="mt-4 text-left animate-pulse">
+                      <AlarmClock className="h-4 w-4" />
+                      <AlertTitle>Recovery Mode</AlertTitle>
+                      <AlertDescription>
+                        Only {Math.ceil(daysRemainingInMonth)} days left to balance your hours!
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+            
             {/* Prayer Times */}
             <PrayerTimes onTakeSalatBreak={handleTakeSalatBreak} isHidden={isFocusMode} />
             
@@ -1374,77 +1449,79 @@ function WorkHoursTrackerPage() {
 
           {/* Right Column */}
           <div className={cn("space-y-8", isFocusMode && "hidden")}>
-              <Card className={cn(
-                  "glass-card transition-all",
-                  monthTotalBalance >= 0 ? "shadow-green-500/20" : "shadow-destructive/20"
-              )}>
-                <CardHeader>
-                  <CardTitle className="text-sm font-medium uppercase text-muted-foreground flex items-center gap-2">
-                    Daily Status
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="text-center">
-                  {(() => {
-                      if (timeToLeaveSeconds === null || !dayStartTime || status === 'stopped') {
-                          return (
-                              <div>
-                                  <span className="text-5xl">👋</span>
-                                  <p className="mt-2 text-lg font-semibold text-muted-foreground">
-                                      Start the timer to see your status.
-                                  </p>
-                              </div>
-                          );
-                      }
+              <div className="hidden lg:block">
+                <Card className={cn(
+                    "glass-card transition-all",
+                    monthTotalBalance >= 0 ? "shadow-green-500/20" : "shadow-destructive/20"
+                )}>
+                  <CardHeader>
+                    <CardTitle className="text-sm font-medium uppercase text-muted-foreground flex items-center gap-2">
+                      Daily Status
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="text-center">
+                    {(() => {
+                        if (timeToLeaveSeconds === null || !dayStartTime || status === 'stopped') {
+                            return (
+                                <div>
+                                    <span className="text-5xl">👋</span>
+                                    <p className="mt-2 text-lg font-semibold text-muted-foreground">
+                                        Start the timer to see your status.
+                                    </p>
+                                </div>
+                            );
+                        }
 
-                      if (timeToLeaveSeconds > 0) {
-                          const hoursLeft = Math.floor(timeToLeaveSeconds / 3600);
-                          const minutesLeft = Math.floor((timeToLeaveSeconds % 3600) / 60);
+                        if (timeToLeaveSeconds > 0) {
+                            const hoursLeft = Math.floor(timeToLeaveSeconds / 3600);
+                            const minutesLeft = Math.floor((timeToLeaveSeconds % 3600) / 60);
 
-                          let emoji = '🤔';
-                          if (timeToLeaveSeconds > 2 * 3600) {
-                              emoji = '😟';
-                          } else if (timeToLeaveSeconds <= 30 * 60) {
-                              emoji = '☕';
-                          }
+                            let emoji = '🤔';
+                            if (timeToLeaveSeconds > 2 * 3600) {
+                                emoji = '😟';
+                            } else if (timeToLeaveSeconds <= 30 * 60) {
+                                emoji = '☕';
+                            }
 
-                          let timeLeftText = '';
-                          if (hoursLeft > 0) {
-                              timeLeftText = `${hoursLeft} hour${hoursLeft > 1 ? 's' : ''} and ${minutesLeft} minute${minutesLeft > 1 ? 's' : ''}`;
-                          } else {
-                              timeLeftText = `${minutesLeft} minute${minutesLeft > 1 ? 's' : ''}`;
-                          }
+                            let timeLeftText = '';
+                            if (hoursLeft > 0) {
+                                timeLeftText = `${hoursLeft} hour${hoursLeft > 1 ? 's' : ''} and ${minutesLeft} minute${minutesLeft > 1 ? 's' : ''}`;
+                            } else {
+                                timeLeftText = `${minutesLeft} minute${minutesLeft > 1 ? 's' : ''}`;
+                            }
 
-                          return (
-                              <div>
-                                  <span className="text-5xl">{emoji}</span>
-                                  <p className="mt-2 text-lg font-semibold">
-                                      You have {timeLeftText} left to finish today!
-                                  </p>
-                              </div>
-                          );
-                      } else {
-                          const overtimeMinutes = Math.floor(Math.abs(timeToLeaveSeconds) / 60);
-                          return (
-                              <div>
-                                  <span className="text-5xl">🎉</span>
-                                  <p className="mt-2 text-lg font-semibold text-green-500">
-                                      Overtime: You are {overtimeMinutes} minute{overtimeMinutes > 1 ? 's' : ''} past your goal!
-                                  </p>
-                              </div>
-                          );
-                      }
-                  })()}
-                  {showRecoveryAlert && (
-                    <Alert variant="destructive" className="mt-4 text-left animate-pulse">
-                      <AlarmClock className="h-4 w-4" />
-                      <AlertTitle>Recovery Mode</AlertTitle>
-                      <AlertDescription>
-                        Only {Math.ceil(daysRemainingInMonth)} days left to balance your hours!
-                      </AlertDescription>
-                    </Alert>
-                  )}
-                </CardContent>
-              </Card>
+                            return (
+                                <div>
+                                    <span className="text-5xl">{emoji}</span>
+                                    <p className="mt-2 text-lg font-semibold">
+                                        You have {timeLeftText} left to finish today!
+                                    </p>
+                                </div>
+                            );
+                        } else {
+                            const overtimeMinutes = Math.floor(Math.abs(timeToLeaveSeconds) / 60);
+                            return (
+                                <div>
+                                    <span className="text-5xl">🎉</span>
+                                    <p className="mt-2 text-lg font-semibold text-green-500">
+                                        Overtime: You are {overtimeMinutes} minute{overtimeMinutes > 1 ? 's' : ''} past your goal!
+                                    </p>
+                                </div>
+                            );
+                        }
+                    })()}
+                    {showRecoveryAlert && (
+                      <Alert variant="destructive" className="mt-4 text-left animate-pulse">
+                        <AlarmClock className="h-4 w-4" />
+                        <AlertTitle>Recovery Mode</AlertTitle>
+                        <AlertDescription>
+                          Only {Math.ceil(daysRemainingInMonth)} days left to balance your hours!
+                        </AlertDescription>
+                      </Alert>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
 
               <WellnessTracker />
 
