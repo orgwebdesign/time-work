@@ -1196,6 +1196,7 @@ function WorkHoursTrackerPage() {
                         <TableRow className="border-border/50 hover:bg-transparent">
                             <TableHead className="text-muted-foreground">Date</TableHead>
                             <TableHead className="text-muted-foreground text-center">Start</TableHead>
+                            <TableHead className="text-muted-foreground text-center">Leave Time</TableHead>
                             <TableHead className="text-muted-foreground text-right">Worked</TableHead>
                             <TableHead className="text-muted-foreground text-right">Pause</TableHead>
                             <TableHead className="text-muted-foreground text-right">Balance</TableHead>
@@ -1205,6 +1206,16 @@ function WorkHoursTrackerPage() {
                     <TableBody>
                         {currentMonthHistory.length > 0 ? currentMonthHistory.map(log => {
                             const logDate = parseISO(log.date);
+
+                            const carryoverForDay = history
+                                .filter(h => isSameMonth(parseISO(h.date), logDate) && parseISO(h.date) < logDate)
+                                .reduce((acc, h) => {
+                                    const hDate = parseISO(h.date);
+                                    const hIsHoliday = holidays.some(hol => isSameDay(hol, hDate));
+                                    const hRequired = hIsHoliday ? 0 : (h.requiredHours !== undefined ? h.requiredHours : getDefaultRequiredHours(hDate)) * 3600;
+                                    return acc + (h.workedSeconds - hRequired);
+                                }, 0);
+                            
                             const isHoliday = holidays.some(h => isSameDay(h, logDate));
                             const isWeekendDay = isWeekend(logDate);
                             let dailyRequired;
@@ -1214,6 +1225,10 @@ function WorkHoursTrackerPage() {
                             } else {
                                 dailyRequired = log.requiredHours !== undefined ? log.requiredHours * 3600 : getDefaultRequiredHours(logDate) * 3600;
                             }
+                            
+                            const estimatedLeaveTimeForDay = log.startTime ? add(parseISO(log.startTime), { 
+                                seconds: (dailyRequired - carryoverForDay) + log.pauseSeconds
+                            }) : null;
 
                             const balance = log.workedSeconds - dailyRequired;
                             
@@ -1228,6 +1243,9 @@ function WorkHoursTrackerPage() {
                                         {(isHoliday || isWeekendDay) && <span className="ml-2 text-xs text-primary font-semibold">(Off)</span>}
                                     </TableCell>
                                     <TableCell className="text-center">{log.startTime ? format(parseISO(log.startTime), 'p') : '--:--'}</TableCell>
+                                    <TableCell className={cn("text-center font-medium", balance > 0 && "text-green-500 font-bold")}>
+                                      {estimatedLeaveTimeForDay ? format(estimatedLeaveTimeForDay, 'p') : '--:--'}
+                                    </TableCell>
                                     <TableCell className="text-right">{formatSecondsToString(log.workedSeconds)}</TableCell>
                                     <TableCell className="text-right">{formatSecondsToString(log.pauseSeconds)}</TableCell>
                                     <TableCell className={cn("text-right font-medium", balance < 0 ? 'text-destructive' : 'text-green-500')}>
@@ -1247,7 +1265,7 @@ function WorkHoursTrackerPage() {
                             )
                         }) : (
                             <TableRow className="border-border/50 hover:bg-transparent">
-                                <TableCell colSpan={6} className="text-center text-muted-foreground py-8">No history for this month yet.</TableCell>
+                                <TableCell colSpan={7} className="text-center text-muted-foreground py-8">No history for this month yet.</TableCell>
                             </TableRow>
                         )}
                     </TableBody>
