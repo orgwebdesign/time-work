@@ -29,18 +29,25 @@ export default function LoginPage() {
     try {
       const storedUsers = localStorage.getItem('taskmaster-users');
       const users: User[] = storedUsers ? JSON.parse(storedUsers) : [];
-      const adminExists = users.some(u => u.email === 'admin@example.com');
+      const adminExists = users.some(u => u.email === 'admin@admin.com');
 
       if (!adminExists) {
         const now = new Date().toISOString();
         const adminUser: User = {
           id: 'admin-user-01',
           fullName: 'Admin User',
-          email: 'admin@example.com',
-          password: 'admin',
+          email: 'admin@admin.com',
+          password: 'admin1234',
           createdAt: now,
           loginCount: 0,
         };
+        
+        // Ensure old admin is removed if present
+        const oldAdminIndex = users.findIndex(u => u.email === 'admin@example.com');
+        if (oldAdminIndex > -1) {
+            users.splice(oldAdminIndex, 1);
+        }
+
         users.unshift(adminUser); // Add admin as the first user
         localStorage.setItem('taskmaster-users', JSON.stringify(users));
       }
@@ -85,7 +92,7 @@ export default function LoginPage() {
           description: `Welcome back, ${user.fullName}!`,
         });
 
-        if (user.email === 'admin@example.com') {
+        if (user.email === 'admin@admin.com') {
           router.push('/admin');
         } else {
           router.push('/');

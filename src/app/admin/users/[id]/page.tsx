@@ -34,7 +34,7 @@ export default function AdminUserReviewPage({
     setIsClient(true);
     try {
       const currentUser: User | null = JSON.parse(localStorage.getItem('taskmaster-currentUser') || 'null');
-      if (currentUser?.email !== 'admin@example.com') {
+      if (currentUser?.email !== 'admin@admin.com') {
         router.push('/');
         return;
       }

@@ -36,7 +36,7 @@ export default function AdminDashboardPage() {
       const currentUser: User | null = JSON.parse(
         localStorage.getItem('taskmaster-currentUser') || 'null'
       );
-      if (currentUser?.email !== 'admin@example.com') {
+      if (currentUser?.email !== 'admin@admin.com') {
         router.push('/');
         return;
       }
@@ -44,7 +44,7 @@ export default function AdminDashboardPage() {
         localStorage.getItem('taskmaster-users') || '[]'
       );
       // Filter out the admin user from the main list
-      setUsers(allUsers.filter(u => u.email !== 'admin@example.com'));
+      setUsers(allUsers.filter(u => u.email !== 'admin@admin.com'));
     } catch (error) {
       console.error('Failed to load user data:', error);
       router.push('/login');

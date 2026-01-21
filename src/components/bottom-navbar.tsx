@@ -37,7 +37,7 @@ export function BottomNavbar() {
         if (currentUser) {
             const parsedUser = JSON.parse(currentUser);
             setUser(parsedUser);
-            if (parsedUser.email === 'admin@example.com') {
+            if (parsedUser.email === 'admin@admin.com') {
                 setNavItems([...baseNavItems, adminNavItem]);
             } else {
                 setNavItems(baseNavItems);
