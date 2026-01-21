@@ -28,6 +28,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
+import { DashboardHeader } from '@/components/dashboard-header';
 
 
 export default function ProfilePage() {
@@ -122,9 +123,7 @@ export default function ProfilePage() {
   return (
     <AppLayout>
       <div className="flex-1 space-y-4 p-8 pt-6">
-        <div className="flex items-center justify-between space-y-2">
-          <h2 className="text-3xl font-bold tracking-tight">User Profile</h2>
-        </div>
+        <DashboardHeader title="User Profile" />
         <Card className="glass-card">
           <CardHeader>
             <CardTitle>Profile Details</CardTitle>

@@ -18,6 +18,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
+import { DashboardHeader } from '@/components/dashboard-header';
 
 export default function AdminUserReviewPage({
   params,
@@ -117,9 +118,7 @@ export default function AdminUserReviewPage({
   return (
     <AppLayout>
       <div className="flex-1 space-y-4 p-8 pt-6">
-        <div className="flex items-center justify-between space-y-2">
-          <h2 className="text-3xl font-bold tracking-tight">Admin User Review</h2>
-        </div>
+        <DashboardHeader title="Admin User Review" />
         <Card className="glass-card">
           <CardHeader>
             <div className="flex items-center gap-6">

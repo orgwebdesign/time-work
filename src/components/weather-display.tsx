@@ -2,24 +2,24 @@
 
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from './ui/skeleton';
-import type { Weather } from '@/lib/types';
-import { ReactNode } from 'react';
+import type { User, Weather } from '@/lib/types';
+import { ReactNode, useMemo } from 'react';
 import { format } from 'date-fns';
 import { Button } from './ui/button';
-import { LogOut } from 'lucide-react';
+import { Crown, LogOut } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 
 interface WeatherDisplayProps {
+  user: User | null;
   weather: Weather | null;
   time: Date | null;
   timerControls: React.ReactNode;
   children?: ReactNode;
   isFocusMode?: boolean;
-  onLogout?: () => void;
 }
 
-export default function WeatherDisplay({ weather, time, timerControls, children, isFocusMode, onLogout }: WeatherDisplayProps) {
+export default function WeatherDisplay({ user, weather, time, timerControls, children, isFocusMode }: WeatherDisplayProps) {
   const { toast } = useToast();
   const router = useRouter();
   
@@ -31,6 +31,22 @@ export default function WeatherDisplay({ weather, time, timerControls, children,
     });
     router.push('/login');
   };
+  
+  const greeting = useMemo(() => {
+    if (!user) return null;
+
+    if (user.email === 'admin@admin.com') {
+      return (
+        <div className="flex items-center gap-2">
+          <h2 className="text-lg font-semibold text-primary">Bonjour Skhoun Lktaf, Admin!</h2>
+          <Crown className="w-5 h-5 text-yellow-400" />
+        </div>
+      );
+    }
+    return (
+      <h2 className="text-lg font-semibold text-primary">Bonjour Skhoun Lktaf, {user.fullName}! 👋</h2>
+    );
+  }, [user]);
 
   if (!time || !weather) {
       return (
@@ -63,7 +79,13 @@ export default function WeatherDisplay({ weather, time, timerControls, children,
 
   return (
     <Card className="glass-card">
-      <CardContent className="p-4">
+      <CardContent className="p-4 flex flex-col gap-4">
+        <div className="flex flex-wrap justify-between items-center gap-x-4 gap-y-2">
+            {greeting}
+            <Button onClick={handleLogout} variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground">
+                <LogOut className="h-4 w-4" />
+            </Button>
+        </div>
         <div className="flex flex-wrap justify-between items-center gap-4">
           <div className="flex items-center gap-4">
             <div>
@@ -89,9 +111,6 @@ export default function WeatherDisplay({ weather, time, timerControls, children,
             <div>
              {isFocusMode ? children : timerControls}
             </div>
-            <Button onClick={handleLogout} variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground">
-                <LogOut className="h-4 w-4" />
-            </Button>
           </div>
         </div>
       </CardContent>

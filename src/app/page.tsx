@@ -8,7 +8,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
-import { User, BarChart as BarChartIcon, Calendar as CalendarIconLucid, Award, History as HistoryIcon, Trash2, Pencil, Play, Pause, Coffee, Square, Clock, ListCollapse, BrainCircuit, CupSoda, TimerReset, AlarmClock, Sun, Cloud, CloudRain, Moon, CloudSun, Eye, Zap, Droplet, LogOut } from 'lucide-react';
+import { User, BarChart as BarChartIcon, Calendar as CalendarIconLucid, Award, History as HistoryIcon, Trash2, Pencil, Play, Pause, Coffee, Square, Clock, ListCollapse, BrainCircuit, CupSoda, TimerReset, AlarmClock, Sun, Cloud, CloudRain, Moon, CloudSun, Eye, Zap, Droplet } from 'lucide-react';
 import { add, format, differenceInSeconds, startOfMonth, isSameDay, isSameMonth, lastDayOfMonth, isWeekend, parse, parseISO, differenceInMilliseconds, startOfWeek, set, eachDayOfInterval, endOfWeek, subWeeks, endOfDay, startOfDay, isBefore } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Calendar } from '@/components/ui/calendar';
@@ -642,12 +642,6 @@ function WorkHoursTrackerPage() {
     setSessionStartTime(null);
     setBreakStartTime(null);
   };
-  
-  const handleLogout = () => {
-    localStorage.removeItem('taskmaster-currentUser');
-    router.push('/login');
-  };
-
 
   const handleOpenEditModal = (field: 'worked' | 'pause' | 'required' | 'start') => {
     if (status !== 'stopped') {
@@ -1194,11 +1188,11 @@ function WorkHoursTrackerPage() {
         {/* Header */}
          <div className={cn("mb-8", isFocusMode && "w-full max-w-2xl")}>
              <WeatherDisplay 
+                user={user}
                 weather={weather} 
                 time={currentTime} 
                 timerControls={timerControls}
                 isFocusMode={isFocusMode}
-                onLogout={handleLogout}
              >
               {isFocusMode ? (
                   <Button onClick={() => toggleFocusMode(false)} variant="ghost" className="text-muted-foreground hover:text-foreground">Exit Focus</Button>

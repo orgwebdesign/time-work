@@ -24,6 +24,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Eye } from 'lucide-react';
 import Link from 'next/link';
+import { DashboardHeader } from '@/components/dashboard-header';
 
 export default function AdminDashboardPage() {
   const router = useRouter();
@@ -58,9 +59,7 @@ export default function AdminDashboardPage() {
   return (
     <AppLayout>
       <div className="flex-1 space-y-4 p-8 pt-6">
-        <div className="flex items-center justify-between space-y-2">
-          <h2 className="text-3xl font-bold tracking-tight">Admin Dashboard</h2>
-        </div>
+        <DashboardHeader title="Admin Dashboard" />
         <Card className="glass-card">
           <CardHeader>
             <CardTitle>User Management</CardTitle>
