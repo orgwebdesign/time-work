@@ -4,10 +4,9 @@ import * as React from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
-  FileCheck,
   LayoutDashboard,
   Shield,
-  User,
+  User as UserIcon,
 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
@@ -17,16 +16,37 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import type { User } from "@/lib/types"
 
-const navItems = [
+const baseNavItems = [
   { href: "/", icon: LayoutDashboard, label: "Work Hours Tracker" },
-  { href: "/profile", icon: User, label: "User Profile" },
-  { href: "/admin", icon: Shield, label: "Admin Dashboard" },
-  { href: "/admin/users/1", icon: FileCheck, label: "Admin User Review" },
+  { href: "/profile", icon: UserIcon, label: "User Profile" },
 ]
+
+const adminNavItem = { href: "/admin", icon: Shield, label: "Admin Dashboard" };
+
 
 export function BottomNavbar() {
   const pathname = usePathname()
+  const [user, setUser] = React.useState<User | null>(null);
+  const [navItems, setNavItems] = React.useState(baseNavItems);
+
+  React.useEffect(() => {
+    try {
+        const currentUser = localStorage.getItem('taskmaster-currentUser');
+        if (currentUser) {
+            const parsedUser = JSON.parse(currentUser);
+            setUser(parsedUser);
+            if (parsedUser.email === 'admin@example.com') {
+                setNavItems([...baseNavItems, adminNavItem]);
+            } else {
+                setNavItems(baseNavItems);
+            }
+        }
+    } catch (e) {
+        // Silently fail
+    }
+  }, [pathname]); // Rerun on path change to update active state correctly
 
   return (
     <nav className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50">

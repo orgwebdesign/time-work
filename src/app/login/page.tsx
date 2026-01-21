@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -17,9 +16,11 @@ import { Label } from '@/components/ui/label';
 import { Logo } from '@/components/logo';
 import type { User } from '@/lib/types';
 import { Eye, EyeOff } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 export default function LoginPage() {
   const router = useRouter();
+  const { toast } = useToast();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -51,7 +52,11 @@ export default function LoginPage() {
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) {
-      alert('Please enter both email and password.');
+      toast({
+        variant: 'destructive',
+        title: 'Missing Fields',
+        description: 'Please enter both email and password.',
+      });
       return;
     }
 
@@ -59,23 +64,52 @@ export default function LoginPage() {
       const storedUsers = localStorage.getItem('taskmaster-users');
       const users: User[] = storedUsers ? JSON.parse(storedUsers) : [];
       
-      const user = users.find(u => u.email === email);
+      const userIndex = users.findIndex(u => u.email === email);
+      const user = users[userIndex];
 
       if (user && user.password === password) {
-        localStorage.setItem('taskmaster-currentUser', JSON.stringify(user));
-        router.push('/');
+        const now = new Date().toISOString();
+        const updatedUser = {
+          ...user,
+          lastLogin: now,
+          loginCount: (user.loginCount || 0) + 1,
+        };
+
+        users[userIndex] = updatedUser;
+        
+        localStorage.setItem('taskmaster-users', JSON.stringify(users));
+        localStorage.setItem('taskmaster-currentUser', JSON.stringify(updatedUser));
+        
+        toast({
+          title: 'Login Successful',
+          description: `Welcome back, ${user.fullName}!`,
+        });
+
+        if (user.email === 'admin@example.com') {
+          router.push('/admin');
+        } else {
+          router.push('/');
+        }
       } else {
-        alert('Login failed. Invalid email or password.');
+         toast({
+          variant: 'destructive',
+          title: 'Login Failed',
+          description: 'Invalid email or password.',
+        });
       }
     } catch (error) {
       console.error('Login failed:', error);
-      alert('An error occurred during login. Please try again.');
+      toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: 'An error occurred during login. Please try again.',
+      });
     }
   };
 
   return (
     <div className="flex min-h-screen w-full items-center justify-center bg-background p-4 md:p-6">
-      <Card className="mx-auto max-w-sm w-full">
+      <Card className="mx-auto max-w-sm w-full glass-card">
         <CardHeader>
           <div className="flex justify-center mb-4">
             <Logo />
@@ -102,12 +136,6 @@ export default function LoginPage() {
               <div className="grid gap-2">
                 <div className="flex items-center">
                   <Label htmlFor="password">Password</Label>
-                  <Link
-                    href="#"
-                    className="ml-auto inline-block text-sm underline"
-                  >
-                    Forgot your password?
-                  </Link>
                 </div>
                 <div className="relative">
                   <Input
@@ -131,9 +159,6 @@ export default function LoginPage() {
               </div>
               <Button type="submit" className="w-full">
                 Login
-              </Button>
-              <Button variant="outline" className="w-full" type="button">
-                Login with Google
               </Button>
             </div>
           </form>

@@ -1,4 +1,3 @@
-
 "use client";
 
 import { Card, CardContent } from '@/components/ui/card';
@@ -8,6 +7,8 @@ import { ReactNode } from 'react';
 import { format } from 'date-fns';
 import { Button } from './ui/button';
 import { LogOut } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { useRouter } from 'next/navigation';
 
 interface WeatherDisplayProps {
   weather: Weather | null;
@@ -19,7 +20,18 @@ interface WeatherDisplayProps {
 }
 
 export default function WeatherDisplay({ weather, time, timerControls, children, isFocusMode, onLogout }: WeatherDisplayProps) {
+  const { toast } = useToast();
+  const router = useRouter();
   
+  const handleLogout = () => {
+    localStorage.removeItem('taskmaster-currentUser');
+    toast({
+        title: "Logged Out",
+        description: "You have been successfully logged out."
+    });
+    router.push('/login');
+  };
+
   if (!time || !weather) {
       return (
           <Card className="glass-card">
@@ -77,11 +89,9 @@ export default function WeatherDisplay({ weather, time, timerControls, children,
             <div>
              {isFocusMode ? children : timerControls}
             </div>
-            {onLogout && (
-              <Button onClick={onLogout} variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground">
+            <Button onClick={handleLogout} variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground">
                 <LogOut className="h-4 w-4" />
-              </Button>
-            )}
+            </Button>
           </div>
         </div>
       </CardContent>
