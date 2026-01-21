@@ -77,7 +77,7 @@ const generateTaskAlarmFlow = ai.defineFlow(
     const [messageResponse, audioResponse] = await Promise.all([
       ai.generate({
         prompt: messagePrompt,
-        model: 'googleai/gemini-2.0-flash',
+        model: 'googleai/gemini-1.5-flash-latest',
       }),
       ai.generate({
         model: googleAI.model('gemini-2.5-flash-preview-tts'),

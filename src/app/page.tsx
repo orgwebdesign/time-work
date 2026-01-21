@@ -197,7 +197,6 @@ function WorkHoursTrackerPage() {
   // Activity Log Edit State
   const [isActivityEditOpen, setIsActivityEditOpen] = useState(false);
   const [editingActivity, setEditingActivity] = useState<ActivityEvent | null>(null);
-  const [editingActivityTime, setEditingActivityTime] = useState('');
   const [editingActivityIndex, setEditingActivityIndex] = useState<number | null>(null);
 
   // New Features State
@@ -741,24 +740,6 @@ function WorkHoursTrackerPage() {
     }
   };
 
-  const handleHistoryStartTimeChange = (newStartTimeString: string) => {
-    if (!editingLog || !editingLog.startTime) return;
-
-    setEditHistoryStart(newStartTimeString);
-
-    const oldStartDate = parseTimeStringToDate(format(parseISO(editingLog.startTime), 'HH:mm'), new Date(editingLog.date));
-    const newStartDate = parseTimeStringToDate(newStartTimeString, new Date(editingLog.date));
-    
-    const diffMs = differenceInMilliseconds(oldStartDate, newStartDate);
-    const diffSeconds = Math.round(diffMs / 1000);
-
-    const originalWorkedSeconds = editingLog.workedSeconds;
-    const newWorkedSeconds = Math.max(0, originalWorkedSeconds + diffSeconds);
-
-    setEditHistoryWorked(secondsToTime(newWorkedSeconds));
-  };
-
-
   const handleDayClick = (day: Date) => {
     if (!user) return;
     if (isWeekend(day)) return; 
@@ -847,16 +828,17 @@ function WorkHoursTrackerPage() {
       alert("Please stop the timer before editing activities.");
       return;
     }
+    const editingActivityTimestamp = activity.timestamp;
     setEditingActivity(activity);
     setEditingActivityIndex(index);
-    setEditingActivityTime(format(new Date(activity.timestamp), 'HH:mm'));
+    setEditingActivityTime(format(new Date(editingActivityTimestamp), 'HH:mm'));
     setIsActivityEditOpen(true);
   };
 
   const handleSaveActivityEdit = () => {
-    if (editingActivityIndex === null) return;
+    if (editingActivityIndex === null || editingActivity === null) return;
     
-    const baseDate = new Date(activityLog[editingActivityIndex].timestamp);
+    const baseDate = new Date(editingActivity.timestamp);
     const newTimestamp = set(baseDate, {
       hours: parseInt(editingActivityTime.split(':')[0]),
       minutes: parseInt(editingActivityTime.split(':')[1]),
@@ -1693,13 +1675,18 @@ function WorkHoursTrackerPage() {
                         <Label htmlFor="edit-time" className="text-right">
                             Time
                         </Label>
-                        <Input
-                            id="edit-time"
-                            value={editTimeValue}
-                            onChange={(e) => setEditTimeValue(e.target.value)}
-                            className="col-span-3"
-                            placeholder="HH:MM"
-                        />
+                        <div className="col-span-3">
+                            {editingField === 'start' ? (
+                                <QuickTimeSelector value={editTimeValue} onChange={setEditTimeValue} />
+                            ) : (
+                                <Input
+                                    id="edit-time"
+                                    value={editTimeValue}
+                                    onChange={(e) => setEditTimeValue(e.target.value)}
+                                    placeholder="HH:MM"
+                                />
+                            )}
+                        </div>
                     </div>
                 </div>
                 <DialogFooter>
@@ -1724,13 +1711,9 @@ function WorkHoursTrackerPage() {
                         <Label htmlFor="edit-history-start" className="text-right">
                             Start
                         </Label>
-                        <Input
-                            id="edit-history-start"
-                            value={editHistoryStart}
-                            onChange={(e) => handleHistoryStartTimeChange(e.target.value)}
-                            className="col-span-3"
-                            placeholder="HH:MM"
-                        />
+                        <div className="col-span-3">
+                            <QuickTimeSelector value={editHistoryStart} onChange={setEditHistoryStart} />
+                        </div>
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
                         <Label htmlFor="edit-history-worked" className="text-right">

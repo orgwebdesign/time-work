@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import AppLayout from '../app-layout';
 import {
@@ -61,7 +61,7 @@ export default function AdminDashboardPage() {
   const [editedFullName, setEditedFullName] = useState('');
   const [editedEmail, setEditedEmail] = useState('');
 
-  const loadUsers = () => {
+  const loadUsers = useCallback(() => {
     try {
       const allUsers: User[] = JSON.parse(
         localStorage.getItem('taskmaster-users') || '[]'
@@ -71,7 +71,7 @@ export default function AdminDashboardPage() {
     } catch (error) {
       console.error('Failed to load user data:', error);
     }
-  };
+  }, []);
 
   useEffect(() => {
     setIsClient(true);
@@ -88,7 +88,7 @@ export default function AdminDashboardPage() {
       console.error('Failed to load user data:', error);
       router.push('/login');
     }
-  }, [router]);
+  }, [router, loadUsers]);
 
   const handleEditClick = (user: User) => {
     setSelectedUser(user);
