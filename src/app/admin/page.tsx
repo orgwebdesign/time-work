@@ -137,8 +137,9 @@ export default function AdminDashboardPage() {
     if (!selectedUser) return;
     try {
       // Remove user from the main list
-      const allUsers: User[] = JSON.parse(localStorage.getItem('taskmaster-users') || '[]').filter(u => u.id !== selectedUser.id);
-      localStorage.setItem('taskmaster-users', JSON.stringify(allUsers));
+      const currentUsers: User[] = JSON.parse(localStorage.getItem('taskmaster-users') || '[]');
+      const updatedUsers = currentUsers.filter(u => u.id !== selectedUser.id);
+      localStorage.setItem('taskmaster-users', JSON.stringify(updatedUsers));
       
       // Remove all data associated with the user
       const userPrefixes = [
@@ -152,14 +153,11 @@ export default function AdminDashboardPage() {
         `wellness-score-${selectedUser.id}-`
       ];
       
-      const keysToRemove = [];
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key && userPrefixes.some(prefix => key.startsWith(prefix))) {
-          keysToRemove.push(key);
+      Object.keys(localStorage).forEach(key => {
+        if (userPrefixes.some(prefix => key.startsWith(prefix))) {
+          localStorage.removeItem(key);
         }
-      }
-      keysToRemove.forEach(key => localStorage.removeItem(key));
+      });
       
       // Remove the current user if it's the one being deleted (unlikely but safe)
       const currentUser: User | null = JSON.parse(localStorage.getItem('taskmaster-currentUser') || 'null');
@@ -249,7 +247,7 @@ export default function AdminDashboardPage() {
                             <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleEditClick(user)}>
                                 <Pencil className="h-4 w-4 text-blue-500" />
                             </Button>
-                            <Button variant="destructive" size="icon" className="h-8 w-8" onClick={() => handleDeleteClick(user)}>
+                            <Button variant="outline" size="icon" className="h-8 w-8 border-destructive/50 text-destructive/90 hover:bg-destructive/10 hover:text-destructive" onClick={() => handleDeleteClick(user)}>
                                 <Trash2 className="h-4 w-4" />
                             </Button>
                         </div>
@@ -327,7 +325,7 @@ export default function AdminDashboardPage() {
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                     <AlertDialogCancel onClick={() => setSelectedUser(null)}>Cancel</AlertDialogCancel>
-                    <AlertDialogAction className="bg-red-600 hover:bg-red-700" onClick={handleDeleteConfirm}>Delete</AlertDialogAction>
+                    <AlertDialogAction className="bg-destructive hover:bg-destructive/90" onClick={handleDeleteConfirm}>Delete</AlertDialogAction>
                 </AlertDialogFooter>
             </AlertDialogContent>
         </AlertDialog>
