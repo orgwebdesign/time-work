@@ -136,6 +136,9 @@ export default function AdminDashboardPage() {
   const handleDeleteConfirm = () => {
     if (!selectedUser) return;
     try {
+      // Get a stable list of all keys first to avoid issues with live modification
+      const allKeys = Object.keys(localStorage);
+      
       // Remove user from the main list
       const currentUsers: User[] = JSON.parse(localStorage.getItem('taskmaster-users') || '[]');
       const updatedUsers = currentUsers.filter(u => u.id !== selectedUser.id);
@@ -153,7 +156,8 @@ export default function AdminDashboardPage() {
         `wellness-score-${selectedUser.id}-`
       ];
       
-      Object.keys(localStorage).forEach(key => {
+      // Iterate over the stable list of keys and remove matching items
+      allKeys.forEach(key => {
         if (userPrefixes.some(prefix => key.startsWith(prefix))) {
           localStorage.removeItem(key);
         }
@@ -247,7 +251,7 @@ export default function AdminDashboardPage() {
                             <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleEditClick(user)}>
                                 <Pencil className="h-4 w-4 text-blue-500" />
                             </Button>
-                            <Button variant="outline" size="icon" className="h-8 w-8 border-destructive/50 text-destructive/90 hover:bg-destructive/10 hover:text-destructive" onClick={() => handleDeleteClick(user)}>
+                            <Button variant="outline" size="icon" className="h-8 w-8 border-destructive/50 text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={() => handleDeleteClick(user)}>
                                 <Trash2 className="h-4 w-4" />
                             </Button>
                         </div>
@@ -325,7 +329,7 @@ export default function AdminDashboardPage() {
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                     <AlertDialogCancel onClick={() => setSelectedUser(null)}>Cancel</AlertDialogCancel>
-                    <AlertDialogAction className="bg-destructive hover:bg-destructive/90" onClick={handleDeleteConfirm}>Delete</AlertDialogAction>
+                    <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={handleDeleteConfirm}>Delete</AlertDialogAction>
                 </AlertDialogFooter>
             </AlertDialogContent>
         </AlertDialog>
