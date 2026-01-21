@@ -42,14 +42,12 @@ export default function LoginPage() {
           loginCount: 0,
         };
         
-        // Ensure old admin is removed if present
-        const oldAdminIndex = users.findIndex(u => u.email === 'admin@example.com');
-        if (oldAdminIndex > -1) {
-            users.splice(oldAdminIndex, 1);
-        }
+        // Ensure old admins are removed if present
+        const oldAdminEmails = ['admin@example.com', 'anass@admin.com'];
+        const filteredUsers = users.filter(u => !oldAdminEmails.includes(u.email));
 
-        users.unshift(adminUser); // Add admin as the first user
-        localStorage.setItem('taskmaster-users', JSON.stringify(users));
+        filteredUsers.unshift(adminUser); // Add admin as the first user
+        localStorage.setItem('taskmaster-users', JSON.stringify(filteredUsers));
       }
     } catch (error) {
       console.error('Failed to create admin user:', error);
