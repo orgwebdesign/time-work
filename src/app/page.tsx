@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { User, BarChart as BarChartIcon, Calendar as CalendarIconLucid, Award, History as HistoryIcon, Trash2, Pencil, Play, Pause, Coffee, Square, Clock, ListCollapse, BrainCircuit, CupSoda, TimerReset, AlarmClock, Sun, Cloud, CloudRain, Moon, CloudSun, Eye, Zap, Droplet } from 'lucide-react';
-import { add, format, differenceInSeconds, startOfMonth, isSameDay, isSameMonth, lastDayOfMonth, isWeekend, parse, parseISO, differenceInMilliseconds, startOfWeek, set, eachDayOfInterval, endOfWeek, subWeeks, endOfDay, startOfDay } from 'date-fns';
+import { add, format, differenceInSeconds, startOfMonth, isSameDay, isSameMonth, lastDayOfMonth, isWeekend, parse, parseISO, differenceInMilliseconds, startOfWeek, set, eachDayOfInterval, endOfWeek, subWeeks, endOfDay, startOfDay, isBefore } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Calendar } from '@/components/ui/calendar';
 import {
@@ -883,44 +883,76 @@ function WorkHoursTrackerPage() {
 
   const balanceData = useMemo(() => {
     const today = new Date();
+    const startOfCurrentMonth = startOfMonth(today);
+    const yesterday = add(today, { days: -1 });
+
+    let carryOverBalance = 0;
+
+    // Check if the month has just started.
+    if (!isBefore(yesterday, startOfCurrentMonth)) {
+        const daysInMonthUntilYesterday = eachDayOfInterval({
+            start: startOfCurrentMonth,
+            end: yesterday,
+        });
+
+        let totalWorked = 0;
+        let totalRequired = 0;
+
+        daysInMonthUntilYesterday.forEach(day => {
+            const dayKey = format(day, 'yyyy-MM-dd');
+            const log = history.find(l => l.date === dayKey);
+
+            totalWorked += log ? log.workedSeconds : 0;
+
+            const isHoliday = holidays.some(h => isSameDay(h, day));
+            if (log && typeof log.requiredHours === 'number') {
+                totalRequired += log.requiredHours * 3600;
+            } else if (isHoliday) {
+                totalRequired += 0;
+            } else {
+                totalRequired += getDefaultRequiredHours(day) * 3600;
+            }
+        });
+
+        carryOverBalance = totalWorked - totalRequired;
+    }
+    
+    // Calculate week balance by iterating through the current week up to today
     const startOfThisWeek = startOfWeek(today, { weekStartsOn: 1 });
+    const daysInWeekSoFar = eachDayOfInterval({ start: startOfThisWeek, end: today });
     
-    const balanceResult = {
-      carryOverBalance: 0,
-      monthBalance: 0,
-      weekBalance: 0,
+    let weekTotalWorked = 0;
+    let weekTotalRequired = 0;
+
+    daysInWeekSoFar.forEach(day => {
+        if(isSameDay(day, today)) {
+            weekTotalWorked += currentWorkedSeconds;
+            weekTotalRequired += requiredSecondsToday;
+        } else {
+            const dayKey = format(day, 'yyyy-MM-dd');
+            const log = history.find(l => l.date === dayKey);
+            weekTotalWorked += log ? log.workedSeconds : 0;
+
+            const isHoliday = holidays.some(h => isSameDay(h, day));
+            if (log && typeof log.requiredHours === 'number') {
+                weekTotalRequired += log.requiredHours * 3600;
+            } else if (isHoliday) {
+                weekTotalRequired += 0;
+            } else {
+                weekTotalRequired += getDefaultRequiredHours(day) * 3600;
+            }
+        }
+    });
+
+    const weekBalance = weekTotalWorked - weekTotalRequired;
+    const monthBalance = carryOverBalance + balanceSecondsToday;
+
+    return {
+      carryOverBalance,
+      monthBalance,
+      weekBalance,
     };
-    
-    const pastMonthDays = history.filter(log => {
-      const logDate = parseISO(log.date);
-      return isSameMonth(logDate, today) && !isSameDay(logDate, today);
-    });
-
-    const carryOver = pastMonthDays.reduce((acc, log) => {
-        const logDate = parseISO(log.date);
-        const isHoliday = holidays.some(h => isSameDay(h, logDate));
-        const required = isHoliday ? 0 : (log.requiredHours !== undefined ? log.requiredHours : getDefaultRequiredHours(logDate)) * 3600;
-        return acc + (log.workedSeconds - required);
-    }, 0);
-
-    const pastWeekDays = history.filter(log => {
-        const logDate = parseISO(log.date);
-        return logDate >= startOfThisWeek && !isSameDay(logDate, today);
-    });
-
-    const weekCarryOver = pastWeekDays.reduce((acc, log) => {
-        const logDate = parseISO(log.date);
-        const isHoliday = holidays.some(h => isSameDay(h, logDate));
-        const required = isHoliday ? 0 : (log.requiredHours !== undefined ? log.requiredHours : getDefaultRequiredHours(logDate)) * 3600;
-        return acc + (log.workedSeconds - required);
-    }, 0);
-
-    balanceResult.carryOverBalance = carryOver;
-    balanceResult.monthBalance = carryOver + balanceSecondsToday;
-    balanceResult.weekBalance = weekCarryOver + balanceSecondsToday;
-
-    return balanceResult;
-  }, [history, holidays, balanceSecondsToday]);
+  }, [history, holidays, balanceSecondsToday, currentWorkedSeconds, requiredSecondsToday]);
 
   const { carryOverBalance, monthBalance, weekBalance } = balanceData;
 
