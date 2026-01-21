@@ -133,8 +133,8 @@ export default {
         },
         'success-glow': {
           '50%': {
-            'box-shadow': '0 0 20px 5px rgba(34, 197, 94, 0.4)',
-            'border-color': 'rgba(34, 197, 94, 0.8)',
+            filter: 'drop-shadow(0 0 12px rgba(34, 197, 94, 0.5))',
+            borderColor: 'rgba(34, 197, 94, 0.6)',
           },
         },
       },

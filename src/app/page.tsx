@@ -260,75 +260,32 @@ function WorkHoursTrackerPage() {
 
       const worklogKey = `worklog-${user.id}-${todayKey}`;
       const storedLog = localStorage.getItem(worklogKey);
-      let currentWorked = 0;
-      let currentPause = 0;
-      let loadedDayStartTime = null;
 
       if (storedLog) {
         const data: DailyLog = JSON.parse(storedLog);
-        currentWorked = data.workedSeconds || 0;
-        currentPause = data.pauseSeconds || 0;
-        if (data.startTime) {
-          loadedDayStartTime = new Date(data.startTime);
-          setDayStartTime(loadedDayStartTime);
-        }
-        if (data.endTime) {
-          setDayEndTime(new Date(data.endTime));
-        }
-        if (typeof data.requiredHours === 'number') {
-          todaysRequiredHours = data.requiredHours;
-        }
-      } else {
-        setWorkedSeconds(0);
-        setPauseSeconds(0);
-        setDayStartTime(null);
-        setDayEndTime(null);
-        setActivityLog([]);
+        setWorkedSeconds(data.workedSeconds || 0);
+        setPauseSeconds(data.pauseSeconds || 0);
+        if (data.startTime) setDayStartTime(new Date(data.startTime));
+        if (data.endTime) setDayEndTime(new Date(data.endTime));
+        if (typeof data.requiredHours === 'number') todaysRequiredHours = data.requiredHours;
       }
 
       const timerStateKey = `timerState-${user.id}-${todayKey}`;
       const storedTimerState = localStorage.getItem(timerStateKey);
       if (storedTimerState) {
           const timerState: TimerState = JSON.parse(storedTimerState);
-          const now = new Date();
-          let restoredStatus = timerState.status;
-
-          if (restoredStatus === 'running' && timerState.sessionStartTime) {
-              const elapsed = differenceInSeconds(now, new Date(timerState.sessionStartTime));
-              currentWorked += elapsed;
-              setSessionStartTime(now); 
-          } else if (restoredStatus === 'on_break' && timerState.breakStartTime) {
-              const elapsed = differenceInSeconds(now, new Date(timerState.breakStartTime));
-              currentPause += elapsed;
-              setBreakStartTime(now);
-          } else {
-             if (restoredStatus !== 'stopped') {
-                 restoredStatus = 'stopped';
-             }
-          }
-          setStatus(restoredStatus);
+          setStatus(timerState.status);
+          setSessionStartTime(timerState.sessionStartTime ? new Date(timerState.sessionStartTime) : null);
+          setBreakStartTime(timerState.breakStartTime ? new Date(timerState.breakStartTime) : null);
       } else {
         setStatus('stopped');
       }
       
-      setWorkedSeconds(currentWorked);
-      setPauseSeconds(currentPause);
-
       const goalMetKey = `goalMet-${user.id}-${todayKey}`;
-      const storedGoalMet = localStorage.getItem(goalMetKey);
-      if (storedGoalMet === 'true') {
-        setGoalMetToday(true);
-      } else {
-        setGoalMetToday(false);
-      }
+      setGoalMetToday(localStorage.getItem(goalMetKey) === 'true');
 
       const activityLogKey = `activitylog-${user.id}-${todayKey}`;
-      const storedActivityLog = localStorage.getItem(activityLogKey);
-      if (storedActivityLog) {
-        setActivityLog(JSON.parse(storedActivityLog));
-      } else {
-        setActivityLog([]);
-      }
+      setActivityLog(JSON.parse(localStorage.getItem(activityLogKey) || '[]'));
 
     } catch (e) {
       console.error("Failed to parse today's log from localStorage", e);
@@ -367,10 +324,20 @@ function WorkHoursTrackerPage() {
     if (!isClient || !isAuthenticated || !user) return;
     const todayKey = getTodayKey();
     
+    // Calculate live values for saving
+    let liveWork = workedSeconds;
+    let livePause = pauseSeconds;
+    const now = new Date();
+    if (status === 'running' && sessionStartTime) {
+        liveWork += differenceInSeconds(now, sessionStartTime);
+    } else if (status === 'on_break' && breakStartTime) {
+        livePause += differenceInSeconds(now, breakStartTime);
+    }
+
     const log: DailyLog = { 
         date: todayKey, 
-        workedSeconds: workedSeconds, 
-        pauseSeconds: pauseSeconds,
+        workedSeconds: liveWork, 
+        pauseSeconds: livePause,
         startTime: dayStartTime?.toISOString(),
         endTime: dayEndTime?.toISOString(),
         requiredHours,
@@ -464,17 +431,12 @@ function WorkHoursTrackerPage() {
     if (!isAuthenticated) return;
     const timerIntervalId = setInterval(() => {
       setCurrentTime(new Date());
-      if (status === 'running') {
-          setWorkedSeconds(prev => prev + 1);
-      } else if (status === 'on_break') {
-          setPauseSeconds(prev => prev + 1);
-      }
     }, 1000);
 
     return () => {
         clearInterval(timerIntervalId);
     };
-  }, [status, isAuthenticated]);
+  }, [isAuthenticated]);
 
   useEffect(() => {
     if (!isClient || !isAuthenticated) return;
@@ -537,7 +499,19 @@ function WorkHoursTrackerPage() {
     };
   }, [isAuthenticated]);
   
-  const currentWorkedSeconds = workedSeconds;
+  const liveWorkedSeconds = useMemo(() => {
+    if (status === 'running' && sessionStartTime) {
+      return workedSeconds + differenceInSeconds(currentTime || new Date(), sessionStartTime);
+    }
+    return workedSeconds;
+  }, [currentTime, sessionStartTime, status, workedSeconds]);
+
+  const livePauseSeconds = useMemo(() => {
+      if (status === 'on_break' && breakStartTime) {
+          return pauseSeconds + differenceInSeconds(currentTime || new Date(), breakStartTime);
+      }
+      return pauseSeconds;
+  }, [currentTime, breakStartTime, status, pauseSeconds]);
 
 
   const requiredSecondsToday = requiredHours * 3600;
@@ -545,7 +519,7 @@ function WorkHoursTrackerPage() {
   useEffect(() => {
     const checkGoal = async () => {
       if (!user) return;
-      if (currentWorkedSeconds >= requiredSecondsToday && !goalMetToday && requiredSecondsToday > 0) {
+      if (liveWorkedSeconds >= requiredSecondsToday && !goalMetToday && requiredSecondsToday > 0) {
         setIsCelebrating(true);
         setIsGoalMetDialogOpen(true);
         setGoalMetToday(true);
@@ -571,7 +545,7 @@ function WorkHoursTrackerPage() {
       }
     }
     checkGoal();
-  }, [currentWorkedSeconds, requiredSecondsToday, goalMetToday, user]);
+  }, [liveWorkedSeconds, requiredSecondsToday, goalMetToday, user]);
 
   useEffect(() => {
     let intervalId: NodeJS.Timeout | undefined;
@@ -614,8 +588,10 @@ function WorkHoursTrackerPage() {
   };
   
   const handlePause = () => {
-    if (status !== 'running') return;
+    if (status !== 'running' || !sessionStartTime) return;
     const now = new Date();
+    const elapsed = differenceInSeconds(now, sessionStartTime);
+    setWorkedSeconds(prev => prev + elapsed);
     setBreakStartTime(now);
     setStatus('on_break');
     setSessionStartTime(null);
@@ -623,8 +599,10 @@ function WorkHoursTrackerPage() {
   };
 
   const handleResume = () => {
-    if (status !== 'on_break') return;
+    if (status !== 'on_break' || !breakStartTime) return;
     const now = new Date();
+    const elapsed = differenceInSeconds(now, breakStartTime);
+    setPauseSeconds(prev => prev + elapsed);
     setSessionStartTime(now);
     setStatus('running');
     setBreakStartTime(null);
@@ -635,8 +613,15 @@ function WorkHoursTrackerPage() {
     if (status === 'stopped') return;
     
     const now = new Date();
+    if (status === 'running' && sessionStartTime) {
+        const elapsed = differenceInSeconds(now, sessionStartTime);
+        setWorkedSeconds(prev => prev + elapsed);
+    } else if (status === 'on_break' && breakStartTime) {
+        const elapsed = differenceInSeconds(now, breakStartTime);
+        setPauseSeconds(prev => prev + elapsed);
+    }
+    
     setDayEndTime(now);
-
     addActivity('End Day');
     setStatus('stopped');
     setSessionStartTime(null);
@@ -670,23 +655,13 @@ function WorkHoursTrackerPage() {
     if (editingField === 'worked') {
       setWorkedSeconds(newSeconds);
     } else if (editingField === 'pause') {
-      const newPauseSeconds = newSeconds;
-      setPauseSeconds(newPauseSeconds);
-      if (dayStartTime) {
-        const totalElapsed = differenceInSeconds(now, dayStartTime);
-        const newWorkedSeconds = totalElapsed - newPauseSeconds;
-        setWorkedSeconds(newWorkedSeconds > 0 ? newWorkedSeconds : 0);
-      }
+      setPauseSeconds(newSeconds);
     } else if (editingField === 'required') {
       const hours = newSeconds / 3600;
       setRequiredHours(hours);
     } else if (editingField === 'start') {
       const newStartTime = parseTimeStringToDate(editTimeValue, dayStartTime || now);
       setDayStartTime(newStartTime);
-      
-      const totalElapsed = differenceInSeconds(now, newStartTime);
-      const newWorkedSeconds = totalElapsed - pauseSeconds;
-      setWorkedSeconds(newWorkedSeconds > 0 ? newWorkedSeconds : 0);
     }
 
     setIsEditModalOpen(false);
@@ -911,7 +886,7 @@ function WorkHoursTrackerPage() {
     setEditingActivityIndex(null);
   };
 
-  const balanceSecondsToday = useMemo(() => currentWorkedSeconds - requiredSecondsToday, [currentWorkedSeconds, requiredSecondsToday]);
+  const balanceSecondsToday = useMemo(() => liveWorkedSeconds - requiredSecondsToday, [liveWorkedSeconds, requiredSecondsToday]);
 
   const balanceData = useMemo(() => {
     const today = new Date();
@@ -957,7 +932,7 @@ function WorkHoursTrackerPage() {
 
     daysInWeekSoFar.forEach(day => {
         if(isSameDay(day, today)) {
-            weekTotalWorked += currentWorkedSeconds;
+            weekTotalWorked += liveWorkedSeconds;
             weekTotalRequired += requiredSecondsToday;
         } else {
             const dayKey = format(day, 'yyyy-MM-dd');
@@ -983,16 +958,16 @@ function WorkHoursTrackerPage() {
       monthBalance,
       weekBalance,
     };
-  }, [history, holidays, balanceSecondsToday, currentWorkedSeconds, requiredSecondsToday]);
+  }, [history, holidays, balanceSecondsToday, liveWorkedSeconds, requiredSecondsToday]);
 
   const { carryOverBalance, monthBalance, weekBalance } = balanceData;
 
   const estimatedLeaveTime = useMemo(() => {
     if (!dayStartTime) return null;
     const effectiveRequiredSeconds = requiredSecondsToday - carryOverBalance;
-    const totalSecondsFromStart = effectiveRequiredSeconds + pauseSeconds;
+    const totalSecondsFromStart = effectiveRequiredSeconds + livePauseSeconds;
     return add(dayStartTime, { seconds: totalSecondsFromStart });
-  }, [dayStartTime, pauseSeconds, requiredSecondsToday, carryOverBalance]);
+  }, [dayStartTime, livePauseSeconds, requiredSecondsToday, carryOverBalance]);
 
   const timeToLeaveSeconds = useMemo(() => {
     if (!estimatedLeaveTime || !currentTime) return null;
@@ -1163,8 +1138,8 @@ function WorkHoursTrackerPage() {
     </div>
   );
   
-  const { h, m, s } = formatSeconds(currentWorkedSeconds);
-  const isGoalMet = requiredSecondsToday > 0 && currentWorkedSeconds >= requiredSecondsToday;
+  const { h, m, s } = formatSeconds(liveWorkedSeconds);
+  const isGoalMet = requiredSecondsToday > 0 && liveWorkedSeconds >= requiredSecondsToday;
   const isLeaveTimeMet = estimatedLeaveTime && currentTime && currentTime >= estimatedLeaveTime;
 
 
@@ -1258,7 +1233,7 @@ function WorkHoursTrackerPage() {
                   <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground disabled:text-muted-foreground/40 disabled:hover:text-muted-foreground/40" onClick={() => handleOpenEditModal('pause')} disabled={status !== 'stopped'}><Pencil className="h-4 w-4" /></Button>
                 </CardHeader>
                 <CardContent className="p-3 pt-0">
-                  <p className="text-lg font-bold">{formatSecondsToString(pauseSeconds)}</p>
+                  <p className="text-lg font-bold">{formatSecondsToString(livePauseSeconds)}</p>
                 </CardContent>
               </Card>
               
@@ -1804,7 +1779,7 @@ function WorkHoursTrackerPage() {
                 <div className="py-4 text-center space-y-4">
                     <div>
                         <p className="text-sm text-muted-foreground">Total break time today:</p>
-                        <p className="font-bold text-2xl text-primary">{formatSecondsToString(pauseSeconds)}</p>
+                        <p className="font-bold text-2xl text-primary">{formatSecondsToString(livePauseSeconds)}</p>
                     </div>
                 </div>
                 <DialogFooter>
