@@ -6,6 +6,8 @@ import { Skeleton } from './ui/skeleton';
 import type { Weather } from '@/lib/types';
 import { ReactNode } from 'react';
 import { format } from 'date-fns';
+import { Button } from './ui/button';
+import { LogOut } from 'lucide-react';
 
 interface WeatherDisplayProps {
   weather: Weather | null;
@@ -13,9 +15,10 @@ interface WeatherDisplayProps {
   timerControls: React.ReactNode;
   children?: ReactNode;
   isFocusMode?: boolean;
+  onLogout?: () => void;
 }
 
-export default function WeatherDisplay({ weather, time, timerControls, children, isFocusMode }: WeatherDisplayProps) {
+export default function WeatherDisplay({ weather, time, timerControls, children, isFocusMode, onLogout }: WeatherDisplayProps) {
   
   if (!time || !weather) {
       return (
@@ -70,8 +73,15 @@ export default function WeatherDisplay({ weather, time, timerControls, children,
                 </div>
             )}
           </div>
-          <div>
-            {isFocusMode ? children : timerControls}
+          <div className="flex items-center gap-2">
+            <div>
+             {isFocusMode ? children : timerControls}
+            </div>
+            {onLogout && (
+              <Button onClick={onLogout} variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground">
+                <LogOut className="h-4 w-4" />
+              </Button>
+            )}
           </div>
         </div>
       </CardContent>

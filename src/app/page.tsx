@@ -3,11 +3,12 @@
 
 import AppLayout from './app-layout';
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
-import { User, BarChart as BarChartIcon, Calendar as CalendarIconLucid, Award, History as HistoryIcon, Trash2, Pencil, Play, Pause, Coffee, Square, Clock, ListCollapse, BrainCircuit, CupSoda, TimerReset, AlarmClock, Sun, Cloud, CloudRain, Moon, CloudSun, Eye, Zap, Droplet } from 'lucide-react';
+import { User, BarChart as BarChartIcon, Calendar as CalendarIconLucid, Award, History as HistoryIcon, Trash2, Pencil, Play, Pause, Coffee, Square, Clock, ListCollapse, BrainCircuit, CupSoda, TimerReset, AlarmClock, Sun, Cloud, CloudRain, Moon, CloudSun, Eye, Zap, Droplet, LogOut } from 'lucide-react';
 import { add, format, differenceInSeconds, startOfMonth, isSameDay, isSameMonth, lastDayOfMonth, isWeekend, parse, parseISO, differenceInMilliseconds, startOfWeek, set, eachDayOfInterval, endOfWeek, subWeeks, endOfDay, startOfDay, isBefore } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Calendar } from '@/components/ui/calendar';
@@ -137,7 +138,9 @@ const motivationalQuotes = [
 ];
 
 function WorkHoursTrackerPage() {
+  const router = useRouter();
   const [isClient, setIsClient] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   
   // Time tracking state
   const [status, setStatus] = useState<TimerStatus>('stopped');
@@ -218,6 +221,17 @@ function WorkHoursTrackerPage() {
 
   useEffect(() => {
     setIsClient(true);
+    const user = localStorage.getItem('taskmaster-currentUser');
+    if (!user) {
+      router.push('/login');
+    } else {
+      setIsAuthenticated(true);
+    }
+  }, [router]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    
     loadAllLogs();
 
     const focusMode = localStorage.getItem('focusMode') === 'true';
@@ -300,10 +314,10 @@ function WorkHoursTrackerPage() {
     }
     setRequiredHours(todaysRequiredHours);
 
-  }, [loadAllLogs]);
+  }, [isAuthenticated, loadAllLogs]);
   
   useEffect(() => {
-    if (!isClient) return;
+    if (!isClient || !isAuthenticated) return;
     try {
         const isHoliday = holidays.some(h => isSameDay(h, new Date()));
         const isWeekendDay = isWeekend(new Date());
@@ -326,10 +340,10 @@ function WorkHoursTrackerPage() {
     } catch (e) {
       console.error("Failed to check for holiday/weekend", e);
     }
-  }, [holidays, isClient]);
+  }, [holidays, isClient, isAuthenticated]);
 
   const saveData = useCallback(() => {
-    if (!isClient) return;
+    if (!isClient || !isAuthenticated) return;
     const todayKey = getTodayKey();
     
     const log: DailyLog = { 
@@ -360,7 +374,7 @@ function WorkHoursTrackerPage() {
     } catch(e) {
         console.error("Failed to save log to localStorage", e);
     }
-  }, [isClient, workedSeconds, pauseSeconds, dayStartTime, dayEndTime, requiredHours, status, sessionStartTime, breakStartTime, activityLog]);
+  }, [isClient, isAuthenticated, workedSeconds, pauseSeconds, dayStartTime, dayEndTime, requiredHours, status, sessionStartTime, breakStartTime, activityLog]);
 
 
   useEffect(() => {
@@ -415,17 +429,18 @@ function WorkHoursTrackerPage() {
 
   // Autosave every 10 seconds while timer is active
   useEffect(() => {
-    if (status === 'stopped' || !isClient) return;
+    if (status === 'stopped' || !isClient || !isAuthenticated) return;
 
     const intervalId = setInterval(() => {
       saveData();
     }, 10000); // 10 seconds
 
     return () => clearInterval(intervalId);
-  }, [status, saveData, isClient]);
+  }, [status, saveData, isClient, isAuthenticated]);
   
   // The main timer loop that updates seconds state
   useEffect(() => {
+    if (!isAuthenticated) return;
     const timerIntervalId = setInterval(() => {
       setCurrentTime(new Date());
       if (status === 'running') {
@@ -438,20 +453,22 @@ function WorkHoursTrackerPage() {
     return () => {
         clearInterval(timerIntervalId);
     };
-  }, [status]);
+  }, [status, isAuthenticated]);
 
   // Final save when stopping the timer or when critical states change while stopped
   useEffect(() => {
-    if (!isClient) return;
+    if (!isClient || !isAuthenticated) return;
     
     // Save data whenever a critical state changes
     saveData();
     
-  }, [requiredHours, isClient, status, activityLog, saveData, dayStartTime, dayEndTime]);
+  }, [requiredHours, isClient, isAuthenticated, status, activityLog, saveData, dayStartTime, dayEndTime]);
 
   
   // The secondary effects loop for weather etc.
   useEffect(() => {
+    if (!isAuthenticated) return;
+
     const fetchWeather = () => {
       const now = new Date();
       const hour = now.getHours();
@@ -501,7 +518,7 @@ function WorkHoursTrackerPage() {
     return () => {
         clearInterval(weatherIntervalId);
     };
-  }, []);
+  }, [isAuthenticated]);
   
   const currentWorkedSeconds = workedSeconds;
 
@@ -608,6 +625,12 @@ function WorkHoursTrackerPage() {
     setSessionStartTime(null);
     setBreakStartTime(null);
   };
+  
+  const handleLogout = () => {
+    localStorage.removeItem('taskmaster-currentUser');
+    router.push('/login');
+  };
+
 
   const handleOpenEditModal = (field: 'worked' | 'pause' | 'required' | 'start') => {
     if (status !== 'stopped') {
@@ -884,38 +907,38 @@ function WorkHoursTrackerPage() {
   const balanceData = useMemo(() => {
     const today = new Date();
     const startOfCurrentMonth = startOfMonth(today);
-    const yesterday = add(today, { days: -1 });
+    
+    const daysInMonthUntilYesterday = eachDayOfInterval({
+        start: startOfCurrentMonth,
+        end: endOfDay(add(today, {days: -1}))
+    });
 
-    let carryOverBalance = 0;
+    let totalWorked = 0;
+    let totalRequired = 0;
 
-    // Check if the month has just started.
-    if (!isBefore(yesterday, startOfCurrentMonth)) {
-        const daysInMonthUntilYesterday = eachDayOfInterval({
-            start: startOfCurrentMonth,
-            end: yesterday,
-        });
+    daysInMonthUntilYesterday.forEach(day => {
+        if (isBefore(day, startOfCurrentMonth)) return; // Should not happen with eachDayOfInterval but as a safeguard
 
-        let totalWorked = 0;
-        let totalRequired = 0;
+        const dayKey = format(day, 'yyyy-MM-dd');
+        const log = history.find(l => l.date === dayKey);
+        
+        totalWorked += log ? log.workedSeconds : 0;
+        
+        const isHoliday = holidays.some(h => isSameDay(h, day));
 
-        daysInMonthUntilYesterday.forEach(day => {
-            const dayKey = format(day, 'yyyy-MM-dd');
-            const log = history.find(l => l.date === dayKey);
+        let dailyRequiredHours;
+        if(log && log.requiredHours !== undefined) {
+          dailyRequiredHours = log.requiredHours;
+        } else if (isHoliday) {
+          dailyRequiredHours = 0;
+        } else {
+          dailyRequiredHours = getDefaultRequiredHours(day);
+        }
 
-            totalWorked += log ? log.workedSeconds : 0;
+        totalRequired += dailyRequiredHours * 3600;
+    });
 
-            const isHoliday = holidays.some(h => isSameDay(h, day));
-            if (log && typeof log.requiredHours === 'number') {
-                totalRequired += log.requiredHours * 3600;
-            } else if (isHoliday) {
-                totalRequired += 0;
-            } else {
-                totalRequired += getDefaultRequiredHours(day) * 3600;
-            }
-        });
-
-        carryOverBalance = totalWorked - totalRequired;
-    }
+    const carryOverBalance = totalWorked - totalRequired;
     
     // Calculate week balance by iterating through the current week up to today
     const startOfThisWeek = startOfWeek(today, { weekStartsOn: 1 });
@@ -1136,7 +1159,7 @@ function WorkHoursTrackerPage() {
   const isLeaveTimeMet = estimatedLeaveTime && currentTime && currentTime >= estimatedLeaveTime;
 
 
-  if (!isClient) {
+  if (!isClient || !isAuthenticated) {
     return <div className="min-h-screen bg-background" />;
   }
 
@@ -1160,6 +1183,7 @@ function WorkHoursTrackerPage() {
                 time={currentTime} 
                 timerControls={timerControls}
                 isFocusMode={isFocusMode}
+                onLogout={handleLogout}
              >
               {isFocusMode ? (
                   <Button onClick={() => toggleFocusMode(false)} variant="ghost" className="text-muted-foreground hover:text-foreground">Exit Focus</Button>
@@ -1859,5 +1883,3 @@ export default function WorkHoursTracker() {
     </AppLayout>
   );
 }
-
-    
