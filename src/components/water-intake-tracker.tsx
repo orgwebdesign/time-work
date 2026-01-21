@@ -8,36 +8,51 @@ import { Progress } from '@/components/ui/progress';
 import { Droplet, Minus, Plus } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import type { User } from '@/lib/types';
 
 const DAILY_GOAL = 8;
 
-const getTodayKey = () => `water-intake-${format(new Date(), 'yyyy-MM-dd')}`;
+interface WaterIntakeTrackerProps {
+  user: User | null;
+}
 
-export function WaterIntakeTracker() {
+export function WaterIntakeTracker({ user }: WaterIntakeTrackerProps) {
   const [count, setCount] = useState(0);
   const [isClient, setIsClient] = useState(false);
 
+  const getTodayKey = () => {
+    if (!user) return null;
+    return `water-intake-${user.id}-${format(new Date(), 'yyyy-MM-dd')}`;
+  };
+
   useEffect(() => {
     setIsClient(true);
+    if (!user) return;
     try {
-      const storedData = localStorage.getItem(getTodayKey());
+      const key = getTodayKey();
+      if (!key) return;
+      const storedData = localStorage.getItem(key);
       if (storedData) {
         setCount(parseInt(storedData, 10));
+      } else {
+        setCount(0); // Reset for new user/day
       }
     } catch (error) {
       console.error('Failed to load water intake data from localStorage', error);
     }
-  }, []);
+  }, [isClient, user]);
 
   useEffect(() => {
-    if (isClient) {
+    if (isClient && user) {
       try {
-        localStorage.setItem(getTodayKey(), count.toString());
+        const key = getTodayKey();
+        if (!key) return;
+        localStorage.setItem(key, count.toString());
       } catch (error) {
         console.error('Failed to save water intake data to localStorage', error);
       }
     }
-  }, [count, isClient]);
+  }, [count, isClient, user]);
 
   const handleIncrement = () => {
     setCount(prev => prev + 1);
@@ -54,7 +69,7 @@ export function WaterIntakeTracker() {
     return Math.min((count / DAILY_GOAL) * 100, 100);
   }, [count]);
 
-  if (!isClient) {
+  if (!isClient || !user) {
     return null;
   }
 

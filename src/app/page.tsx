@@ -141,6 +141,7 @@ function WorkHoursTrackerPage() {
   const router = useRouter();
   const [isClient, setIsClient] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
   
   // Time tracking state
   const [status, setStatus] = useState<TimerStatus>('stopped');
@@ -207,8 +208,10 @@ function WorkHoursTrackerPage() {
   const [randomQuote, setRandomQuote] = useState('');
 
   const loadAllLogs = useCallback(() => {
+    if (!user) return;
     try {
-        const allKeys = Object.keys(localStorage).filter(key => key.startsWith('worklog-'));
+        const prefix = `worklog-${user.id}-`;
+        const allKeys = Object.keys(localStorage).filter(key => key.startsWith(prefix));
         const allLogs: DailyLog[] = allKeys.map(key => {
             const logData = localStorage.getItem(key);
             return logData ? JSON.parse(logData) : null;
@@ -217,24 +220,26 @@ function WorkHoursTrackerPage() {
     } catch (e) {
         console.error("Failed to load logs from localStorage", e);
     }
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     setIsClient(true);
-    const user = localStorage.getItem('taskmaster-currentUser');
-    if (!user) {
+    const userString = localStorage.getItem('taskmaster-currentUser');
+    if (!userString) {
       router.push('/login');
     } else {
+      setUser(JSON.parse(userString));
       setIsAuthenticated(true);
     }
   }, [router]);
 
   useEffect(() => {
-    if (!isAuthenticated) return;
+    if (!isAuthenticated || !user) return;
     
     loadAllLogs();
 
-    const focusMode = localStorage.getItem('focusMode') === 'true';
+    const focusModeKey = `focusMode-${user.id}`;
+    const focusMode = localStorage.getItem(focusModeKey) === 'true';
     setIsFocusMode(focusMode);
     
     if(focusMode) {
@@ -245,12 +250,16 @@ function WorkHoursTrackerPage() {
     let todaysRequiredHours = getDefaultRequiredHours(new Date());
 
     try {
-      const storedHolidays = localStorage.getItem('work-holidays');
+      const holidaysKey = `work-holidays-${user.id}`;
+      const storedHolidays = localStorage.getItem(holidaysKey);
       if (storedHolidays) {
         setHolidays(JSON.parse(storedHolidays).map((d: string) => new Date(d)));
+      } else {
+        setHolidays([]);
       }
 
-      const storedLog = localStorage.getItem(`worklog-${todayKey}`);
+      const worklogKey = `worklog-${user.id}-${todayKey}`;
+      const storedLog = localStorage.getItem(worklogKey);
       let currentWorked = 0;
       let currentPause = 0;
       let loadedDayStartTime = null;
@@ -269,16 +278,21 @@ function WorkHoursTrackerPage() {
         if (typeof data.requiredHours === 'number') {
           todaysRequiredHours = data.requiredHours;
         }
+      } else {
+        setWorkedSeconds(0);
+        setPauseSeconds(0);
+        setDayStartTime(null);
+        setDayEndTime(null);
+        setActivityLog([]);
       }
 
-      // Restore timer state
-      const storedTimerState = localStorage.getItem(`timerState-${todayKey}`);
+      const timerStateKey = `timerState-${user.id}-${todayKey}`;
+      const storedTimerState = localStorage.getItem(timerStateKey);
       if (storedTimerState) {
           const timerState: TimerState = JSON.parse(storedTimerState);
           const now = new Date();
           let restoredStatus = timerState.status;
 
-          // If app was closed while timer was running, calculate elapsed time
           if (restoredStatus === 'running' && timerState.sessionStartTime) {
               const elapsed = differenceInSeconds(now, new Date(timerState.sessionStartTime));
               currentWorked += elapsed;
@@ -288,25 +302,32 @@ function WorkHoursTrackerPage() {
               currentPause += elapsed;
               setBreakStartTime(now);
           } else {
-             // If status was running but no session start time, something is off. Reset.
              if (restoredStatus !== 'stopped') {
                  restoredStatus = 'stopped';
              }
           }
           setStatus(restoredStatus);
+      } else {
+        setStatus('stopped');
       }
       
       setWorkedSeconds(currentWorked);
       setPauseSeconds(currentPause);
 
-      const storedGoalMet = localStorage.getItem(`goalMet-${todayKey}`);
+      const goalMetKey = `goalMet-${user.id}-${todayKey}`;
+      const storedGoalMet = localStorage.getItem(goalMetKey);
       if (storedGoalMet === 'true') {
         setGoalMetToday(true);
+      } else {
+        setGoalMetToday(false);
       }
 
-      const storedActivityLog = localStorage.getItem(`activitylog-${todayKey}`);
+      const activityLogKey = `activitylog-${user.id}-${todayKey}`;
+      const storedActivityLog = localStorage.getItem(activityLogKey);
       if (storedActivityLog) {
         setActivityLog(JSON.parse(storedActivityLog));
+      } else {
+        setActivityLog([]);
       }
 
     } catch (e) {
@@ -314,10 +335,10 @@ function WorkHoursTrackerPage() {
     }
     setRequiredHours(todaysRequiredHours);
 
-  }, [isAuthenticated, loadAllLogs]);
+  }, [isAuthenticated, user, loadAllLogs]);
   
   useEffect(() => {
-    if (!isClient || !isAuthenticated) return;
+    if (!isClient || !isAuthenticated || !user) return;
     try {
         const isHoliday = holidays.some(h => isSameDay(h, new Date()));
         const isWeekendDay = isWeekend(new Date());
@@ -325,9 +346,9 @@ function WorkHoursTrackerPage() {
         if (isHoliday || isWeekendDay) {
             setRequiredHours(0);
         } else if (!isHoliday && !isWeekendDay) {
-            // If it's not a holiday and not a weekend, set default hours if no custom one is set for the day
             const todayKey = getTodayKey();
-            const storedLog = localStorage.getItem(`worklog-${todayKey}`);
+            const worklogKey = `worklog-${user.id}-${todayKey}`;
+            const storedLog = localStorage.getItem(worklogKey);
             if (storedLog) {
                 const data: DailyLog = JSON.parse(storedLog);
                 if (typeof data.requiredHours !== 'number') {
@@ -340,10 +361,10 @@ function WorkHoursTrackerPage() {
     } catch (e) {
       console.error("Failed to check for holiday/weekend", e);
     }
-  }, [holidays, isClient, isAuthenticated]);
+  }, [holidays, isClient, isAuthenticated, user]);
 
   const saveData = useCallback(() => {
-    if (!isClient || !isAuthenticated) return;
+    if (!isClient || !isAuthenticated || !user) return;
     const todayKey = getTodayKey();
     
     const log: DailyLog = { 
@@ -361,12 +382,15 @@ function WorkHoursTrackerPage() {
         breakStartTime: breakStartTime?.toISOString() || null,
     };
 
+    const worklogKey = `worklog-${user.id}-${todayKey}`;
+    const activityLogKey = `activitylog-${user.id}-${todayKey}`;
+    const timerStateKey = `timerState-${user.id}-${todayKey}`;
+
     try {
-        localStorage.setItem(`worklog-${todayKey}`, JSON.stringify(log));
-        localStorage.setItem(`activitylog-${todayKey}`, JSON.stringify(activityLog));
-        localStorage.setItem(`timerState-${todayKey}`, JSON.stringify(timerState));
+        localStorage.setItem(worklogKey, JSON.stringify(log));
+        localStorage.setItem(activityLogKey, JSON.stringify(activityLog));
+        localStorage.setItem(timerStateKey, JSON.stringify(timerState));
         
-        // Update history in state as well for reactivity
         setHistory(prevHistory => {
             const otherDays = prevHistory.filter(h => h.date !== todayKey);
             return [log, ...otherDays].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -374,7 +398,7 @@ function WorkHoursTrackerPage() {
     } catch(e) {
         console.error("Failed to save log to localStorage", e);
     }
-  }, [isClient, isAuthenticated, workedSeconds, pauseSeconds, dayStartTime, dayEndTime, requiredHours, status, sessionStartTime, breakStartTime, activityLog]);
+  }, [isClient, isAuthenticated, user, workedSeconds, pauseSeconds, dayStartTime, dayEndTime, requiredHours, status, sessionStartTime, breakStartTime, activityLog]);
 
 
   useEffect(() => {
@@ -384,7 +408,6 @@ function WorkHoursTrackerPage() {
           if (prev <= 1) {
             clearInterval(interval);
             setPomodoroStatus('stopped');
-            // Optionally, play a sound or show a notification
             return 0;
           }
           return prev - 1;
@@ -427,18 +450,16 @@ function WorkHoursTrackerPage() {
   };
 
 
-  // Autosave every 10 seconds while timer is active
   useEffect(() => {
     if (status === 'stopped' || !isClient || !isAuthenticated) return;
 
     const intervalId = setInterval(() => {
       saveData();
-    }, 10000); // 10 seconds
+    }, 10000); 
 
     return () => clearInterval(intervalId);
   }, [status, saveData, isClient, isAuthenticated]);
   
-  // The main timer loop that updates seconds state
   useEffect(() => {
     if (!isAuthenticated) return;
     const timerIntervalId = setInterval(() => {
@@ -455,17 +476,14 @@ function WorkHoursTrackerPage() {
     };
   }, [status, isAuthenticated]);
 
-  // Final save when stopping the timer or when critical states change while stopped
   useEffect(() => {
     if (!isClient || !isAuthenticated) return;
     
-    // Save data whenever a critical state changes
     saveData();
     
   }, [requiredHours, isClient, isAuthenticated, status, activityLog, saveData, dayStartTime, dayEndTime]);
 
   
-  // The secondary effects loop for weather etc.
   useEffect(() => {
     if (!isAuthenticated) return;
 
@@ -480,7 +498,6 @@ function WorkHoursTrackerPage() {
       let icon: React.ElementType;
       let temperature: number;
 
-      // Simulate changing weather conditions
       const conditionSeed = minute % 4;
 
       if (isDay) {
@@ -493,7 +510,7 @@ function WorkHoursTrackerPage() {
           } else {
               condition = 'Rainy'; icon = CloudRain; temperature = 19;
           }
-      } else { // Night
+      } else { 
            if (conditionSeed === 0) {
               condition = 'Clear'; icon = Moon; temperature = 18;
           } else if (conditionSeed === 1 || conditionSeed === 2) {
@@ -513,7 +530,7 @@ function WorkHoursTrackerPage() {
     };
 
     fetchWeather();
-    const weatherIntervalId = setInterval(fetchWeather, 60000); // Update weather every minute
+    const weatherIntervalId = setInterval(fetchWeather, 60000);
 
     return () => {
         clearInterval(weatherIntervalId);
@@ -525,15 +542,16 @@ function WorkHoursTrackerPage() {
 
   const requiredSecondsToday = requiredHours * 3600;
 
-  // Goal Met Check
   useEffect(() => {
     const checkGoal = async () => {
+      if (!user) return;
       if (currentWorkedSeconds >= requiredSecondsToday && !goalMetToday && requiredSecondsToday > 0) {
-        setIsCelebrating(true); // Start animation
+        setIsCelebrating(true);
         setIsGoalMetDialogOpen(true);
         setGoalMetToday(true);
         const todayKey = getTodayKey();
-        localStorage.setItem(`goalMet-${todayKey}`, 'true');
+        const goalMetKey = `goalMet-${user.id}-${todayKey}`;
+        localStorage.setItem(goalMetKey, 'true');
 
         try {
             const alarmData = await getTaskAlarm(`Goal Met: ${formatSecondsToString(requiredSecondsToday)}`);
@@ -553,9 +571,8 @@ function WorkHoursTrackerPage() {
       }
     }
     checkGoal();
-  }, [currentWorkedSeconds, requiredSecondsToday, goalMetToday]);
+  }, [currentWorkedSeconds, requiredSecondsToday, goalMetToday, user]);
 
-  // Celebration animation effect
   useEffect(() => {
     let intervalId: NodeJS.Timeout | undefined;
 
@@ -661,7 +678,6 @@ function WorkHoursTrackerPage() {
     } else if (editingField === 'pause') {
       const newPauseSeconds = newSeconds;
       setPauseSeconds(newPauseSeconds);
-      // Recalculate worked seconds based on new pause time
       if (dayStartTime) {
         const totalElapsed = differenceInSeconds(now, dayStartTime);
         const newWorkedSeconds = totalElapsed - newPauseSeconds;
@@ -674,7 +690,6 @@ function WorkHoursTrackerPage() {
       const newStartTime = parseTimeStringToDate(editTimeValue, dayStartTime || now);
       setDayStartTime(newStartTime);
       
-      // Recalculate worked seconds from new start time until now, accounting for existing pause.
       const totalElapsed = differenceInSeconds(now, newStartTime);
       const newWorkedSeconds = totalElapsed - pauseSeconds;
       setWorkedSeconds(newWorkedSeconds > 0 ? newWorkedSeconds : 0);
@@ -682,7 +697,6 @@ function WorkHoursTrackerPage() {
 
     setIsEditModalOpen(false);
     setEditingField(null);
-    // saveData() is called via useEffect on state change
   };
 
   const handleOpenHistoryEditModal = (log: DailyLog) => {
@@ -698,7 +712,7 @@ function WorkHoursTrackerPage() {
   };
 
   const handleSaveHistoryEdit = () => {
-    if (!editingLog) return;
+    if (!editingLog || !user) return;
     
     const updatedLog: DailyLog = {
       ...editingLog,
@@ -707,7 +721,8 @@ function WorkHoursTrackerPage() {
       startTime: editHistoryStart ? parseTimeStringToDate(editHistoryStart, new Date(editingLog.date)).toISOString() : undefined,
     };
 
-    localStorage.setItem(`worklog-${editingLog.date}`, JSON.stringify(updatedLog));
+    const logKey = `worklog-${user.id}-${editingLog.date}`;
+    localStorage.setItem(logKey, JSON.stringify(updatedLog));
     
     const todayKey = getTodayKey();
     if (editingLog.date === todayKey) {
@@ -722,12 +737,15 @@ function WorkHoursTrackerPage() {
   };
   
   const handleDeleteLog = (logToDelete: DailyLog) => {
+    if (!user) return;
     if (!window.confirm(`Are you sure you want to delete the log for ${format(new Date(logToDelete.date), 'MMM d, yyyy')}? This action cannot be undone.`)) {
       return;
     }
     try {
-      localStorage.removeItem(`worklog-${logToDelete.date}`);
-      localStorage.removeItem(`timerState-${logToDelete.date}`);
+      const logKey = `worklog-${user.id}-${logToDelete.date}`;
+      const timerStateKey = `timerState-${user.id}-${logToDelete.date}`;
+      localStorage.removeItem(logKey);
+      localStorage.removeItem(timerStateKey);
       
       const todayKey = getTodayKey();
       if (logToDelete.date === todayKey) {
@@ -742,8 +760,9 @@ function WorkHoursTrackerPage() {
       }
       
       if(logToDelete.date === getTodayKey()){
+        const activityLogKey = `activitylog-${user.id}-${todayKey}`;
         setActivityLog([]);
-        localStorage.removeItem(`activitylog-${todayKey}`);
+        localStorage.removeItem(activityLogKey);
       }
 
       loadAllLogs();
@@ -772,7 +791,8 @@ function WorkHoursTrackerPage() {
 
 
   const handleDayClick = (day: Date) => {
-    if (isWeekend(day)) return; // Prevent clicking on weekends
+    if (!user) return;
+    if (isWeekend(day)) return; 
 
     const dayKey = format(day, 'yyyy-MM-dd');
     let newHolidays: Date[];
@@ -786,10 +806,10 @@ function WorkHoursTrackerPage() {
     }
     
     setHolidays(newHolidays);
-    localStorage.setItem('work-holidays', JSON.stringify(newHolidays.map(d => d.toISOString())));
+    const holidaysKey = `work-holidays-${user.id}`;
+    localStorage.setItem(holidaysKey, JSON.stringify(newHolidays.map(d => d.toISOString())));
 
-    // Update or create log for the selected day
-    const logKey = `worklog-${dayKey}`;
+    const logKey = `worklog-${user.id}-${dayKey}`;
     const storedLog = localStorage.getItem(logKey);
     const existingLog: DailyLog = storedLog ? JSON.parse(storedLog) : {
       date: dayKey,
@@ -804,12 +824,11 @@ function WorkHoursTrackerPage() {
 
     localStorage.setItem(logKey, JSON.stringify(updatedLog));
     
-    // If we're modifying today's log, update the state
     if (dayKey === getTodayKey()) {
       setRequiredHours(updatedLog.requiredHours);
     }
     
-    loadAllLogs(); // Reload history to reflect change
+    loadAllLogs();
   };
   
   const recalculateDurationsFromLog = useCallback((log: ActivityEvent[]) => {
@@ -845,7 +864,6 @@ function WorkHoursTrackerPage() {
             lastWorkStart = null;
           }
           if (lastBreakStart) {
-            // This assumes ending the day from a break should not count the break time till the end.
             lastBreakStart = null;
           }
           break;
@@ -883,17 +901,14 @@ function WorkHoursTrackerPage() {
       timestamp: newTimestamp,
     };
     
-    // Sort log again in case the time change affects order
     const sortedLog = updatedActivityLog.sort((a,b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
     
     setActivityLog(sortedLog);
 
-    // Recalculate totals
     const { workedSeconds, pauseSeconds } = recalculateDurationsFromLog(sortedLog);
     setWorkedSeconds(workedSeconds);
     setPauseSeconds(pauseSeconds);
     
-    // Update day start time if the first event was edited
     const startDayEvent = sortedLog.find(a => a.action === 'Start Day');
     setDayStartTime(startDayEvent ? new Date(startDayEvent.timestamp) : null);
 
@@ -917,7 +932,7 @@ function WorkHoursTrackerPage() {
     let totalRequired = 0;
 
     daysInMonthUntilYesterday.forEach(day => {
-        if (isBefore(day, startOfCurrentMonth)) return; // Should not happen with eachDayOfInterval but as a safeguard
+        if (isBefore(day, startOfCurrentMonth)) return;
 
         const dayKey = format(day, 'yyyy-MM-dd');
         const log = history.find(l => l.date === dayKey);
@@ -940,7 +955,6 @@ function WorkHoursTrackerPage() {
 
     const carryOverBalance = totalWorked - totalRequired;
     
-    // Calculate week balance by iterating through the current week up to today
     const startOfThisWeek = startOfWeek(today, { weekStartsOn: 1 });
     const daysInWeekSoFar = eachDayOfInterval({ start: startOfThisWeek, end: today });
     
@@ -994,7 +1008,6 @@ function WorkHoursTrackerPage() {
   
   const monthTotalBalance = monthBalance;
   
-  // Recovery Mode Alert Logic
   useEffect(() => {
     const today = new Date();
     const dayOfMonth = today.getDate();
@@ -1042,8 +1055,10 @@ function WorkHoursTrackerPage() {
   }
 
     const toggleFocusMode = (checked: boolean) => {
+        if (!user) return;
         setIsFocusMode(checked);
-        localStorage.setItem('focusMode', String(checked));
+        const focusModeKey = `focusMode-${user.id}`;
+        localStorage.setItem(focusModeKey, String(checked));
         if(checked) {
              setRandomQuote(motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)]);
         }
@@ -1159,7 +1174,7 @@ function WorkHoursTrackerPage() {
   const isLeaveTimeMet = estimatedLeaveTime && currentTime && currentTime >= estimatedLeaveTime;
 
 
-  if (!isClient || !isAuthenticated) {
+  if (!isClient || !isAuthenticated || !user) {
     return <div className="min-h-screen bg-background" />;
   }
 
@@ -1501,7 +1516,7 @@ function WorkHoursTrackerPage() {
                 </CardContent>
               </Card>
               <div className={cn(isFocusMode && "hidden")}>
-                <WaterIntakeTracker />
+                <WaterIntakeTracker user={user} />
             </div>
           </div>
 
@@ -1581,7 +1596,7 @@ function WorkHoursTrackerPage() {
                 </Card>
               </div>
 
-              <WellnessTracker />
+              <WellnessTracker user={user} />
 
               <Card className="glass-card">
                 <CardHeader>
@@ -1634,7 +1649,6 @@ function WorkHoursTrackerPage() {
                           onSelect={(days) => {
                               if (days) {
                                   // Logic to handle adding/removing multiple days if needed
-                                  // For simplicity, we assume single day clicks are the primary interaction
                               }
                           }}
                           onDayClick={handleDayClick}

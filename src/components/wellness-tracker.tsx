@@ -9,6 +9,7 @@ import { ProgressRing } from '@/components/progress-ring';
 import { Bed, Brain, Footprints, Utensils, PersonStanding, Hand } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import type { User } from '@/lib/types';
 
 const wellnessHabits = [
   { id: 'pray', label: 'Pray', Icon: Hand },
@@ -19,33 +20,47 @@ const wellnessHabits = [
   { id: 'sleep', label: 'Sleep', Icon: Bed },
 ];
 
-const getTodayKey = () => `wellness-score-${format(new Date(), 'yyyy-MM-dd')}`;
+interface WellnessTrackerProps {
+  user: User | null;
+}
 
-export default function WellnessTracker() {
+const getTodayKey = (user: User | null) => {
+    if (!user) return null;
+    return `wellness-score-${user.id}-${format(new Date(), 'yyyy-MM-dd')}`;
+};
+
+export default function WellnessTracker({ user }: WellnessTrackerProps) {
   const [checkedHabits, setCheckedHabits] = useState<Record<string, boolean>>({});
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
+    if (!user) return;
     try {
-      const storedData = localStorage.getItem(getTodayKey());
+      const key = getTodayKey(user);
+      if (!key) return;
+      const storedData = localStorage.getItem(key);
       if (storedData) {
         setCheckedHabits(JSON.parse(storedData));
+      } else {
+        setCheckedHabits({}); // Reset for new user/day
       }
     } catch (error) {
       console.error('Failed to load wellness data from localStorage', error);
     }
-  }, []);
+  }, [isClient, user]);
 
   useEffect(() => {
-    if (isClient) {
+    if (isClient && user) {
       try {
-        localStorage.setItem(getTodayKey(), JSON.stringify(checkedHabits));
+        const key = getTodayKey(user);
+        if (!key) return;
+        localStorage.setItem(key, JSON.stringify(checkedHabits));
       } catch (error) {
         console.error('Failed to save wellness data to localStorage', error);
       }
     }
-  }, [checkedHabits, isClient]);
+  }, [checkedHabits, isClient, user]);
 
   const handleCheckedChange = (habitId: string, isChecked: boolean) => {
     setCheckedHabits(prev => ({ ...prev, [habitId]: isChecked }));
@@ -68,7 +83,7 @@ export default function WellnessTracker() {
     return { message: 'Tomorrow is a new chance to do better.', emoji: '🌙' };
   }, [completionPercentage]);
 
-  if (!isClient) {
+  if (!isClient || !user) {
     return null; // Or a skeleton loader
   }
 
