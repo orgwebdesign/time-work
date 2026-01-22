@@ -198,6 +198,7 @@ function WorkHoursTrackerPage() {
   const [isActivityEditOpen, setIsActivityEditOpen] = useState(false);
   const [editingActivity, setEditingActivity] = useState<ActivityEvent | null>(null);
   const [editingActivityIndex, setEditingActivityIndex] = useState<number | null>(null);
+  const [editingActivityTime, setEditingActivityTime] = useState('');
 
   // New Features State
   const [isFocusMode, setIsFocusMode] = useState(false);
@@ -1849,3 +1850,5 @@ export default function WorkHoursTracker() {
     </AppLayout>
   );
 }
+
+    
